@@ -1,0 +1,141 @@
+version: '3.9'
+
+services:
+
+  # ─────────────────────────────────────────────
+  # PostgreSQL - Base de datos central
+  # ─────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: revo_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: revo_db
+      POSTGRES_USER: revo_user
+      POSTGRES_PASSWORD: revo_pass_2025
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      - "5433:5432"   # 5433 externo para no chocar con Postgres local
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/01_init.sql:/docker-entrypoint-initdb.d/01_init.sql
+      - ./database/02_seed_specializations.sql:/docker-entrypoint-initdb.d/02_seed_specializations.sql
+      - ./database/03_seed_questions.sql:/docker-entrypoint-initdb.d/03_seed_questions.sql
+      - ./database/04_seed_training_data.sql:/docker-entrypoint-initdb.d/04_seed_training_data.sql
+      - ./database/05_seed_users.sql:/docker-entrypoint-initdb.d/05_seed_users.sql
+    networks:
+      - revo_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U revo_user -d revo_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ─────────────────────────────────────────────
+  # Auth Service - Puerto 8001
+  # ─────────────────────────────────────────────
+  auth-service:
+    build:
+      context: ./services/auth-service
+      dockerfile: Dockerfile
+    container_name: revo_auth
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://revo_user:revo_pass_2025@postgres:5432/revo_db
+      JWT_SECRET: revo_super_secret_jwt_key_2025
+      JWT_EXPIRE_HOURS: 24
+      SERVICE_PORT: 8001
+    ports:
+      - "8001:8001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - revo_network
+    volumes:
+      - ./services/auth-service:/app
+    command: uvicorn main:app --host 0.0.0.0 --port 8001 --reload
+
+  # ─────────────────────────────────────────────
+  # Survey Service - Puerto 8002
+  # ─────────────────────────────────────────────
+  survey-service:
+    build:
+      context: ./services/survey-service
+      dockerfile: Dockerfile
+    container_name: revo_survey
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://revo_user:revo_pass_2025@postgres:5432/revo_db
+      JWT_SECRET: revo_super_secret_jwt_key_2025
+      SERVICE_PORT: 8002
+    ports:
+      - "8002:8002"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - revo_network
+    volumes:
+      - ./services/survey-service:/app
+    command: uvicorn main:app --host 0.0.0.0 --port 8002 --reload
+
+  # ─────────────────────────────────────────────
+  # ML Service - Puerto 8003
+  # ─────────────────────────────────────────────
+  ml-service:
+    build:
+      context: ./services/ml-service
+      dockerfile: Dockerfile
+    container_name: revo_ml
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://revo_user:revo_pass_2025@postgres:5432/revo_db
+      JWT_SECRET: revo_super_secret_jwt_key_2025
+      SERVICE_PORT: 8003
+      MODEL_PATH: /app/model/saved/decision_tree.pkl
+    ports:
+      - "8003:8003"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - revo_network
+    volumes:
+      - ./services/ml-service:/app
+      - ml_models:/app/model/saved
+    command: uvicorn main:app --host 0.0.0.0 --port 8003 --reload
+
+  # ─────────────────────────────────────────────
+  # Frontend React/Vite - Puerto 5173
+  # ─────────────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: revo_frontend
+    restart: unless-stopped
+    environment:
+      VITE_AUTH_API: http://localhost:8001
+      VITE_SURVEY_API: http://localhost:8002
+      VITE_ML_API: http://localhost:8003
+    ports:
+      - "5173:5173"
+    depends_on:
+      - auth-service
+      - survey-service
+      - ml-service
+    networks:
+      - revo_network
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    command: npm run dev -- --host 0.0.0.0
+
+networks:
+  revo_network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  ml_models:

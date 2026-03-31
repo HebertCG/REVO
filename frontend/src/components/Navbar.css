@@ -1,0 +1,41 @@
+.navbar {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  background: rgba(10,14,26,0.85);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  height: 68px;
+}
+.navbar-inner {
+  max-width: 1200px; margin: 0 auto; padding: 0 24px;
+  height: 100%; display: flex; align-items: center; justify-content: space-between;
+}
+.navbar-logo {
+  display: flex; align-items: center; gap: 8px; text-decoration: none;
+}
+.logo-icon { font-size: 1.4rem; }
+.logo-text {
+  font-family: 'Space Grotesk', sans-serif; font-size: 1.4rem;
+  font-weight: 800; color: white; letter-spacing: -0.02em;
+}
+.logo-dot { color: #6C63FF; }
+
+.navbar-right { display: flex; align-items: center; gap: 8px; }
+
+.nav-link {
+  color: #94A3B8; text-decoration: none; font-size: 0.9rem; font-weight: 500;
+  padding: 6px 14px; border-radius: 8px; transition: all 0.2s;
+}
+.nav-link:hover, .nav-link.active { color: white; background: rgba(255,255,255,0.06); }
+.nav-link.active { color: #6C63FF; }
+
+.navbar-user { display: flex; align-items: center; gap: 8px; margin-left: 8px; }
+.user-avatar {
+  width: 34px; height: 34px; border-radius: 50%; background: linear-gradient(135deg,#6C63FF,#00D4FF);
+  display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.85rem;
+}
+.user-name { font-size: 0.9rem; font-weight: 600; color: #F1F5F9; }
+
+@media (max-width: 768px) {
+  .nav-link { display: none; }
+  .user-name { display: none; }
+}

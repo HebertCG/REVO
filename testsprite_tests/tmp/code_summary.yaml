@@ -1,0 +1,120 @@
+version: "2"
+type: frontend
+tech_stack:
+  - language: JavaScript (JSX)
+  - framework: React
+  - bundler: Vite
+  - ui_library: Plain CSS (no major UI framework detected)
+  - other: Node.js, npm
+routes:
+  - path: /
+    file: frontend/src/pages/Landing.jsx
+    auth_required: false
+    description: Landing / marketing page
+  - path: /login
+    file: frontend/src/pages/Login.jsx
+    auth_required: false
+    description: Login page for users
+  - path: /register
+    file: frontend/src/pages/Register.jsx
+    auth_required: false
+    description: User registration page
+  - path: /dashboard
+    file: frontend/src/pages/Dashboard.jsx
+    auth_required: true
+    description: User dashboard after login
+  - path: /questionnaire
+    file: frontend/src/pages/Questionnaire.jsx
+    auth_required: true
+    description: Questionnaire / assessment flow
+  - path: /results
+    file: frontend/src/pages/Results.jsx
+    auth_required: true
+    description: Results page after completing questionnaire
+  - path: /history
+    file: frontend/src/pages/History.jsx
+    auth_required: true
+    description: Past sessions and history view
+  - path: /admin
+    file: frontend/src/pages/Admin.jsx
+    auth_required: true
+    description: Admin area (UI for management)
+features:
+  - name: User Login
+    description: Login with email and password; stores auth state in context
+    files:
+      - frontend/src/pages/Login.jsx
+      - frontend/src/context/AuthContext.jsx
+      - frontend/src/services/api.js
+    entry_route: /login
+    user_interactions:
+      - Fill email input field
+      - Fill password input field
+      - Click Login button to submit
+      - See loading indicator and then dashboard on success
+      - See error message on invalid credentials
+    api_calls:
+      - method: POST
+        endpoint: /auth/login
+    auth_required: false
+  - name: User Registration
+    description: Register new account via registration form
+    files:
+      - frontend/src/pages/Register.jsx
+      - frontend/src/services/api.js
+    entry_route: /register
+    user_interactions:
+      - Fill name/email/password fields
+      - Click Register button
+      - See confirmation or redirect to login
+    api_calls:
+      - method: POST
+        endpoint: /auth/register
+    auth_required: false
+  - name: Questionnaire Flow
+    description: Multi-step questionnaire that collects answers and submits for ML scoring
+    files:
+      - frontend/src/pages/Questionnaire.jsx
+      - frontend/src/services/api.js
+    entry_route: /questionnaire
+    user_interactions:
+      - Start questionnaire from dashboard
+      - Answer series of questions (select/inputs)
+      - Click Next/Submit to finish
+      - See results page when complete
+    api_calls:
+      - method: POST
+        endpoint: /sessions (or /api/sessions)
+    auth_required: true
+  - name: Results Viewing
+    description: Display results returned by ML service after questionnaire
+    files:
+      - frontend/src/pages/Results.jsx
+      - frontend/src/services/api.js
+    entry_route: /results
+    user_interactions:
+      - View score and recommended courses
+      - Click recommended course to open details
+    api_calls:
+      - method: GET
+        endpoint: /sessions/{id}/results
+    auth_required: true
+  - name: Admin Panel
+    description: UI for admin tasks (may be limited in backend integration)
+    files:
+      - frontend/src/pages/Admin.jsx
+    entry_route: /admin
+    user_interactions:
+      - View admin controls and lists
+      - Perform CRUD-like actions in the UI
+    api_calls:
+      - method: GET
+        endpoint: /admin/*
+    auth_required: true
+known_limitations:
+  - issue: Some admin UI features may be UI-only and not fully integrated with backend
+    location: frontend/src/pages/Admin.jsx
+    impact: Admin actions may only modify local state or require extra backend setup
+  - issue: Endpoints inferred from frontend may have different paths in service implementations
+    location: frontend/src/services/api.js
+    impact: Tests that call backend require correct server base URLs and running services

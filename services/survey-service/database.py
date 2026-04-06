@@ -61,6 +61,30 @@ class User(Base):
     role     = Column(String(20))
 
 
+class Course(Base):
+    __tablename__ = "courses"
+    id                = Column(Integer, primary_key=True)
+    specialization_id = Column(Integer, nullable=False)
+    platform          = Column(String(50), nullable=False)
+    title             = Column(String(255), nullable=False)
+    url               = Column(Text, nullable=False)
+    level             = Column(String(50), default="Principiante")
+    price_model       = Column(String(50), default="Pago")
+    thumbnail_url     = Column(Text)
+
+
+class Job(Base):
+    __tablename__ = "jobs"
+    id                = Column(Integer, primary_key=True)
+    specialization_id = Column(Integer, nullable=False)
+    company           = Column(String(100), nullable=False)
+    title             = Column(String(255), nullable=False)
+    salary_range      = Column(String(100))
+    location          = Column(String(100), default="Remoto - Latam")
+    url               = Column(Text, default="#")
+    posted_days_ago   = Column(Integer, default=1)
+
+
 def get_db():
     db = SessionLocal()
     try:

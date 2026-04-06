@@ -25,7 +25,7 @@ export default function Login() {
 
   return (
     <div className="auth-page">
-      <div className="auth-orb orb-1"/><div className="auth-orb orb-2"/>
+      <div className="auth-orb orb-1" /><div className="auth-orb orb-2" />
       <div className="auth-card glass animate-scale">
         <div className="auth-logo">⚡ <span className="gradient-text">REVO</span></div>
         <h1 className="auth-title">Bienvenido de vuelta</h1>
@@ -37,12 +37,12 @@ export default function Login() {
           <div className="form-group">
             <label className="form-label">Email</label>
             <input className="form-input" type="email" placeholder="tu@email.com" required
-              value={form.email} onChange={e => setForm({...form, email: e.target.value})} />
+              value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} />
           </div>
           <div className="form-group">
             <label className="form-label">Contraseña</label>
             <input className="form-input" type="password" placeholder="••••••••" required
-              value={form.password} onChange={e => setForm({...form, password: e.target.value})} />
+              value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} />
           </div>
           <button type="submit" className="btn btn-primary w-full" disabled={loading}>
             {loading ? 'Iniciando sesión...' : 'Iniciar Sesión →'}
@@ -54,6 +54,7 @@ export default function Login() {
         </div>
         <div className="auth-footer text-xs text-muted">
           Demo: <strong>demo@revo.edu</strong> / <strong>Demo@1234</strong>
+          Demo Admin:<strong>admin@revo.edu</strong> / <strong>Admin@1234</strong>
         </div>
       </div>
     </div>

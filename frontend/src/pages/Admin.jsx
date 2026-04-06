@@ -1,35 +1,67 @@
 import { useState, useEffect } from 'react'
 import { mlApi, authApi } from '../services/api'
-import { BarChart, Bar, XAxis, Tooltip, Cell, ResponsiveContainer, PieChart, Pie, Legend } from 'recharts'
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Cell, ResponsiveContainer, LineChart, Line, Legend } from 'recharts'
 import './Admin.css'
 
 const SPEC_COLORS = {
-  'Desarrollo de Software':'#3B82F6',
-  'Data Science & IA':'#10B981',
-  'Infraestructura & Cloud':'#8B5CF6',
-  'Ciberseguridad':'#EF4444',
-  'Soporte Técnico & IT Ops':'#F59E0B',
-  'QA & Testing':'#EC4899',
-  'Gestión y Producto':'#6366F1',
-  'Diseño UX/UI':'#F43F5E',
-  'Sistemas Empresariales':'#14B8A6',
-  'Investigación e Innovación':'#64748B',
+  'Desarrollo de Software': '#3B82F6',
+  'Data Science & IA': '#10B981',
+  'Infraestructura & Cloud': '#8B5CF6',
+  'Ciberseguridad': '#EF4444',
+  'Soporte Técnico & IT Ops': '#F59E0B',
+  'QA & Testing': '#EC4899',
+  'Gestión y Producto': '#6366F1',
+  'Diseño UX/UI': '#F43F5E',
+  'Sistemas Empresariales': '#14B8A6',
+  'Investigación e Innovación': '#64748B',
+}
+
+const DICTIONARY = {
+  f1: { title: "⚡ Precisión F1 Base", content: "El F1 Score es la métrica de balance perfecta de la IA. Es la media armónica entre la Precisión (cuántos acertó) y el Recall (cuántos no omitió). Mide qué tan buena es la IA clasificando alumnos sin sesgos." },
+  memory: { title: "🧠 Volumen de Memoria (N)", content: "Representa el total de perfiles de alumnos (Vectores de Características) con los que el Árbol de Decisión construyó su matriz de conocimiento empírico." },
+  confidence: { title: "🎯 Confianza Algorítmica Global", content: "Es el promedio de probabilidad estocástica. Si es 87%, significa que estadísticamente, la IA está muy segura del camino recomendado y tiene poco margen de duda al predecir ramas." },
+  hyperparam: { title: "🔬 Hiperparámetro (Max Depth)", content: "Es un limitador de sobreajuste (Overfitting). Evita que el Árbol de Decisión se vuelva hiper-complejo y asimile datos basura limitando sus ramificaciones a 8 saltos matemáticos." },
+  chart_evol: { title: "📈 Evolución de Precisión (Time Series)", content: "Este análisis demuestra cómo mejora el algoritmo.<br/><br/><strong>Accuracy:</strong> Es el porcentaje total de veces que la IA atinó la carrera exacta de los alumnos.<br/><br/><strong>F1 Score:</strong> Es una métrica avanzada que castiga a la IA matemáticamente si comete errores graves al clasificar carreras que se parecen mucho entre sí." },
+  chart_exp: { title: "⚖️ Explicabilidad (Feature Importances)", content: "Utiliza el Índice de Gini para auditar el Árbol.<br/><br/>¿Qué significan las 'aff'? Son tus variables. <strong>aff_1</strong> equivale a la <em>Afinidad hacia Desarrollo de Software</em>, <strong>aff_2</strong> a <em>Data Science</em>, y así hasta el 10.<br/><br/>La barra horizontal más larga indica qué aptitud técnica toma más el algoritmo para decidir el destino de un estudiante." },
+}
+
+const Modal = ({ isOpen, onClose, title, content }) => {
+  if (!isOpen) return null;
+  return (
+    <>
+      <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 999, backdropFilter: 'blur(4px)' }} onClick={onClose} />
+      <div style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', background: '#0F172A', border: '1px solid rgba(255,255,255,0.1)', padding: '24px', borderRadius: '16px', zIndex: 1000, maxWidth: '500px', width: '90%', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)' }}>
+        <h3 style={{ margin: '0 0 16px', fontSize: '1.2rem', color: '#F1F5F9' }}>{title}</h3>
+        <p style={{ margin: 0, color: '#94A3B8', lineHeight: '1.5', fontSize: '0.95rem' }} dangerouslySetInnerHTML={{ __html: content }}></p>
+        <button onClick={onClose} style={{ background: 'rgba(255,255,255,0.1)', color: '#fff', padding: '10px', borderRadius: '8px', marginTop: '24px', width: '100%', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}>Entendido</button>
+      </div>
+    </>
+  )
 }
 
 export default function Admin() {
-  const [overview, setOverview]       = useState(null)
+  const [overview, setOverview] = useState(null)
   const [trainHistory, setTrainHistory] = useState([])
-  const [training, setTraining]       = useState(false)
+  const [importances, setImportances] = useState([])
+  const [training, setTraining] = useState(false)
   const [trainResult, setTrainResult] = useState(null)
-  const [loading, setLoading]         = useState(true)
+  const [loading, setLoading] = useState(true)
+  const [activeModal, setActiveModal] = useState(null)
 
   const fetchData = () => {
     Promise.all([mlApi.overview(), mlApi.trainingHistory()])
       .then(([o, t]) => { setOverview(o.data); setTrainHistory(t.data) })
       .finally(() => setLoading(false))
+
+    mlApi.importances().then(i => setImportances(i.data.slice(0, 5))).catch(() => { })
   }
 
-  useEffect(() => { fetchData() }, [])
+  useEffect(() => { 
+    fetchData() 
+    // Polling en tiempo real: Actualiza los datos cada 5 segundos sin recargar la página
+    const interval = setInterval(() => { fetchData() }, 5000)
+    return () => clearInterval(interval)
+  }, [])
 
   const handleRetrain = async () => {
     setTraining(true); setTrainResult(null)
@@ -43,119 +75,155 @@ export default function Admin() {
   }
 
   const dist = overview?.specialization_dist || []
-  const pieData = dist.map(d => ({
-    name: d.name.split(' ')[0], value: d.total, color: SPEC_COLORS[d.name] || '#6C63FF'
+
+  // Data for LineChart (Accuracy over time)
+  const historyChartData = [...trainHistory].reverse().map((t, idx) => ({
+    name: `V${idx + 1}`,
+    accuracy: t.accuracy ? Number((t.accuracy * 100).toFixed(1)) : 0,
+    f1: t.f1 ? Number((t.f1 * 100).toFixed(1)) : 0
   }))
 
+  const pointerStyle = { cursor: 'pointer', transition: 'transform 0.2s ease', position: 'relative' }
+  const hoverEffect = (e) => { e.currentTarget.style.transform = 'translateY(-2px) scale(1.02)' }
+  const resetEffect = (e) => { e.currentTarget.style.transform = 'none' }
+
   return (
-    <div className="page admin-page">
+    <div className="page admin-page" style={{ paddingBottom: '100px' }}>
       <div className="container">
+
+        <Modal
+          isOpen={!!activeModal}
+          onClose={() => setActiveModal(null)}
+          title={activeModal ? DICTIONARY[activeModal].title : ''}
+          content={activeModal ? DICTIONARY[activeModal].content : ''}
+        />
+
         <div className="admin-header animate-fade">
           <div>
-            <h1 className="admin-title">Panel de Administración</h1>
-            <p className="text-muted">Gestión del modelo ML y estadísticas del sistema</p>
+            <h1 className="admin-title">Laboratorio Científico de IA (Admin)</h1>
+            <p className="text-muted">Centro de control académico para observar el crecimiento y reajuste del clasificador ML. <strong>Da clic a los paneles para ver la definición técnica.</strong></p>
           </div>
-          <button onClick={handleRetrain} disabled={training} className="btn btn-primary">
-            {training ? '⏳ Entrenando...' : '🌳 Re-entrenar Modelo'}
+          <button onClick={handleRetrain} disabled={training || overview?.new_predictions === 0} className="btn btn-primary" style={{ boxShadow: '0 0 15px rgba(59, 130, 246, 0.4)' }}>
+            {training ? '⏳ Optimizando Árbol...' : '🌳 REENTRENAR MANUALMENTE'}
           </button>
         </div>
 
         {/* Train result alert */}
         {trainResult && !trainResult.error && (
           <div className="admin-alert success animate-scale">
-            <strong>Modelo re-entrenado exitosamente</strong>
-            <span>Accuracy: {(trainResult.accuracy * 100).toFixed(1)}% · F1: {(trainResult.f1 * 100).toFixed(1)}% · Profundidad: {trainResult.tree_depth} · Hojas: {trainResult.n_leaves}</span>
+            <strong>🚀 Nuevo Ciclo de Inteligencia Asimilado (Supervisado)</strong>
+            <span>Accuracy Elevado a: {(trainResult.accuracy * 100).toFixed(1)}% | F1 Score: {(trainResult.f1 * 100).toFixed(1)}% | Muestras Totales: {trainResult.training_samples}</span>
           </div>
         )}
         {trainResult?.error && (
-          <div className="admin-alert error animate-scale"><strong>Error:</strong> {trainResult.error}</div>
+          <div className="admin-alert error animate-scale"><strong>Error en Backpropagation/Traning:</strong> {trainResult.error}</div>
         )}
 
-        {/* Stats overview */}
-        <div className="admin-stats animate-fade" style={{ animationDelay:'0.1s' }}>
-          <div className="stat-card glass">
-            <div className="stat-icon" style={{ background:'rgba(108,99,255,0.15)', color:'#6C63FF' }}>📊</div>
-            <div><div className="stat-val">{overview?.total_predictions || 0}</div><div className="stat-lbl text-muted text-sm">Predicciones</div></div>
-          </div>
-          <div className="stat-card glass">
-            <div className="stat-icon" style={{ background:'rgba(0,212,255,0.1)', color:'#00D4FF' }}>🎯</div>
-            <div><div className="stat-val">{overview?.avg_confidence_pct || 0}%</div><div className="stat-lbl text-muted text-sm">Confianza Promedio</div></div>
-          </div>
-          <div className="stat-card glass">
-            <div className="stat-icon" style={{ background:'rgba(16,185,129,0.1)', color:'#10B981' }}>🌳</div>
-            <div><div className="stat-val">{overview?.last_training?.model_version || 'N/A'}</div><div className="stat-lbl text-muted text-sm">Versión del Modelo</div></div>
-          </div>
-          <div className="stat-card glass">
-            <div className="stat-icon" style={{ background:'rgba(245,158,11,0.1)', color:'#F59E0B' }}>📈</div>
+        {/* Ciclo de Auto-Aprendizaje (Nuevas Muestras) */}
+        <div className="glass admin-panel animate-fade" style={{ animationDelay: '0.1s', marginBottom: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
             <div>
-              <div className="stat-val">{overview?.last_training ? (overview.last_training.accuracy * 100).toFixed(1) + '%' : 'N/A'}</div>
-              <div className="stat-lbl text-muted text-sm">Accuracy del Modelo</div>
+              <h3 className="panel-title" style={{ margin: 0, fontSize: '1.2rem', color: '#F1F5F9' }}>⚡ Crecimiento Biológico del Dataset en Tiempo Real</h3>
+              <p className="text-muted text-sm" style={{ marginTop: '4px' }}>Nuevas encuestas resueltas por alumnos desde el último entrenamiento.</p>
             </div>
+            <div className="text-2xl font-black" style={{ color: '#00D4FF', textShadow: '0 0 10px rgba(0,212,255,0.3)' }}>
+              {overview?.new_predictions || 0} <span className="text-sm font-normal text-muted" style={{ textShadow: 'none' }}>/ 50 predicciones recolectadas</span>
+            </div>
+          </div>
+          <div style={{ width: '100%', height: '14px', background: 'rgba(255,255,255,0.05)', borderRadius: '8px', overflow: 'hidden', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.5)' }}>
+            <div style={{
+              width: `${Math.min(((overview?.new_predictions || 0) / 50) * 100, 100)}%`,
+              height: '100%',
+              background: 'linear-gradient(90deg, #6C63FF, #00D4FF)',
+              transition: 'width 1s cubic-bezier(0.4, 0, 0.2, 1)',
+              boxShadow: '0 0 10px rgba(0,212,255,0.5)'
+            }} />
+          </div>
+          <div className="text-sm" style={{ color: '#10B981', fontWeight: '800', marginTop: '4px' }}>
+            ✅ Al llegar a 50 respuestas de alumnos, el sistema ejecuta un Re-entrenamiento Automano.
           </div>
         </div>
 
-        <div className="admin-grid animate-fade" style={{ animationDelay:'0.2s' }}>
-          {/* Distribution chart */}
-          <div className="glass admin-panel">
-            <h3 className="panel-title">Distribución de Especializaciones</h3>
-            <ResponsiveContainer width="100%" height={220}>
-              <BarChart data={dist.map(d => ({ name: d.name.split(' ')[0], total: d.total, color: SPEC_COLORS[d.name] || '#6C63FF' }))} margin={{ left:-20 }}>
-                <XAxis dataKey="name" tick={{ fill:'#94A3B8', fontSize:10 }} axisLine={false} tickLine={false} />
-                <Tooltip contentStyle={{ background:'#111827', border:'1px solid rgba(255,255,255,0.08)', borderRadius:10, color:'#F1F5F9' }} />
-                <Bar dataKey="total" radius={[6,6,0,0]}>
-                  {dist.map((_,i) => <Cell key={i} fill={Object.values(SPEC_COLORS)[i] || '#6C63FF'} fillOpacity={0.8} />)}
-                </Bar>
-              </BarChart>
+        {/* Stats overview */}
+        <div className="admin-stats animate-fade" style={{ animationDelay: '0.2s', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
+
+          <div className="stat-card glass" style={pointerStyle} onClick={() => setActiveModal('f1')} onMouseEnter={hoverEffect} onMouseLeave={resetEffect}>
+            <div className="stat-icon" style={{ background: 'rgba(108,99,255,0.15)', color: '#6C63FF' }}>📈</div>
+            <div>
+              <div className="stat-val">{overview?.last_training ? (overview.last_training.accuracy * 100).toFixed(1) + '%' : 'N/A'}</div>
+              <div className="stat-lbl text-muted text-sm">Precisión F1 Base ℹ️</div>
+            </div>
+          </div>
+
+          <div className="stat-card glass" style={pointerStyle} onClick={() => setActiveModal('memory')} onMouseEnter={hoverEffect} onMouseLeave={resetEffect}>
+            <div className="stat-icon" style={{ background: 'rgba(16,185,129,0.1)', color: '#10B981' }}>🧠</div>
+            <div>
+              <div className="stat-val">{overview?.last_training?.samples || 0}</div>
+              <div className="stat-lbl text-muted text-sm">Volumen de Memoria (N) ℹ️</div>
+            </div>
+          </div>
+
+          <div className="stat-card glass" style={pointerStyle} onClick={() => setActiveModal('confidence')} onMouseEnter={hoverEffect} onMouseLeave={resetEffect}>
+            <div className="stat-icon" style={{ background: 'rgba(245,158,11,0.1)', color: '#F59E0B' }}>🎯</div>
+            <div>
+              <div className="stat-val">{overview?.avg_confidence_pct || 0}%</div>
+              <div className="stat-lbl text-muted text-sm">Confianza Algorítmica ℹ️</div>
+            </div>
+          </div>
+
+          <div className="stat-card glass" style={pointerStyle} onClick={() => setActiveModal('hyperparam')} onMouseEnter={hoverEffect} onMouseLeave={resetEffect}>
+            <div className="stat-icon" style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#EF4444' }}>🔬</div>
+            <div>
+              <div className="stat-val">Prof. 8</div>
+              <div className="stat-lbl text-muted text-sm">Max Depth ℹ️</div>
+            </div>
+          </div>
+
+        </div>
+
+        <div className="admin-grid animate-fade" style={{ animationDelay: '0.3s', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', marginTop: '24px' }}>
+
+          {/* Evolución Continua del Modelo */}
+          <div className="glass admin-panel" style={pointerStyle} onClick={() => setActiveModal('chart_evol')} onMouseEnter={hoverEffect} onMouseLeave={resetEffect}>
+            <h3 className="panel-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              Evolución de Precisión (Time Series) ℹ️
+            </h3>
+            <p className="text-muted text-xs" style={{ marginBottom: '20px' }}>Trayectoria del F1 Score y Accuracy a lo largo de todos los re-entrenamientos ejecutados.</p>
+            <ResponsiveContainer width="100%" height={260}>
+              <LineChart data={historyChartData} margin={{ left: -20, right: 10, top: 10 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                <XAxis dataKey="name" tick={{ fill: '#94A3B8', fontSize: 12 }} axisLine={false} tickLine={false} />
+                <YAxis domain={['auto', 100]} tick={{ fill: '#94A3B8', fontSize: 12 }} axisLine={false} tickLine={false} />
+                <RechartsTooltip contentStyle={{ background: '#111827', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, color: '#F1F5F9' }} />
+                <Legend iconType="circle" wrapperStyle={{ fontSize: '12px' }} />
+                <Line type="monotone" name="Accuracy" dataKey="accuracy" stroke="#00D4FF" strokeWidth={3} dot={{ r: 4, strokeWidth: 2 }} activeDot={{ r: 6 }} />
+                <Line type="monotone" name="F1 Score" dataKey="f1" stroke="#6C63FF" strokeWidth={3} dot={{ r: 4, strokeWidth: 2 }} />
+              </LineChart>
             </ResponsiveContainer>
           </div>
 
-          {/* Training history */}
-          <div className="glass admin-panel">
-            <h3 className="panel-title">Historial de Entrenamientos</h3>
-            {trainHistory.length === 0 ? (
-              <p className="text-muted text-sm text-center" style={{ padding:'20px 0' }}>Sin entrenamientos registrados</p>
+          {/* Pesos Decisionales */}
+          <div className="glass admin-panel" style={pointerStyle} onClick={() => setActiveModal('chart_exp')} onMouseEnter={hoverEffect} onMouseLeave={resetEffect}>
+            <h3 className="panel-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              Explicabilidad (Feature Importances) ℹ️
+            </h3>
+            <p className="text-muted text-xs" style={{ marginBottom: '20px' }}>Atributos/Habilidades con el peso matemático más crítico al hacer los cortes de entropía del modelo.</p>
+            {importances.length > 0 ? (
+              <ResponsiveContainer width="100%" height={260}>
+                <BarChart data={importances} layout="vertical" margin={{ left: 0, right: 20 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" horizontal={true} vertical={false} />
+                  <XAxis type="number" domain={[0, 'auto']} hide />
+                  <YAxis type="category" dataKey="feature" width={60} tick={{ fill: '#94A3B8', fontSize: 11, fontWeight: 700 }} axisLine={false} tickLine={false} />
+                  <RechartsTooltip cursor={{ fill: 'rgba(255,255,255,0.02)' }} contentStyle={{ background: '#111827', border: '1px solid rgba(16, 185, 129, 0.2)', borderRadius: 10 }} />
+                  <Bar dataKey="pct" name="Peso (%)" fill="#10B981" radius={[0, 6, 6, 0]} barSize={24} />
+                </BarChart>
+              </ResponsiveContainer>
             ) : (
-              <div className="train-list">
-                {trainHistory.slice(0,6).map((t, i) => (
-                  <div key={i} className="train-item">
-                    <div>
-                      <div className="text-sm font-semibold">{t.model_version}</div>
-                      <div className="text-xs text-muted">{t.trained_at ? new Date(t.trained_at).toLocaleString('es-ES') : '—'}</div>
-                    </div>
-                    <div style={{ textAlign:'right' }}>
-                      <div className="text-sm font-bold" style={{ color: '#10B981' }}>
-                        {t.accuracy ? (t.accuracy * 100).toFixed(1) + '%' : '—'}
-                      </div>
-                      <div className="text-xs text-muted">{t.training_samples} muestras · depth {t.tree_depth}</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
+              <div style={{ height: '260px', display: 'flex', alignItems: 'center', justifyContent: 'center' }} className="text-muted">Cargando métricas de explicabilidad...</div>
             )}
           </div>
-        </div>
 
-        {/* Last training info */}
-        {overview?.last_training && (
-          <div className="glass admin-panel animate-fade" style={{ animationDelay:'0.3s', padding:28 }}>
-            <h3 className="panel-title">Modelo Actual</h3>
-            <div className="model-info-grid">
-              {[
-                { l:'Versión',   v: overview.last_training.model_version },
-                { l:'Accuracy',  v: (overview.last_training.accuracy * 100).toFixed(1) + '%' },
-                { l:'F1 Score',  v: (overview.last_training.f1 * 100).toFixed(1) + '%' },
-                { l:'Muestras',  v: overview.last_training.samples },
-                { l:'Algoritmo', v: 'DecisionTreeClassifier' },
-                { l:'Entrenado', v: overview.last_training.trained_at ? new Date(overview.last_training.trained_at).toLocaleDateString('es-ES') : '—' },
-              ].map((item, i) => (
-                <div key={i} className="model-info-item">
-                  <div className="text-xs text-muted font-semibold" style={{ textTransform:'uppercase', letterSpacing:'0.05em', marginBottom:4 }}>{item.l}</div>
-                  <div className="font-bold">{item.v}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+        </div>
       </div>
     </div>
   )

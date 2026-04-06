@@ -21,6 +21,8 @@ export const surveyApi = {
   submitPhase:          (sid)       => axios.post(`/api/survey/sessions/${sid}/submit_phase`, {}, { headers: authHeader() }),
   getHistory:           ()          => axios.get('/api/survey/sessions/', { headers: authHeader() }),
   getSession:           (sid)       => axios.get(`/api/survey/sessions/${sid}`, { headers: authHeader() }),
+  getRecommendedCourses:(specId)    => axios.get(`/api/survey/courses/specialization/${specId}`),
+  getRecommendedJobs:   (specId)    => axios.get(`/api/survey/jobs/specialization/${specId}`),
 }
 
 // ── ML Service ────────────────────────────────────────────
@@ -30,7 +32,7 @@ export const mlApi = {
   getHistory:    (uid)   => axios.get(`/api/ml/predict/user/${uid}/history`, { headers: authHeader() }),
   importances:   ()      => axios.get('/api/ml/predict/model/importances', { headers: authHeader() }),
   treeViz:       ()      => axios.get('/api/ml/predict/model/tree', { headers: authHeader() }),
-  overview:      ()      => axios.get('/api/ml/stats/overview'),
-  trainingHistory:()     => axios.get('/api/ml/stats/training-history'),
+  overview:      ()      => axios.get(`/api/ml/stats/overview?t=${new Date().getTime()}`),
+  trainingHistory:()     => axios.get(`/api/ml/stats/training-history?t=${new Date().getTime()}`),
   retrain:       ()      => axios.post('/api/ml/stats/train', {}, { headers: authHeader() }),
 }

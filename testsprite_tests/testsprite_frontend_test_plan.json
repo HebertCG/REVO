@@ -1,0 +1,36 @@
+[
+  {
+    "id": "t1-login",
+    "name": "Login Flow",
+    "title": "Login Flow",
+    "description": "Verifica que un usuario pueda iniciar sesión con credenciales válidas.",
+    "route": "/login",
+    "steps": [
+      { "action": "fill", "selector": "input[name=\"email\"]", "value": "test+ui@revo.local" },
+      { "action": "fill", "selector": "input[name=\"password\"]", "value": "Password123!" },
+      { "action": "click", "selector": "button[type=submit]" },
+      { "action": "waitForNavigation" }
+    ]
+  },
+  {
+    "id": "t2-start-questionnaire",
+    "name": "Start Questionnaire",
+    "title": "Start Questionnaire",
+    "description": "Verifica que el usuario pueda iniciar el cuestionario desde el dashboard.",
+    "route": "/questionnaire",
+    "steps": [
+      { "action": "click", "selector": "button.start-questionnaire, button[data-start]" },
+      { "action": "waitForSelector", "selector": "form.questionnaire" }
+    ]
+  },
+  {
+    "id": "t3-view-results",
+    "name": "View Results",
+    "title": "View Results",
+    "description": "Verifica que la página de resultados muestre el resumen después de completar el cuestionario.",
+    "route": "/results",
+    "steps": [
+      { "action": "waitForSelector", "selector": "#results" }
+    ]
+  }
+]

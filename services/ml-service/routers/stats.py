@@ -87,11 +87,19 @@ def get_overview(db: Session = Depends(get_db)):
         "SELECT ROUND(AVG(confidence_score) * 100, 1) FROM predictions"
     )).scalar()
 
+    # Muestras crudas recolectadas desde la última vez (para mostrar crecimiento al profesor)
+    new_preds = 0
+    if last_log and last_log.trained_at:
+        new_preds = db.query(Prediction).filter(Prediction.created_at >= last_log.trained_at).count()
+    else:
+        new_preds = total_preds
+
     return {
         "total_predictions":   total_preds,
         "avg_confidence_pct":  float(avg_conf) if avg_conf else 0,
         "specialization_dist": distribution,
         "last_training":       last_train,
+        "new_predictions":     new_preds,
     }
 
 

@@ -1,0 +1,20 @@
+{
+  "status": "commited",
+  "type": "frontend",
+  "scope": "codebase",
+  "localEndpoint": "http://localhost:5173",
+  "loginUser": "demo@revo.edu",
+  "loginPassword": "Demo@1234",
+  "executionArgs": {
+    "projectName": "REVO",
+    "projectPath": "c:\\Users\\corne\\OneDrive\\Escritorio\\HC\\REVO",
+    "testIds": [],
+    "additionalInstruction": "",
+    "serverMode": "development",
+    "envs": {
+      "API_KEY": "sk-user-Unzw9RlpVG8QfmOAA9Zuw7OR_tDKMy7-5LJQxg-IAgxTrSktAQNIjnR1uEnRSQRwVpxdNs_fmRhRKuojsKmwdjz7p47Jov9UWE_NGwlIU3rP0dfvukhhHhqFgJuzxreHNJk"
+    }
+  },
+  "serverPort": 60466,
+  "proxy": "http://90ec2139-abfb-461d-8869-d6a133df5526:kn4XmiKMfVL5NkOVPVjDeNEXI8nBDbuy@tun.testsprite.com:8080"
+}

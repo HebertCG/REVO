@@ -1,10 +1,10 @@
-from fastapi import APIRouter, Depends, HTTPException, Header
+from fastapi import APIRouter, Depends, HTTPException, Header, BackgroundTasks
 from sqlalchemy.orm import Session
 from jose import JWTError, jwt
 
-from database import get_db, Prediction
+from database import get_db, Prediction, ModelTrainingLog
 from model.predictor import predict, get_feature_importances
-from model.trainer import load_model
+from model.trainer import load_model, train_model
 from schemas import PredictRequest, PredictResponse, FeatureImportance
 from config import settings
 
@@ -22,10 +22,31 @@ def extract_user_id(authorization: str = Header(None)) -> int:
         raise HTTPException(status_code=401, detail="Token inválido")
 
 
+def check_and_retrain():
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        last_log = db.query(ModelTrainingLog).order_by(ModelTrainingLog.trained_at.desc()).first()
+        new_preds = 0
+        if last_log and last_log.trained_at:
+            new_preds = db.query(Prediction).filter(Prediction.created_at >= last_log.trained_at).count()
+        else:
+            new_preds = db.query(Prediction).count()
+        
+        if new_preds >= 50:
+            print(f"🚀 [AUTO-RETRAIN] Muestras nuevas llegaron a 50. Entrenando el modelo en background...")
+            train_model(db, trained_by_id=None)
+    except Exception as e:
+        print(f"❌ [AUTO-RETRAIN FAIL] {e}")
+    finally:
+        db.close()
+
+
 # ── POST /predict/ ───────────────────────────────────────────
 @router.post("/", response_model=PredictResponse)
 def make_prediction(
     body: PredictRequest,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     _: int = Depends(extract_user_id)
 ):
@@ -53,6 +74,8 @@ def make_prediction(
     db.add(pred_record)
     db.commit()
     db.refresh(pred_record)
+
+    background_tasks.add_task(check_and_retrain)
 
     return PredictResponse(
         prediction_id = pred_record.id,

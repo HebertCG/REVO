@@ -3,7 +3,7 @@ services:
     name: revo-auth-service
     env: python
     plan: free
-    rootDir: backend/auth-service
+    rootDir: services/auth-service
     buildCommand: "pip install -r requirements.txt"
     startCommand: "uvicorn main:app --host 0.0.0.0 --port $PORT"
     envVars:
@@ -16,7 +16,7 @@ services:
     name: revo-survey-service
     env: python
     plan: free
-    rootDir: backend/survey-service
+    rootDir: services/survey-service
     buildCommand: "pip install -r requirements.txt"
     startCommand: "uvicorn main:app --host 0.0.0.0 --port $PORT"
     envVars:
@@ -27,7 +27,7 @@ services:
     name: revo-ml-service
     env: python
     plan: free
-    rootDir: backend/ml-service
+    rootDir: services/ml-service
     buildCommand: "pip install -r requirements.txt"
     startCommand: "python train_cron.py & uvicorn main:app --host 0.0.0.0 --port $PORT"
     envVars:

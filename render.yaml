@@ -7,6 +7,8 @@ services:
     buildCommand: "pip install -r requirements.txt"
     startCommand: "uvicorn main:app --host 0.0.0.0 --port $PORT"
     envVars:
+      - key: PYTHON_VERSION
+        value: "3.10.0"
       - key: DATABASE_URL
         sync: false
       - key: SECRET_KEY
@@ -20,6 +22,8 @@ services:
     buildCommand: "pip install -r requirements.txt"
     startCommand: "uvicorn main:app --host 0.0.0.0 --port $PORT"
     envVars:
+      - key: PYTHON_VERSION
+        value: "3.10.0"
       - key: DATABASE_URL
         sync: false
 
@@ -31,5 +35,7 @@ services:
     buildCommand: "pip install -r requirements.txt"
     startCommand: "python train_cron.py & uvicorn main:app --host 0.0.0.0 --port $PORT"
     envVars:
+      - key: PYTHON_VERSION
+        value: "3.10.0"
       - key: DATABASE_URL
         sync: false

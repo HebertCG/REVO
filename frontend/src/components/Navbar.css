@@ -35,7 +35,28 @@
 }
 .user-name { font-size: 0.9rem; font-weight: 600; color: #F1F5F9; }
 
+.hamburger {
+  display: none; background: none; border: none; color: white;
+  font-size: 1.8rem; cursor: pointer; transition: transform 0.2s;
+}
+
 @media (max-width: 768px) {
-  .nav-link { display: none; }
-  .user-name { display: none; }
+  .hamburger { display: flex; align-items: center; justify-content: center; }
+
+  .navbar-right {
+    position: fixed; top: 68px; left: 0; right: 0;
+    background: rgba(10,14,26,0.95);
+    backdrop-filter: blur(20px);
+    flex-direction: column; padding: 24px; gap: 16px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    transform: translateY(-150%); opacity: 0;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease;
+    z-index: 99; box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+  }
+  .navbar-right.open {
+    transform: translateY(0); opacity: 1;
+  }
+  .nav-link { width: 100%; text-align: center; padding: 12px; font-size: 1.1rem; }
+  .navbar-user { flex-direction: column; width: 100%; align-items: center; gap: 12px; padding-top: 16px; border-top: 1px solid rgba(255,255,255,0.05); }
+  .user-name { display: block; font-size: 1rem; }
 }

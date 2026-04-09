@@ -103,6 +103,66 @@ const ARCHETYPES = {
   D: { name: 'El Perfeccionista Técnico', icon: '🔬', desc: 'La calidad es tu obsesión. Revisas todo antes de publicar. Este perfil es el núcleo de QA, Investigación y Ciberseguridad.', color: '#10B981' },
 }
 
+// Matriz de Fusión: Especialidad Técnica (ML) + Arquetipo Psicométrico -> Rol Definitivo
+const FUSION_MATRIX = {
+  'Desarrollo de Software': {
+    A: 'Ingeniero de Backend / Arquitecto de Software',
+    B: 'Desarrollador Full-Stack / Startup Hacker',
+    C: 'Tech Lead / Scrum Master Técnico',
+    D: 'Desarrollador de Sistemas Críticos y Rendimiento'
+  },
+  'Data Science & IA': {
+    A: 'Machine Learning Engineer / Consultor de Datos',
+    B: 'Inteligencia de Negocios (BI) / Analista de Datos',
+    C: 'Traductor de Datos (Data Product Manager)',
+    D: 'Investigador de IA / Arquitecto de Datos'
+  },
+  'Infraestructura & Cloud': {
+    A: 'Arquitecto Cloud (AWS/Azure)',
+    B: 'DevOps Engineer (Despliegues Ágiles)',
+    C: 'Site Reliability Engineer (SRE) Colaborativo',
+    D: 'Administrador de Alta Disponibilidad & Redes'
+  },
+  'Ciberseguridad': {
+    A: 'Auditor de Seguridad Informática',
+    B: 'Pentester / Hacker Ético (Red Team)',
+    C: 'Consultor de Compliance en Seguridad',
+    D: 'Especialista en Defensa de Redes (Blue Team)'
+  },
+  'QA & Testing': {
+    A: 'Arquitecto de Automatización QA (SDET)',
+    B: 'Especialista en Pruebas Exploratorias',
+    C: 'QA Lead / Gestor de Calidad de Producto',
+    D: 'Performance & Load Testing Engineer'
+  },
+  'Gestión y Producto': {
+    A: 'Technical Product Manager',
+    B: 'Agile Coach / Scrum Master Orientado a Entregas',
+    C: 'Product Owner',
+    D: 'Analista de Requerimientos de Software'
+  },
+  'Diseño UX/UI': {
+    A: 'Arquitecto de Información / UX Researcher',
+    B: 'Prototipador Web Rápido para Startups',
+    C: 'Diseñador de Producto (Product Designer)',
+    D: 'Design Systems Manager / Especialista en Accesibilidad'
+  }
+}
+
+const getDefinitiveRole = (careerName, archetypeKey) => {
+  if (FUSION_MATRIX[careerName] && FUSION_MATRIX[careerName][archetypeKey]) {
+    return FUSION_MATRIX[careerName][archetypeKey];
+  }
+  // Fallback inteligente para especializaciones menos comunes
+  const archDesc = {
+    A: 'con Enfoque en Arquitectura',
+    B: 'con Enfoque en Agilidad y Ejecución',
+    C: 'con Visión de Liderazgo y Equipo',
+    D: 'con Enfoque Analítico y de Alta Precisión'
+  };
+  return `Especialista en ${careerName} ${archDesc[archetypeKey] || ''}`;
+}
+
 export default function Results() {
   const { id } = useParams()
   const { state } = useLocation()
@@ -420,18 +480,35 @@ export default function Results() {
         </div>
 
 
-        {/* Arquetipo Profesional */}
-        {archetype && (() => {
+        {/* Fusión: Arquetipo + Especialidad -> Rol Definitivo */}
+        {archetype && primary && (() => {
           const arc = ARCHETYPES[archetype]
+          const definitiveRole = getDefinitiveRole(primary.name, archetype);
           return arc ? (
-            <div className="glass results-panel animate-fade" style={{ animationDelay: '0.6s', marginTop: 20, gridColumn: '1 / -1', display: 'flex', gap: 20, alignItems: 'flex-start', flexWrap: 'wrap' }}>
-              <div style={{ fontSize: '3rem', lineHeight: 1 }}>{arc.icon}</div>
-              <div style={{ flex: 1, minWidth: 200 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8, flexWrap: 'wrap' }}>
-                  <span className="badge" style={{ background: arc.color + '22', color: arc.color, border: `1px solid ${arc.color}44` }}>🧠 Tu Arquetipo Profesional</span>
+            <div className="glass results-panel animate-fade" style={{ animationDelay: '0.6s', marginTop: 20, gridColumn: '1 / -1', borderLeft: `6px solid ${color}`, position: 'relative', overflow: 'hidden' }}>
+              <div className="arc-icon-bg" style={{ position: 'absolute', top: -30, right: -20, fontSize: '12rem', opacity: 0.05, filter: 'grayscale(100%)', pointerEvents: 'none' }}>{arc.icon}</div>
+              
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16, flexWrap: 'wrap', position: 'relative', zIndex: 1 }}>
+                <span className="badge" style={{ background: color + '22', color: color, border: `1px solid ${color}44`, fontWeight: 700 }}>🏆 Tu Rol Definitivo (Visión 360°)</span>
+                <span className="badge" style={{ background: arc.color + '22', color: arc.color, border: `1px solid ${arc.color}44` }}>🧠 Arquetipo: {arc.name.replace('El ', '')}</span>
+              </div>
+              
+              <h3 style={{ fontFamily: 'Space Grotesk', fontWeight: 800, fontSize: '1.8rem', color: '#fff', marginBottom: 12, position: 'relative', zIndex: 1 }}>
+                {definitiveRole}
+              </h3>
+              
+              <p className="text-muted text-sm" style={{ lineHeight: 1.6, maxWidth: '90%', position: 'relative', zIndex: 1 }}>
+                La Inteligencia Artificial determinó que tus habilidades técnicas son ideales para la <strong>{primary.name}</strong>, 
+                pero tu prueba psicométrica revela que posees un enfoque marcado hacia la postura de <strong>{arc.name.replace('El ', '')}</strong>. 
+                La máxima sinergia de estas dos áreas te ubica perfectamente en el puesto de {definitiveRole}.
+              </p>
+              
+              <div style={{ marginTop: 16, padding: '16px', background: 'rgba(255,255,255,0.03)', borderRadius: 12, display: 'flex', gap: 16, alignItems: 'center', border: '1px solid rgba(255,255,255,0.05)', position: 'relative', zIndex: 1 }}>
+                <div style={{ fontSize: '2.5rem' }}>{arc.icon}</div>
+                <div>
+                  <div style={{ fontSize: '0.85rem', color: arc.color, fontWeight: 700, marginBottom: 4 }}>El "Por Qué" de tu Arquetipo</div>
+                  <div style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.7)', lineHeight: 1.5 }}>{arc.desc}</div>
                 </div>
-                <h3 style={{ fontFamily: 'Space Grotesk', fontWeight: 800, fontSize: '1.3rem', color: arc.color, marginBottom: 8 }}>{arc.name}</h3>
-                <p className="text-muted text-sm" style={{ lineHeight: 1.6 }}>{arc.desc}</p>
               </div>
             </div>
           ) : null

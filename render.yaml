@@ -1,0 +1,32 @@
+services:
+  - type: web
+    name: revo-auth-service
+    env: python
+    rootDir: backend/auth-service
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "uvicorn main:app --host 0.0.0.0 --port $PORT"
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: SECRET_KEY
+        generateValue: true
+
+  - type: web
+    name: revo-survey-service
+    env: python
+    rootDir: backend/survey-service
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "uvicorn main:app --host 0.0.0.0 --port $PORT"
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+
+  - type: web
+    name: revo-ml-service
+    env: python
+    rootDir: backend/ml-service
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "python train_cron.py & uvicorn main:app --host 0.0.0.0 --port $PORT"
+    envVars:
+      - key: DATABASE_URL
+        sync: false

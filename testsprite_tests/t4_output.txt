@@ -1,0 +1,4 @@
+Traceback (most recent call last):
+  File "c:\Users\corne\OneDrive\Escritorio\HC\REVO\testsprite_tests\t4-security_access_admin_as_student.py", line 2, in <module>
+    from playwright import async_api
+ModuleNotFoundError: No module named 'playwright'

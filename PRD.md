@@ -82,3 +82,36 @@ REVO es un ecosistema diseñado para estudiantes de Ingeniería de Sistemas que 
 *   **F1 Score:** El balance real de la precisión del modelo (lo que el jurado querrá ver).
 *   **Arquetipo:** Perfil conductual del alumno frente al trabajo técnico.
 *   **Polling:** El sistema actualiza el Admin Panel cada 5 segundos sin recargar (Tiempo Real).
+
+---
+
+## 8. Plan de Pruebas E2E (TestSprite Ready)
+
+A continuación se definen los casos de prueba críticos que la IA de TestSprite debe validar para asegurar la integridad de REVO.
+
+### 🛡️ 8.1. Pruebas de Seguridad y Exposición
+| ID | Caso de Prueba | Pasos | Resultado Esperado |
+|---|---|---|---|
+| SEC-01 | Acceso No Autorizado | Intentar entrar a `/admin` con un usuario de rol `student`. | El sistema debe redirigir a `/dashboard` o mostrar error 403. |
+| SEC-02 | Exposición de Errores | Provocar un error 500 (ej: cerrar el backend) mientras se usa el Cuestionario. | La UI debe mostrar un mensaje amigable ("Error de conexión"). **Prohibido** mostrar stack traces de Python o rutas de archivos del servidor. |
+| SEC-03 | Protección de Rutas | Acceder a `/results/1` sin haber iniciado sesión. | Redirección automática a `/login`. |
+
+### ⚙️ 8.2. Pruebas Funcionales y Lógica Adaptativa
+| ID | Caso de Prueba | Pasos | Resultado Esperado |
+|---|---|---|---|
+| FUNC-01 | Flujo de Fases | Completar 10 preguntas de Fase 1. | El sistema debe mostrar el loader de "Calculando Fase 2" y cargar exactamente 15 preguntas nuevas. |
+| FUNC-02 | Persistencia de Respuestas | Contestar 5 preguntas, recargar la página (F5). | Las respuestas deben seguir seleccionadas (State Persistence). |
+| FUNC-03 | Bloqueo de Navegación | Intentar dar clic en "Siguiente" sin haber seleccionado una opción. | El botón debe estar deshabilitado (`disabled`) o mostrar un aviso visual. |
+| FUNC-04 | Cálculo de Arquetipo | Completar Fase 3 eligiendo la opción 'A' en todas. | El resultado final debe mostrar el arquetipo "Arquitecto Analítico". |
+
+### ⚡ 8.3. Pruebas Tecnicas (Performance & Latency)
+| Requisito Técnico | Umbral de Aceptación (Target) | Acción en Fallo |
+|---|---|---|
+| **Latencia de Predicción** | El endpoint `/predict/` debe responder en menos de **1.5 segundos**. | Si excede, TestSprite debe reportar un "Performance Bottleneck". |
+| **Carga de Imágenes** | Logos de empresas en la bolsa de empleos (Remotive) < 800ms. | Si fallan, se debe mostrar el ícono de backup `🏢`. |
+| **Polling de Admin** | El dashboard debe realizar una petición cada 5s exactos. | Reportar si hay acumulamiento de peticiones colgantes. |
+
+### 🐛 8.4. Escenarios de Error Crítico (Edge Cases)
+1.  **Timeouts de Red:** Interrumpir la conexión a mitad del cuestionario. La app no debe morir (White Screen of Death); debe permitir reintentar el envío.
+2.  **Tokens Expirados:** Si el token JWT expira mientras el usuario ve los resultados, el sistema debe limpiar el `localStorage` y pedir login de nuevo sin bucles infinitos.
+3.  **Datos de ML Nulos:** Si el servicio de ML devuelve una predicción con confianza 0%, la UI debe mostrar una advertencia: "Tu perfil es muy variado, intenta ser más específico".

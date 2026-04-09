@@ -13,6 +13,13 @@
 
 .dash-grid { display: grid; grid-template-columns: 1fr 360px; gap: 24px; }
 @media(max-width:1024px){ .dash-grid{ grid-template-columns: 1fr; } }
+@media(max-width:480px){
+  .dashboard { padding-bottom: 40px; }
+  .result-preview { padding: 24px; }
+  .result-spec-name { font-size: 1.5rem; }
+  .conf-num { font-size: 2.2rem; }
+  .dash-greeting { font-size: 1.4rem; }
+}
 
 .dash-side { display: flex; flex-direction: column; gap: 16px; }
 

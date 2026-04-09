@@ -99,3 +99,18 @@
 .btn-apply { padding: 8px 16px; border-radius: 8px; color: #fff; font-weight: 700; font-size: 0.9rem; text-decoration: none; transition: transform 0.2s; }
 .btn-apply:hover { transform: scale(1.05); }
 
+/* Mobile Results Tweaks */
+@media(max-width: 600px) {
+  .results-page { padding-bottom: 40px; }
+  .result-hero { padding: 24px 16px; margin-bottom: 16px; }
+  .result-hero-content { flex-direction: column-reverse; align-items: center; text-align: center; gap: 24px; }
+  .result-conf-row { justify-content: center; }
+  .career-paths { justify-content: center; }
+  .conf-circle { width: 100px; height: 100px; }
+  .results-panel { padding: 24px 16px; }
+  .arc-icon-bg { display: none !important; }
+  /* Ensure Recharts container doesn't overflow */
+  .recharts-responsive-container { max-width: 100%; min-height: 250px; }
+  .result-actions { flex-direction: column; width: 100%; gap: 12px; }
+  .result-actions .btn { width: 100%; justify-content: center; }
+}

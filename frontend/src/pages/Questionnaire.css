@@ -48,8 +48,14 @@
 .loading-tree { font-size: 3rem; animation: float 2s ease-in-out infinite; margin-bottom: 16px; }
 
 @media(max-width:600px){
-  .scale-buttons { gap: 6px; }
-  .scale-btn { width: 46px; height: 46px; font-size: 1rem; }
-  .scale-container { gap: 8px; }
-  .question-card { padding: 24px 20px; }
+  .scale-buttons { gap: 6px; justify-content: space-between; width: 100%; }
+  .scale-btn { width: 44px; height: 44px; font-size: 1rem; flex-shrink: 0; }
+  .scale-container { flex-direction: column; gap: 12px; }
+  .scale-label { align-self: flex-start; }
+  .scale-container .scale-label:last-child { align-self: flex-end; margin-top: -8px; }
+  .question-card { padding: 24px 16px; }
+  .q-text { font-size: 1.15rem; margin-bottom: 24px; }
+  .quiz-progress-info { flex-direction: column; gap: 4px; }
+  .quiz-nav { flex-direction: column-reverse; gap: 12px; margin-top: 16px; }
+  .quiz-nav .btn { width: 100%; }
 }

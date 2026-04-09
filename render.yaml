@@ -24,6 +24,8 @@ services:
     envVars:
       - key: PYTHON_VERSION
         value: "3.10.0"
+      - key: ML_SERVICE_URL
+        value: "https://revo-ml-service.onrender.com"
       - key: DATABASE_URL
         sync: false
 

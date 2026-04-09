@@ -188,15 +188,17 @@ def submit_phase(session_id: int, request_headers: dict = Depends(lambda: {}), d
 
         # Llamar a ml-service
         try:
+            import os
             headers = {"Authorization": authorization, "Content-Type": "application/json"}
             payload = {
                 "session_id": session_id,
                 "user_id": user_id,
                 "feature_vector": affinities
             }
-            # En docker/local, asume ml-service en 8013
-            ml_url = "http://localhost:8013/predict/"
-            res = requests.post(ml_url, json=payload, headers=headers, timeout=5)
+            # Usa variable de entorno, si no asume localhost
+            base_ml = os.environ.get("ML_SERVICE_URL", "http://localhost:8013").rstrip("/")
+            ml_url = f"{base_ml}/predict/"
+            res = requests.post(ml_url, json=payload, headers=headers, timeout=10)
             res.raise_for_status()
             pred_data = res.json()
             return {"message": "Cuestionario completado", "prediction_id": pred_data["prediction_id"]}

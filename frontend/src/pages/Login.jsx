@@ -52,10 +52,7 @@ export default function Login() {
         <div className="auth-footer">
           ¿No tienes cuenta? <Link to="/register" className="auth-link">Regístrate gratis</Link>
         </div>
-        <div className="auth-footer text-xs text-muted">
-          Demo: <strong>demo@revo.edu</strong> / <strong>Demo@1234</strong>
-          Demo Admin:<strong>admin@revo.edu</strong> / <strong>Admin@1234</strong>
-        </div>
+
       </div>
     </div>
   )

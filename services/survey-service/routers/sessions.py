@@ -198,7 +198,7 @@ def submit_phase(session_id: int, request_headers: dict = Depends(lambda: {}), d
             # Usa variable de entorno, si no asume localhost
             base_ml = os.environ.get("ML_SERVICE_URL", "http://localhost:8013").rstrip("/")
             ml_url = f"{base_ml}/predict/"
-            res = requests.post(ml_url, json=payload, headers=headers, timeout=10)
+            res = requests.post(ml_url, json=payload, headers=headers, timeout=30)
             res.raise_for_status()
             pred_data = res.json()
             return {

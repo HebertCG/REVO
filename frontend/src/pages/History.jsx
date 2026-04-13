@@ -163,7 +163,7 @@ export default function History() {
                     <div style={{ fontSize: '0.8rem', color: '#64748B' }}>
                       {new Date(h.created_at).toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
                     </div>
-                    <div className="progress-track" style={{ marginTop: 8, height: 4, maxWidth: 300 }}>
+                    <div className="progress-track" style={{ marginTop: 8, height: 4 }}>
                       <div className="progress-fill" style={{ width: `${h.confidence_pct}%`, background: color }} />
                     </div>
                   </div>

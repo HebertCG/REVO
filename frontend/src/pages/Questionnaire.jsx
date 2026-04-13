@@ -253,10 +253,14 @@ export default function Questionnaire() {
       <div className="text-center analyzing">
         <div className="analyzing-icon">🧠</div>
         <h2 className="gradient-text" style={{ fontFamily:'Space Grotesk', fontSize:'1.8rem', fontWeight:800 }}>
-          {phase === 1 ? 'Calculando Inteligencia Adaptativa...' : 'Ejecutando Árbol de ML...'}
+          {phase === 1 ? 'Calculando Inteligencia Adaptativa...' : 
+           phase === 2 ? 'Analizando afinidades...' : 
+           'Construyendo y Ejecutando Árbol de ML...'}
         </h2>
         <p className="text-muted">
-          {phase === 1 ? 'Encontrando tus mejores 3 ramas y generando preguntas avanzadas.' : 'El algoritmo está decidiendo tu futuro ideal.'}
+          {phase === 1 ? 'Encontrando tus mejores 3 ramas y generando preguntas avanzadas.' : 
+           phase === 2 ? 'Preparando las últimas preguntas específicas para tu perfil...' : 
+           'Integrando todas tus respuestas para revelar tu especialización ideal.'}
         </p>
         {error && <p style={{ color: '#FBBF24', marginTop: 12, fontSize: '0.9rem' }}>{error}</p>}
         <div className="analyzing-dots"><span/><span/><span/></div>
@@ -292,11 +296,16 @@ export default function Questionnaire() {
     const handleP3Next = () => {
       if (!p3Selected) return
       if (isLastP3) {
+        setSubmitting(true)
         const finalAnswers = { ...phase3Answers, [p3q.id]: p3Selected }
         const archetype = calcArchetype(finalAnswers)
         sessionStorage.setItem('revo_archetype', JSON.stringify(archetype))
         const pendingId = sessionStorage.getItem('revo_pending_result')
-        navigate(`/results/${pendingId}`)
+        
+        // Simular tiempo de carga del ML para generar el clímax visual antes de los resultados
+        setTimeout(() => {
+          navigate(`/results/${pendingId}`)
+        }, 3500)
       } else {
         setPhase3Current(c => c + 1)
       }
@@ -315,7 +324,7 @@ export default function Questionnaire() {
             </div>
             <div style={{ marginTop: 12, padding: '8px 14px', background: 'rgba(16,185,129,0.08)', borderRadius: 8, border: '1px solid rgba(16,185,129,0.2)' }}>
               <span className="text-sm" style={{ color: '#10B981' }}>
-                🎉 El ML te recomienda <strong>{winningSpec || 'tu especialización'}</strong>. Ahora descubramos tu perfil profesional exacto.
+                🎉 <strong>¡Última etapa!</strong> Responde estas preguntas para que el algoritmo determine tu perfil profesional y especialidad ideal.
               </span>
             </div>
           </div>

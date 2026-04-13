@@ -7,7 +7,7 @@ import joblib
 import numpy as np
 import pandas as pd
 from datetime import datetime, timezone
-from sklearn.tree import DecisionTreeClassifier, export_text
+from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import (
     accuracy_score, precision_score, recall_score, f1_score
@@ -47,14 +47,12 @@ def train_model(db: Session, trained_by_id: int = None) -> dict:
         X, y, test_size=0.20, random_state=42, stratify=y
     )
 
-    # ── Árbol de Decisión ─────────────────────────────────────
-    clf = DecisionTreeClassifier(
-        max_depth=8,
-        criterion="gini",
-        min_samples_leaf=2,
-        min_samples_split=4,
+    # ── Regresión Logística (Más estable y sin sesgos para features 1:1) ──
+    clf = LogisticRegression(
+        max_iter=1000,
         class_weight="balanced",
-        random_state=42,
+        multi_class="multinomial",
+        random_state=42
     )
     clf.fit(X_train, y_train)
 
@@ -81,14 +79,12 @@ def train_model(db: Session, trained_by_id: int = None) -> dict:
         f1_score         = f1,
         training_samples = len(X_train),
         test_samples     = len(X_test),
-        max_depth        = clf.get_depth(),
+        max_depth        = 0,
         features_used    = FEATURE_COLS,
         hyperparams      = {
-            "max_depth": 8,
-            "criterion": "gini",
-            "min_samples_leaf": 2,
-            "min_samples_split": 4,
+            "max_iter": 1000,
             "class_weight": "balanced",
+            "multi_class": "multinomial",
         },
         model_path       = settings.MODEL_PATH,
         trained_by       = trained_by_id,
@@ -111,7 +107,7 @@ def train_model(db: Session, trained_by_id: int = None) -> dict:
     }
 
 
-def load_model() -> DecisionTreeClassifier:
+def load_model() -> LogisticRegression:
     """Carga el modelo guardado en disco."""
     if not os.path.exists(settings.MODEL_PATH):
         raise FileNotFoundError(f"Modelo no encontrado en {settings.MODEL_PATH}. Entrene primero.")

@@ -97,9 +97,14 @@ def predict(answers: dict) -> dict:
 
 
 def get_feature_importances() -> list[dict]:
-    """Retorna la importancia de cada feature (pregunta) en el modelo."""
+    """Retorna la importancia de cada feature. Para Regresión Logística, abstraemos a un promedio absoluto de coeficientes."""
     clf = load_model()
-    importances = clf.feature_importances_
+    # Para multinomial clf.coef_ tiene shape (n_classes, n_features)
+    importances = np.abs(clf.coef_).mean(axis=0)
+    # Normalizar para sum(pct) = 100
+    if importances.sum() > 0:
+        importances = importances / importances.sum()
+    
     result = []
     for i, imp in enumerate(importances):
         result.append({

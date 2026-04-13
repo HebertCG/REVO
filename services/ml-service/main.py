@@ -27,7 +27,7 @@ async def lifespan(app: FastAPI):
             db.close()
     else:
         clf = load_model()
-        print(f"[REVO] Modelo cargado desde disco (depth={clf.get_depth()}, leaves={clf.get_n_leaves()})")
+        print(f"[REVO] Modelo cargado desde disco (LogisticRegression)")
     yield
 
 

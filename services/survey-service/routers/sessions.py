@@ -201,9 +201,15 @@ def submit_phase(session_id: int, request_headers: dict = Depends(lambda: {}), d
             res = requests.post(ml_url, json=payload, headers=headers, timeout=10)
             res.raise_for_status()
             pred_data = res.json()
-            return {"message": "Cuestionario completado", "prediction_id": pred_data["prediction_id"]}
+            return {
+                "message": "Cuestionario completado",
+                "prediction_id": pred_data["prediction_id"],
+                # Enviamos el nombre de la especialización para que la Fase 3 sea adaptativa
+                "primary_specialization": pred_data.get("primary_specialization", "")
+            }
         except Exception as e:
             return {"message": "Error al conectar con ml-service", "error": str(e), "affinities": affinities}
+
 
 
 # ── GET /sessions/ — Historial ─────────────────────────────────

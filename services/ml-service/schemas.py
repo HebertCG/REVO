@@ -21,9 +21,11 @@ class PredictResponse(BaseModel):
     prediction_id: int
     session_id: int
     primary: SpecializationResult
+    primary_specialization: str = ""  # nombre plano para el frontend (Fase 3 adaptativa)
     top3: list[SpecializationResult]
     all_probabilities: dict
     model_version: str
+
 
 
 class TrainRequest(BaseModel):

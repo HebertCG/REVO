@@ -337,41 +337,9 @@ export default function Results() {
             </div>
           )}
 
-          {/* Feature importances */}
-          {importances.length > 0 && (
-            <div className="glass results-panel animate-fade" style={{ animationDelay:'0.4s' }}>
-              <h3 className="panel-title">Áreas más influyentes en tu resultado</h3>
-              {importances.slice(0,6).map((f, i) => {
-                // Convierte "aff_1" → nombre de especialización real
-                const AFF_NAMES = {
-                  'aff_1':  'Desarrollo de Software',
-                  'aff_2':  'Data Science & IA',
-                  'aff_3':  'Infraestructura & Cloud',
-                  'aff_4':  'Ciberseguridad',
-                  'aff_5':  'Soporte Técnico & IT Ops',
-                  'aff_6':  'QA & Testing',
-                  'aff_7':  'Gestión y Producto',
-                  'aff_8':  'Diseño UX/UI',
-                  'aff_9':  'Sistemas Empresariales',
-                  'aff_10': 'Investigación e Innovación',
-                }
-                const label = AFF_NAMES[f.feature.toLowerCase()] || f.feature
-                return (
-                  <div key={i} className="importance-item">
-                    <span className="importance-label text-sm">{label}</span>
-                    <div className="importance-bar-wrap">
-                      <div className="progress-track" style={{ height: 6 }}>
-                        <div className="progress-fill" style={{ width:`${f.pct * 5}%`, background: color }} />
-                      </div>
-                    </div>
-                    <span className="importance-pct text-xs text-muted">{f.pct}%</span>
-                  </div>
-                )
-              })}
-            </div>
-          )}
 
         </div>
+
 
         {/* Roadmap de Cursos Evolutivo */}
         {courses.length > 0 && (

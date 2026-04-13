@@ -59,7 +59,17 @@ const PHASE3_FALLBACK = [
 function calcArchetype(answers) {
   const counts = { A: 0, B: 0, C: 0, D: 0 }
   Object.values(answers).forEach(v => { if (counts[v] !== undefined) counts[v]++ })
-  return Object.entries(counts).sort((a, b) => b[1] - a[1])[0][0]
+  
+  // Encontrar el valor máximo
+  const maxCount = Math.max(...Object.values(counts))
+  
+  // Filtrar los que tienen el valor máximo (para manejar empates e.g. 2-2 o 1-1-1-1)
+  const winners = Object.entries(counts)
+    .filter(([_, count]) => count === maxCount)
+    .map(([key, _]) => key)
+    
+  // Romper empate al azar si hay más de uno
+  return winners[Math.floor(Math.random() * winners.length)]
 }
 
 export default function Questionnaire() {

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { mlApi, authApi } from '../services/api'
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Cell, ResponsiveContainer, LineChart, Line, Legend } from 'recharts'
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Cell, ResponsiveContainer, LineChart, Line, Legend, PieChart, Pie } from 'recharts'
 import './Admin.css'
 
 const SPEC_COLORS = {
@@ -221,6 +221,108 @@ export default function Admin() {
             ) : (
               <div style={{ height: '260px', display: 'flex', alignItems: 'center', justifyContent: 'center' }} className="text-muted">Cargando métricas de explicabilidad...</div>
             )}
+          </div>
+
+        </div>
+
+        {/* ── Fila 3: Data Source + Feedback + Exportar CSV ── */}
+        <div className="admin-grid animate-fade" style={{ animationDelay: '0.4s', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', marginTop: '24px' }}>
+
+          {/* Inteligencia Sintética vs Humana */}
+          {(() => {
+            const ds = overview?.data_sources
+            const total = ds?.total || 1
+            const data = [
+              { name: 'Sintético (Base)', value: ds?.synthetic || 0, color: '#6C63FF' },
+              { name: 'Humano (Real)', value: ds?.human || 0, color: '#10B981' },
+            ]
+            return (
+              <div className="glass admin-panel">
+                <h3 className="panel-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>🧬 Inteligencia Sintética vs Humana</h3>
+                <p className="text-muted text-xs" style={{ marginBottom: 16 }}>Proporción del dataset de entrenamiento generado por máquina vs. dato real de universitarios.</p>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
+                  <ResponsiveContainer width={160} height={160}>
+                    <PieChart>
+                      <Pie data={data} dataKey="value" cx="50%" cy="50%" innerRadius={45} outerRadius={70} paddingAngle={3}>
+                        {data.map((entry, i) => <Cell key={i} fill={entry.color} />)}
+                      </Pie>
+                      <RechartsTooltip contentStyle={{ background: '#111827', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10 }} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                  <div style={{ flex: 1 }}>
+                    {data.map((d, i) => (
+                      <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <div style={{ width: 10, height: 10, borderRadius: '50%', background: d.color }} />
+                          <span className="text-sm text-muted">{d.name}</span>
+                        </div>
+                        <div style={{ fontWeight: 800, color: d.color }}>
+                          {d.value} <span style={{ color: '#64748B', fontWeight: 400, fontSize: '0.8rem' }}>({total ? Math.round(d.value/total*100) : 0}%)</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )
+          })()}
+
+          {/* Tasa de Afinidad + Descubrimiento */}
+          {(() => {
+            const fb = overview?.feedback
+            return (
+              <div className="glass admin-panel">
+                <h3 className="panel-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>📡 Validación Estudiantil</h3>
+                <p className="text-muted text-xs" style={{ marginBottom: 20 }}>Retroalimentación de alumnos sobre la calidad del diagnóstico. Total de respuestas: <strong style={{ color: '#F1F5F9' }}>{fb?.total || 0}</strong></p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                  <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                      <span className="text-sm text-muted">🎯 Tasa de Afinidad (IA te “leyó” bien)</span>
+                      <span style={{ fontWeight: 800, color: '#10B981' }}>{fb?.affinity_rate || 0}%</span>
+                    </div>
+                    <div style={{ height: 8, background: 'rgba(255,255,255,0.05)', borderRadius: 8, overflow: 'hidden' }}>
+                      <div style={{ width: `${fb?.affinity_rate || 0}%`, height: '100%', background: 'linear-gradient(90deg, #10B981, #00D4FF)', borderRadius: 8, transition: 'width 1s ease' }} />
+                    </div>
+                  </div>
+                  <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                      <span className="text-sm text-muted">🚀 Tasa de Descubrimiento Vocacional</span>
+                      <span style={{ fontWeight: 800, color: '#6C63FF' }}>{fb?.discovery_rate || 0}%</span>
+                    </div>
+                    <div style={{ height: 8, background: 'rgba(255,255,255,0.05)', borderRadius: 8, overflow: 'hidden' }}>
+                      <div style={{ width: `${fb?.discovery_rate || 0}%`, height: '100%', background: 'linear-gradient(90deg, #6C63FF, #EC4899)', borderRadius: 8, transition: 'width 1s ease' }} />
+                    </div>
+                    <p className="text-xs text-muted" style={{ marginTop: 8, fontStyle: 'italic' }}>Alumnos que descubrieron una rama que no tenían en mente antes de REVO.</p>
+                  </div>
+                </div>
+              </div>
+            )
+          })()}
+
+          {/* Exportar Dataset CSV */}
+          <div className="glass admin-panel" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+            <div>
+              <h3 className="panel-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>📊 Exportar Dataset Completo</h3>
+              <p className="text-muted text-xs" style={{ marginBottom: 16, lineHeight: 1.6 }}>
+                Descarga el dataset de entrenamiento completo (sintético + datos humanos reales) como archivo CSV para análisis externo, presentaciones académicas o auditoría de la IA.
+              </p>
+              <div style={{ padding: '12px 16px', background: 'rgba(16,185,129,0.05)', borderRadius: 10, border: '1px solid rgba(16,185,129,0.1)', marginBottom: 16 }}>
+                <p className="text-xs" style={{ color: '#10B981', margin: 0, lineHeight: 1.5 }}>
+                  ✓ Incluye vectores de afinidad (aff_1...aff_10)<br/>
+                  ✓ Columna de fuente: <code>synthetic</code> vs <code>human</code><br/>
+                  ✓ Columna de especialización objetivo (ground truth)
+                </p>
+              </div>
+            </div>
+            <a
+              href={mlApi.exportCsvUrl()}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn btn-primary"
+              style={{ textAlign: 'center', boxShadow: '0 0 15px rgba(16,185,129,0.3)', background: 'linear-gradient(135deg, #10B981, #00D4FF)' }}
+            >
+              ↓ Descargar Dataset (CSV)
+            </a>
           </div>
 
         </div>

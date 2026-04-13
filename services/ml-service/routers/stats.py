@@ -1,9 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException, Header
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import func, text
 from jose import JWTError, jwt
+import io
 
-from database import get_db, Prediction, ModelTrainingLog
+from database import get_db, Prediction, ModelTrainingLog, MLTrainingData, PredictionFeedback
 from model.trainer import train_model
 from schemas import TrainRequest, TrainResponse
 from config import settings
@@ -31,7 +33,7 @@ def retrain_model(
     db: Session = Depends(get_db),
     admin_id: int = Depends(require_admin)
 ):
-    """Re-entrena el árbol de decisión con todos los datos actuales."""
+    """Re-entrena el modelo con todos los datos actuales."""
     try:
         metrics = train_model(db, trained_by_id=admin_id)
         return TrainResponse(
@@ -87,12 +89,29 @@ def get_overview(db: Session = Depends(get_db)):
         "SELECT ROUND(AVG(confidence_score) * 100, 1) FROM predictions"
     )).scalar()
 
-    # Muestras crudas recolectadas desde la última vez (para mostrar crecimiento al profesor)
+    # Nuevas muestras desde último entrenamiento
     new_preds = 0
     if last_log and last_log.trained_at:
         new_preds = db.query(Prediction).filter(Prediction.created_at >= last_log.trained_at).count()
     else:
         new_preds = total_preds
+
+    # ── Sintético vs Humano ──────────────────────────────────
+    synthetic_count = db.query(MLTrainingData).filter(
+        MLTrainingData.source == "synthetic"
+    ).count()
+    human_count = db.query(MLTrainingData).filter(
+        MLTrainingData.source == "human"
+    ).count()
+
+    # ── Métricas de Feedback (Afinidad y Descubrimiento) ────
+    total_feedback = db.query(PredictionFeedback).count()
+    affinity_yes   = db.query(PredictionFeedback).filter(
+        PredictionFeedback.diagnostic_affinity == True
+    ).count()
+    discovery_yes  = db.query(PredictionFeedback).filter(
+        PredictionFeedback.discovery_level == "new"
+    ).count()
 
     return {
         "total_predictions":   total_preds,
@@ -100,6 +119,16 @@ def get_overview(db: Session = Depends(get_db)):
         "specialization_dist": distribution,
         "last_training":       last_train,
         "new_predictions":     new_preds,
+        "data_sources": {
+            "synthetic": synthetic_count,
+            "human":     human_count,
+            "total":     synthetic_count + human_count,
+        },
+        "feedback": {
+            "total":         total_feedback,
+            "affinity_rate": round((affinity_yes / total_feedback * 100), 1) if total_feedback else 0,
+            "discovery_rate": round((discovery_yes / total_feedback * 100), 1) if total_feedback else 0,
+        }
     }
 
 
@@ -121,3 +150,30 @@ def get_training_history(db: Session = Depends(get_db)):
         }
         for l in logs
     ]
+
+
+# ── GET /stats/export-csv ────────────────────────────────────
+@router.get("/export-csv")
+def export_dataset_csv(
+    db: Session = Depends(get_db),
+    admin_id: int = Depends(require_admin)
+):
+    """Exporta el dataset completo de entrenamiento como archivo CSV."""
+    rows = db.query(MLTrainingData).all()
+
+    output = io.StringIO()
+    # Header
+    output.write("id,aff_1,aff_2,aff_3,aff_4,aff_5,aff_6,aff_7,aff_8,aff_9,aff_10,specialization_id,source\n")
+    for r in rows:
+        output.write(
+            f"{r.id},{r.aff_1},{r.aff_2},{r.aff_3},{r.aff_4},{r.aff_5},"
+            f"{r.aff_6},{r.aff_7},{r.aff_8},{r.aff_9},{r.aff_10},"
+            f"{r.specialization_id},{r.source}\n"
+        )
+
+    output.seek(0)
+    return StreamingResponse(
+        iter([output.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=revo_dataset.csv"}
+    )

@@ -49,3 +49,8 @@ class FeatureImportance(BaseModel):
     feature: str
     importance: float
     pct: float
+
+
+class FeedbackRequest(BaseModel):
+    diagnostic_affinity: bool
+    discovery_level: str

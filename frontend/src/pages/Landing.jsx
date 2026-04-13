@@ -23,7 +23,7 @@ const STEPS = [
 
 export default function Landing() {
   const { user } = useAuth()
-  
+
   return (
     <div className="landing">
       {/* Hero */}
@@ -34,7 +34,7 @@ export default function Landing() {
           <div className="hero-orb orb-2" />
           <div className="hero-orb orb-3" />
         </div>
-        
+
         <div className="container hero-content animate-fade">
           <div className="hero-badge">
             <div className="ping" /> Powered by Regresión Logística Multinomial
@@ -54,10 +54,10 @@ export default function Landing() {
             ) : (
               <>
                 <Link to="/register" className="btn btn-primary btn-lg" style={{ boxShadow: '0 0 20px rgba(108,99,255,0.4)' }}>
-                  Extraer mi Perfil →
+                  Registrarse →
                 </Link>
                 <Link to="/login" className="btn btn-secondary btn-lg">
-                  Ya tengo cuenta
+                  Iniciar Sesión
                 </Link>
               </>
             )}
@@ -88,11 +88,11 @@ export default function Landing() {
             <span className="badge badge-purple" style={{ marginBottom: 16 }}>Nuestra Tecnología</span>
             <h2 className="section-title">Matemática predictiva,<br />no intuición.</h2>
             <p className="text-muted" style={{ marginBottom: 24, fontSize: '1.1rem', lineHeight: 1.7 }}>
-              Los tests vocacionales tradicionales fracasan porque usan reglas rígidas. 
+              Los tests vocacionales tradicionales fracasan porque usan reglas rígidas.
               REVO no es un test, es un <strong>motor predictivo</strong>.
             </p>
             <p className="text-muted" style={{ marginBottom: 32, fontSize: '1rem', lineHeight: 1.6 }}>
-              Implementamos un modelo de <em>Regresión Logística Multinomial</em> entrenado con miles de perfiles. 
+              Implementamos un modelo de <em>Regresión Logística Multinomial</em> entrenado con miles de perfiles.
               Cada respuesta que das altera los pesos de un vector matemático iterativo. Si tus perfiles son híbridos (Ej. te gusta el código y también el diseño), el modelo no te encasilla: interpola las probabilidades para revelarte trayectorias como <em>Ingeniería Frontend UX</em> o <em>Arquitectura Cloud</em>.
             </p>
           </div>
@@ -100,19 +100,19 @@ export default function Landing() {
             <div className="hero-orb" style={{ width: 300, height: 300, background: '#00D4FF', opacity: 0.1, filter: 'blur(50px)', top: '10%', left: '10%' }} />
             <div className="code-window">
               <pre>
-<span className="code-comment"># Inicializando convergencia probabilística</span><br/>
-<span className="code-keyword">import</span> numpy <span className="code-keyword">as</span> np<br/>
-<br/>
-<span className="code-keyword">def</span> <span className="code-number">extract_features</span>(user_answers):<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span className="code-comment"># Mapeando pesos sinápticos [w1...w10]</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;W = model.coef_<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;X = np.array(user_answers)<br/>
-<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span className="code-comment"># Calculando función Sigmoide Multiclase</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;logits = np.dot(X, W.T) + model.intercept_<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;probs = np.exp(logits) / np.sum(np.exp(logits))<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span className="code-keyword">return</span> np.argmax(probs) <span className="code-string"># Especialidad Ideal</span>
+                <span className="code-comment"># Inicializando convergencia probabilística</span><br />
+                <span className="code-keyword">import</span> numpy <span className="code-keyword">as</span> np<br />
+                <br />
+                <span className="code-keyword">def</span> <span className="code-number">extract_features</span>(user_answers):<br />
+                &nbsp;&nbsp;&nbsp;&nbsp;<span className="code-comment"># Mapeando pesos sinápticos [w1...w10]</span><br />
+                &nbsp;&nbsp;&nbsp;&nbsp;W = model.coef_<br />
+                &nbsp;&nbsp;&nbsp;&nbsp;X = np.array(user_answers)<br />
+                <br />
+                &nbsp;&nbsp;&nbsp;&nbsp;<span className="code-comment"># Calculando función Sigmoide Multiclase</span><br />
+                &nbsp;&nbsp;&nbsp;&nbsp;logits = np.dot(X, W.T) + model.intercept_<br />
+                &nbsp;&nbsp;&nbsp;&nbsp;probs = np.exp(logits) / np.sum(np.exp(logits))<br />
+                &nbsp;&nbsp;&nbsp;&nbsp;<br />
+                &nbsp;&nbsp;&nbsp;&nbsp;<span className="code-keyword">return</span> np.argmax(probs) <span className="code-string"># Especialidad Ideal</span>
               </pre>
             </div>
           </div>
@@ -169,7 +169,7 @@ export default function Landing() {
             <h2 className="section-title">Conoce a <span className="gradient-text">REVO</span></h2>
             <p className="text-muted">Erradicando el abandono universitario mediante métricas puras</p>
           </div>
-          
+
           <div className="about-grid">
             <div className="about-card glass animate-fade" style={{ animationDelay: '0.1s' }}>
               <div className="about-icon">🚀</div>
@@ -211,7 +211,7 @@ export default function Landing() {
               {user ? (
                 <Link to="/questionnaire" className="btn btn-primary btn-lg" style={{ padding: '16px 40px', fontSize: '1.2rem', boxShadow: '0 0 20px rgba(108,99,255,0.5)' }}>Inicializar Cuestionario →</Link>
               ) : (
-                <Link to="/register" className="btn btn-primary btn-lg" style={{ padding: '16px 40px', fontSize: '1.2rem', boxShadow: '0 0 20px rgba(108,99,255,0.5)' }}>Crear Enlace (Sign Up) →</Link>
+                <Link to="/register" className="btn btn-primary btn-lg" style={{ padding: '16px 40px', fontSize: '1.2rem', boxShadow: '0 0 20px rgba(108,99,255,0.5)' }}>Registrarse →</Link>
               )}
             </div>
           </div>

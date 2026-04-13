@@ -34,12 +34,14 @@ export const surveyApi = {
 
 // ── ML Service ────────────────────────────────────────────
 export const mlApi = {
-  predict:       (body)  => mlAxios.post('/predict/', body, { headers: authHeader() }),
-  getPrediction: (id)    => mlAxios.get(`/predict/${id}`, { headers: authHeader() }),
-  getHistory:    (uid)   => mlAxios.get(`/predict/user/${uid}/history`, { headers: authHeader() }),
-  importances:   ()      => mlAxios.get('/predict/model/importances', { headers: authHeader() }),
-  treeViz:       ()      => mlAxios.get('/predict/model/tree', { headers: authHeader() }),
-  overview:      ()      => mlAxios.get(`/stats/overview?t=${new Date().getTime()}`),
-  trainingHistory:()     => mlAxios.get(`/stats/training-history?t=${new Date().getTime()}`),
-  retrain:       ()      => mlAxios.post('/stats/train', {}, { headers: authHeader() }),
+  predict:         (body)  => mlAxios.post('/predict/', body, { headers: authHeader() }),
+  getPrediction:   (id)    => mlAxios.get(`/predict/${id}`, { headers: authHeader() }),
+  getHistory:      (uid)   => mlAxios.get(`/predict/user/${uid}/history`, { headers: authHeader() }),
+  importances:     ()      => mlAxios.get('/predict/model/importances', { headers: authHeader() }),
+  treeViz:         ()      => mlAxios.get('/predict/model/tree', { headers: authHeader() }),
+  overview:        ()      => mlAxios.get(`/stats/overview?t=${new Date().getTime()}`),
+  trainingHistory: ()      => mlAxios.get(`/stats/training-history?t=${new Date().getTime()}`),
+  retrain:         ()      => mlAxios.post('/stats/train', {}, { headers: authHeader() }),
+  sendFeedback:    (predId, body) => mlAxios.post(`/predict/${predId}/feedback`, body, { headers: authHeader() }),
+  exportCsvUrl:    ()      => `${import.meta.env.VITE_ML_URL || '/api/ml'}/stats/export-csv`,
 }

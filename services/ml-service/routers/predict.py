@@ -2,10 +2,10 @@ from fastapi import APIRouter, Depends, HTTPException, Header, BackgroundTasks
 from sqlalchemy.orm import Session
 from jose import JWTError, jwt
 
-from database import get_db, Prediction, ModelTrainingLog
+from database import get_db, Prediction, ModelTrainingLog, PredictionFeedback, MLTrainingData
 from model.predictor import predict, get_feature_importances
 from model.trainer import load_model, train_model
-from schemas import PredictRequest, PredictResponse, FeatureImportance
+from schemas import PredictRequest, PredictResponse, FeatureImportance, FeedbackRequest
 from config import settings
 
 router = APIRouter(prefix="/predict", tags=["Predicción"])
@@ -189,3 +189,55 @@ def get_tree_visualization():
         return {"tree": tree_text}
     except FileNotFoundError as e:
         raise HTTPException(status_code=503, detail=str(e))
+
+
+# ── POST /predict/{id}/feedback ──────────────────────────────
+@router.post("/{prediction_id}/feedback", status_code=201)
+def save_feedback(
+    prediction_id: int,
+    body: FeedbackRequest,
+    db: Session = Depends(get_db),
+    user_id: int = Depends(extract_user_id)
+):
+    """
+    Guarda la retroalimentación del alumno sobre la predicción.
+    Si el alumno confirmó afinidad, inyecta el vector como dato 'human' en ml_training_data.
+    """
+    pred = db.query(Prediction).filter(Prediction.id == prediction_id).first()
+    if not pred:
+        raise HTTPException(status_code=404, detail="Predicción no encontrada")
+    if pred.user_id != user_id:
+        raise HTTPException(status_code=403, detail="Acceso denegado")
+
+    # Guardar feedback (upsert simple con try/except)
+    try:
+        fb = PredictionFeedback(
+            prediction_id=prediction_id,
+            user_id=user_id,
+            session_id=pred.session_id,
+            diagnostic_affinity=body.diagnostic_affinity,
+            discovery_level=body.discovery_level,
+        )
+        db.add(fb)
+        db.flush()
+    except Exception:
+        db.rollback()
+        return {"status": "already_submitted"}
+
+    # Si el alumno confirmó que el diagnóstico fue correcto,
+    # inyectar su vector como dato humano en el dataset de entrenamiento.
+    if body.diagnostic_affinity and pred.feature_vector:
+        fv = pred.feature_vector
+        sample = MLTrainingData(
+            aff_1=fv.get("aff_1", 0), aff_2=fv.get("aff_2", 0),
+            aff_3=fv.get("aff_3", 0), aff_4=fv.get("aff_4", 0),
+            aff_5=fv.get("aff_5", 0), aff_6=fv.get("aff_6", 0),
+            aff_7=fv.get("aff_7", 0), aff_8=fv.get("aff_8", 0),
+            aff_9=fv.get("aff_9", 0), aff_10=fv.get("aff_10", 0),
+            specialization_id=pred.primary_specialization_id,
+            source="human"
+        )
+        db.add(sample)
+
+    db.commit()
+    return {"status": "ok", "prediction_id": prediction_id}

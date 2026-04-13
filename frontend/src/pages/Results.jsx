@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useLocation, Link } from 'react-router-dom'
 import { mlApi, surveyApi } from '../services/api'
+import { useAuth } from '../context/AuthContext'
 import { RadarChart, PolarGrid, PolarAngleAxis, Radar, ResponsiveContainer, BarChart, Bar, XAxis, Tooltip, Cell } from 'recharts'
 import './Results.css'
 
@@ -163,6 +164,96 @@ const getDefinitiveRole = (careerName, archetypeKey) => {
   return `Especialista en ${careerName} ${archDesc[archetypeKey] || ''}`;
 }
 
+// ─── Componente de Feedback Estudiantil ──────────────────────────────────
+function FeedbackWidget({ predictionId }) {
+  const [step, setStep] = useState(0)   // 0=idle, 1=discovery, 2=done
+  const [affinity, setAffinity] = useState(null)
+  const [submitting, setSubmitting] = useState(false)
+
+  const handleAffinity = (val) => {
+    setAffinity(val)
+    setStep(1)     // ir a pregunta 2
+  }
+
+  const handleDiscovery = async (discoveryVal) => {
+    setSubmitting(true)
+    try {
+      await mlApi.sendFeedback(predictionId, {
+        diagnostic_affinity: affinity,
+        discovery_level: discoveryVal,
+      })
+    } catch(e) {
+      console.warn('Feedback error:', e)
+    } finally {
+      setSubmitting(false)
+      setStep(2)
+    }
+  }
+
+  const cardStyle = {
+    padding: '28px 32px', marginTop: 20, gridColumn: '1 / -1',
+    background: 'rgba(255,255,255,0.02)',
+    border: '1px solid rgba(255,255,255,0.06)',
+    borderRadius: 20, backdropFilter: 'blur(10px)',
+  }
+  const btnRow = { display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 20 }
+  const fbBtn = (active, onClick, label, emoji) => (
+    <button
+      onClick={onClick}
+      disabled={submitting}
+      style={{
+        padding: '12px 22px', borderRadius: 12, border: `1px solid ${active ? 'rgba(0,212,255,0.5)' : 'rgba(255,255,255,0.1)'}`,
+        background: active ? 'rgba(0,212,255,0.1)' : 'rgba(255,255,255,0.03)',
+        color: active ? '#00D4FF' : '#94A3B8', fontWeight: 700, cursor: 'pointer',
+        fontSize: '0.95rem', transition: 'all 0.2s',
+      }}
+    >{emoji} {label}</button>
+  )
+
+  if (step === 2) return (
+    <div className="glass animate-scale" style={{ ...cardStyle, textAlign: 'center', padding: '40px 32px' }}>
+      <div style={{ fontSize: '2.5rem', marginBottom: 12 }}>🧬</div>
+      <h3 style={{ fontFamily: 'Space Grotesk', fontWeight: 800, marginBottom: 8 }}>¡Gracias por entrenar a la IA!</h3>
+      <p className="text-muted text-sm">Tu respuesta ha sido registrada. {affinity ? 'Tu perfil fue inyectado como dato humano en el dataset de entrenamiento.' : 'Tomaremos nota para mejorar el modelo.'}</p>
+    </div>
+  )
+
+  return (
+    <div className="glass animate-fade" style={{ ...cardStyle, animationDelay: '0.75s' }}>
+      {step === 0 && (
+        <>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+            <span style={{ fontSize: '1.4rem' }}>🧠</span>
+            <h3 style={{ fontFamily: 'Space Grotesk', fontWeight: 800, margin: 0, fontSize: '1.1rem' }}>¿La IA te leyó bien?</h3>
+          </div>
+          <p className="text-muted text-sm" style={{ lineHeight: 1.6 }}>
+            Basándonos en tus respuestas, REVO dibujó tu perfil técnico actual. ¿Sientes que ese diagnóstico refleja bien tus habilidades e intereses de hoy?
+          </p>
+          <div style={btnRow}>
+            {fbBtn(null, () => handleAffinity(true), 'Sí, me define muy bien', '💚')}
+            {fbBtn(null, () => handleAffinity(false), 'No del todo, mis habilidades van por otro lado', '🤔')}
+          </div>
+        </>
+      )}
+      {step === 1 && (
+        <>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+            <span style={{ fontSize: '1.4rem' }}>🔭</span>
+            <h3 style={{ fontFamily: 'Space Grotesk', fontWeight: 800, margin: 0, fontSize: '1.1rem' }}>¿Esta carrera era algo que ya tenías en mente?</h3>
+          </div>
+          <p className="text-muted text-sm" style={{ lineHeight: 1.6 }}>
+            La especialización que REVO te recomendó, ¿ya la habías considerado antes de ingresar a la plataforma, o te sorprendió?
+          </p>
+          <div style={btnRow}>
+            {fbBtn(null, () => handleDiscovery('known'), 'Ya lo sospechaba o tenía en mente', '✅')}
+            {fbBtn(null, () => handleDiscovery('new'), '¡Me sorprendió! No lo había considerado', '🚀')}
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
 export default function Results() {
   const { id } = useParams()
   const { state } = useLocation()
@@ -222,6 +313,7 @@ export default function Results() {
   const primary = data.primary
   const color = primary?.color || CAREERS[primary?.name]?.color || '#6C63FF'
   const careers = CAREERS[primary?.name]?.paths || []
+  const predictionId = data.prediction_id || id
 
   // Radar data (top3 como datos del radar)
   const radarData = (data.top3 || []).map(s => ({
@@ -520,6 +612,9 @@ export default function Results() {
             </div>
           )
         })()}
+
+        {/* ── Bloque de Feedback Estudiantil ── */}
+        {predictionId && <FeedbackWidget predictionId={predictionId} />}
 
         {/* Actions */}
         <div className="result-actions animate-fade" style={{ animationDelay: '0.7s' }}>

@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine, Column, Integer, Numeric, String, DateTime, Text, JSON, ForeignKey
+from sqlalchemy import create_engine, Column, Integer, Numeric, String, DateTime, Text, JSON, ForeignKey, Boolean
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.sql import func
@@ -18,6 +18,7 @@ class MLTrainingData(Base):
     aff_7  = Column(Numeric(5, 4));  aff_8  = Column(Numeric(5, 4))
     aff_9  = Column(Numeric(5, 4));  aff_10 = Column(Numeric(5, 4))
     specialization_id = Column(Integer, nullable=False)
+    source = Column(String(50), default="synthetic")
 
 
 class Specialization(Base):
@@ -60,6 +61,16 @@ class Prediction(Base):
     feature_vector            = Column(JSON)
     model_version             = Column(String(30), default="v1.0")
     created_at                = Column(DateTime(timezone=True), server_default=func.now())
+
+class PredictionFeedback(Base):
+    __tablename__ = "prediction_feedbacks"
+    id                  = Column(Integer, primary_key=True)
+    prediction_id       = Column(Integer, ForeignKey("predictions.id"), unique=True, nullable=False)
+    user_id             = Column(Integer, nullable=False)
+    session_id          = Column(Integer)
+    diagnostic_affinity = Column(Boolean, nullable=False)
+    discovery_level     = Column(String(50), nullable=False)
+    created_at          = Column(DateTime(timezone=True), server_default=func.now())
 
 
 def get_db():

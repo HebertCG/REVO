@@ -571,34 +571,71 @@ export default function Questionnaire() {
 
     if (isLast) { 
       setSubmitting(true)
-      try {
-        // Enviar bloque de validación
-        const allPhaseAnswers = questions.map(q2 => ({ question_id: q2.id, value: answers[q2.id] || 3 }))
-        await surveyApi.saveAnswers(sessionId, { answers: allPhaseAnswers })
-        
-        // Finalizar la Fase
-        const { data: transitionData } = await surveyApi.submitPhase(sessionId)
-        
-        if (transitionData.next_phase === 2) {
-          // Motor Adaptativo: Nos envía a Fase 2 Profundización
-          setSubmitting(false)
-          loadPhase2(sessionId)
-        } else if (transitionData.prediction_id) {
-          // Fase Finalizada — Lanzar Fase 3 Psicométrica adaptada a la especialización ganadora
-          setSubmitting(false)
-          sessionStorage.setItem('revo_pending_result', transitionData.prediction_id)
-          // Guardar el nombre de la especialización para que la Fase 3 se adapte
-          const specName = transitionData.primary_specialization || ''
-          sessionStorage.setItem('revo_winning_spec', specName)
-          triggerPhase3(specName)
-        } else {
-          setError('Respuesta no reconocida al procesar encuesta.')
-          setSubmitting(false)
+
+      // Helper: sleep
+      const sleep = (ms) => new Promise(r => setTimeout(r, ms))
+
+      // Función de submit con reintentos automáticos (por cold start del ML en Render Free)
+      const submitWithRetry = async (maxRetries = 3) => {
+        for (let attempt = 1; attempt <= maxRetries; attempt++) {
+          try {
+            const allPhaseAnswers = questions.map(q2 => ({ question_id: q2.id, value: answers[q2.id] || 3 }))
+            await surveyApi.saveAnswers(sessionId, { answers: allPhaseAnswers })
+            
+            const { data: transitionData } = await surveyApi.submitPhase(sessionId)
+            
+            if (transitionData.next_phase === 2) {
+              setSubmitting(false)
+              loadPhase2(sessionId)
+              return
+
+            } else if (transitionData.prediction_id) {
+              setSubmitting(false)
+              sessionStorage.setItem('revo_pending_result', transitionData.prediction_id)
+              const specName = transitionData.primary_specialization || ''
+              sessionStorage.setItem('revo_winning_spec', specName)
+              triggerPhase3(specName)
+              return
+
+            } else if (transitionData.error && attempt < maxRetries) {
+              // ML en cold start — esperar y reintentar
+              const waitSecs = attempt * 8
+              setError(`⏳ El servidor de IA está despertando... reintentando en ${waitSecs}s (intento ${attempt}/${maxRetries})`)
+              await sleep(waitSecs * 1000)
+              setError('')
+              // Continúa al siguiente intento
+
+            } else if (transitionData.error && attempt === maxRetries) {
+              // Último intento: si tenemos affinities pasamos igual a la Fase 3 sin predicción guardada
+              setError('')
+              setSubmitting(false)
+              sessionStorage.removeItem('revo_pending_result')
+              const specName = transitionData.predicted_spec || transitionData.primary_specialization || ''
+              sessionStorage.setItem('revo_winning_spec', specName)
+              triggerPhase3(specName)
+              return
+
+            } else {
+              setError('Respuesta inesperada del servidor. Intenta de nuevo.')
+              setSubmitting(false)
+              return
+            }
+          } catch (e) {
+            if (attempt < maxRetries) {
+              const waitSecs = attempt * 8
+              setError(`⏳ Conexión lenta, reintentando en ${waitSecs}s... (intento ${attempt}/${maxRetries})`)
+              await sleep(waitSecs * 1000)
+              setError('')
+            } else {
+              setError('No se pudo conectar con el servidor. Verifica tu conexión e intenta de nuevo.')
+              setSubmitting(false)
+            }
+          }
         }
-      } catch (e) {
-        setError('Error al procesar tus respuestas. Intenta de nuevo.')
-        setSubmitting(false)
       }
+
+      await submitWithRetry()
+
     } else {
       // Siguiente pregunta animada
       if (cardRef.current) { cardRef.current.style.opacity = '0'; cardRef.current.style.transform = 'translateX(30px)' }

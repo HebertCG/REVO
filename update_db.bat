@@ -1,9 +1,0 @@
-@echo off
-set PGPASSWORD=revo_pass_2025
-echo Updating Specializations...
-psql -U revo_user -d revo_db -h localhost -f database\02_seed_specializations.sql
-echo Updating Questions...
-psql -U revo_user -d revo_db -h localhost -f database\03_seed_questions.sql
-echo Updating Training Data...
-psql -U revo_user -d revo_db -h localhost -f database\04_seed_training_data.sql
-echo Done!

@@ -41,7 +41,7 @@ export default function Landing() {
           </div>
           <h1 className="hero-title">
             No decidas a ciegas.<br />
-            <span className="gradient-text">Calcula tu futuro en IT.</span>
+            <span className="gradient-text">Calcula tu futuro con REVO.</span>
           </h1>
           <p className="hero-sub">
             Descubre tu camino en la Ingeniería de Sistemas mediante un <strong>Modelo de Machine Learning</strong> que cruza tus habilidades cognitivas con las demandas exactas del ecosistema tecnológico global.

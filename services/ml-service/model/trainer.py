@@ -101,8 +101,8 @@ def train_model(db: Session, trained_by_id: int = None) -> dict:
         "f1":               f1,
         "training_samples": len(X_train),
         "test_samples":     len(X_test),
-        "tree_depth":       clf.get_depth(),
-        "n_leaves":         clf.get_n_leaves(),
+        "tree_depth":       0,
+        "n_leaves":         0,
         "model_path":       settings.MODEL_PATH,
     }
 
@@ -115,11 +115,10 @@ def load_model() -> LogisticRegression:
 
 
 def get_tree_text(feature_names: list[str] = None, class_names: list[str] = None) -> str:
-    """Exporta el árbol como texto legible para el frontend."""
+    """Retorna una descripción legible del modelo de Regresión Logística."""
     clf = load_model()
-    return export_text(
-        clf,
-        feature_names=feature_names or FEATURE_COLS,
-        class_names=class_names,
-        max_depth=5,
-    )
+    lines = ["=== Modelo: Regresión Logística Multinomial ==="]
+    lines.append(f"Clases: {clf.classes_.tolist()}")
+    lines.append(f"Iteraciones de convergencia: {clf.n_iter_.tolist()}")
+    lines.append(f"Coeficientes (forma): {clf.coef_.shape}")
+    return "\n".join(lines)

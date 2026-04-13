@@ -47,6 +47,7 @@ export default function Admin() {
   const [trainResult, setTrainResult] = useState(null)
   const [loading, setLoading] = useState(true)
   const [activeModal, setActiveModal] = useState(null)
+  const [exportingCsv, setExportingCsv] = useState(false)
 
   const fetchData = () => {
     Promise.all([mlApi.overview(), mlApi.trainingHistory()])
@@ -72,6 +73,29 @@ export default function Admin() {
     } catch (e) {
       setTrainResult({ error: e.response?.data?.detail || 'Error al reentrenar' })
     } finally { setTraining(false) }
+  }
+
+  const handleExportCsv = async () => {
+    setExportingCsv(true)
+    try {
+      const token = localStorage.getItem('revo_token')
+      const base = import.meta.env.VITE_ML_URL || '/api/ml'
+      const res = await fetch(`${base}/stats/export-csv`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      if (!res.ok) throw new Error(await res.text())
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = 'revo_dataset.csv'
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch (e) {
+      alert('Error al exportar: ' + e.message)
+    } finally {
+      setExportingCsv(false)
+    }
   }
 
   const dist = overview?.specialization_dist || []
@@ -314,15 +338,14 @@ export default function Admin() {
                 </p>
               </div>
             </div>
-            <a
-              href={mlApi.exportCsvUrl()}
-              target="_blank"
-              rel="noopener noreferrer"
+            <button
+              onClick={handleExportCsv}
+              disabled={exportingCsv}
               className="btn btn-primary"
-              style={{ textAlign: 'center', boxShadow: '0 0 15px rgba(16,185,129,0.3)', background: 'linear-gradient(135deg, #10B981, #00D4FF)' }}
+              style={{ textAlign: 'center', boxShadow: '0 0 15px rgba(16,185,129,0.3)', background: 'linear-gradient(135deg, #10B981, #00D4FF)', cursor: exportingCsv ? 'wait' : 'pointer' }}
             >
-              ↓ Descargar Dataset (CSV)
-            </a>
+              {exportingCsv ? '⏳ Generando...' : '↓ Descargar Dataset (CSV)'}
+            </button>
           </div>
 
         </div>

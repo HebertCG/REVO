@@ -21,7 +21,8 @@ class PredictResponse(BaseModel):
     prediction_id: int
     session_id: int
     primary: SpecializationResult
-    primary_specialization: str = ""  # nombre plano para el frontend (Fase 3 adaptativa)
+    primary_specialization: str = ""       # nombre plano para el frontend (Fase 3 adaptativa)
+    primary_specialization_id: int = 0      # ID de la especialización para cargar preguntas de BD
     top3: list[SpecializationResult]
     all_probabilities: dict
     model_version: str

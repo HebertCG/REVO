@@ -78,14 +78,16 @@ def make_prediction(
     background_tasks.add_task(check_and_retrain)
 
     return PredictResponse(
-        prediction_id = pred_record.id,
-        session_id    = body.session_id,
-        primary       = primary,
-        primary_specialization = primary.name,  # nombre plano para adaptación de Fase 3
-        top3          = result["top3"],
-        all_probabilities = result["all_probabilities"],
-        model_version = settings.MODEL_VERSION,
+        prediction_id          = pred_record.id,
+        session_id             = body.session_id,
+        primary                = primary,
+        primary_specialization = primary.name,
+        primary_specialization_id = primary.specialization_id,
+        top3                   = result["top3"],
+        all_probabilities      = result["all_probabilities"],
+        model_version          = settings.MODEL_VERSION,
     )
+
 
 
 

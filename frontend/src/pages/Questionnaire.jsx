@@ -547,8 +547,32 @@ export default function Questionnaire() {
     }
   }
 
-  const triggerPhase3 = (specName) => {
-    const qs = getPhase3Questions(specName)
+  const triggerPhase3 = async (specName, specId) => {
+    // Intentar cargar las preguntas desde la BD
+    // El specId llega del backend o lo resolvemos desde el nombre
+    let qs = null
+    if (specId) {
+      try {
+        const res = await surveyApi.getPsychometricQuestions(specId)
+        if (res.data && res.data.length > 0) {
+          // Adaptar formato de BD al formato que espera el render
+          qs = res.data.map(q => ({
+            id: `p3_db_${q.id}`,
+            question: q.question_text,
+            options: [
+              { key: 'A', text: q.option_a },
+              { key: 'B', text: q.option_b },
+              { key: 'C', text: q.option_c },
+              { key: 'D', text: q.option_d },
+            ]
+          }))
+        }
+      } catch (e) {
+        console.warn('No se pudieron cargar preguntas desde BD, usando fallback local', e)
+      }
+    }
+    // Si no había specId o falló la BD, usar el banco local
+    if (!qs) qs = getPhase3Questions(specName)
     setPhase3Questions(qs)
     setPhase(3)
     setPhase3Current(0)
@@ -571,17 +595,23 @@ export default function Questionnaire() {
 
     if (isLast) { 
       setSubmitting(true)
+      setError('')
+
+      // Guardar TODAS las respuestas de la fase ANTES de hacer submit (fuera del retry)
+      try {
+        const allPhaseAnswers = questions.map(q2 => ({ question_id: q2.id, value: answers[q2.id] || 3 }))
+        await surveyApi.saveAnswers(sessionId, { answers: allPhaseAnswers })
+      } catch (e) {
+        console.warn('saveAnswers falló, continuando al submit...', e)
+      }
 
       // Helper: sleep
       const sleep = (ms) => new Promise(r => setTimeout(r, ms))
 
-      // Función de submit con reintentos automáticos (por cold start del ML en Render Free)
+      // Función de submit con reintentos automáticos (solo el submit, NO el saveAnswers)
       const submitWithRetry = async (maxRetries = 3) => {
         for (let attempt = 1; attempt <= maxRetries; attempt++) {
           try {
-            const allPhaseAnswers = questions.map(q2 => ({ question_id: q2.id, value: answers[q2.id] || 3 }))
-            await surveyApi.saveAnswers(sessionId, { answers: allPhaseAnswers })
-            
             const { data: transitionData } = await surveyApi.submitPhase(sessionId)
             
             if (transitionData.next_phase === 2) {
@@ -593,26 +623,24 @@ export default function Questionnaire() {
               setSubmitting(false)
               sessionStorage.setItem('revo_pending_result', transitionData.prediction_id)
               const specName = transitionData.primary_specialization || ''
+              const specId   = transitionData.primary_specialization_id || null
               sessionStorage.setItem('revo_winning_spec', specName)
-              triggerPhase3(specName)
+              triggerPhase3(specName, specId)
               return
 
             } else if (transitionData.error && attempt < maxRetries) {
-              // ML en cold start — esperar y reintentar
-              const waitSecs = attempt * 8
-              setError(`⏳ El servidor de IA está despertando... reintentando en ${waitSecs}s (intento ${attempt}/${maxRetries})`)
+              // ML en cold start — esperar y reintentar solo submit
+              const waitSecs = attempt * 10
+              setError(`⏳ El motor de IA está despertando... reintentando en ${waitSecs}s (${attempt}/${maxRetries})`)
               await sleep(waitSecs * 1000)
               setError('')
-              // Continúa al siguiente intento
 
             } else if (transitionData.error && attempt === maxRetries) {
-              // Último intento: si tenemos affinities pasamos igual a la Fase 3 sin predicción guardada
+              // Agotados los reintentos: pasar a Fase 3 con fallback local
               setError('')
               setSubmitting(false)
               sessionStorage.removeItem('revo_pending_result')
-              const specName = transitionData.predicted_spec || transitionData.primary_specialization || ''
-              sessionStorage.setItem('revo_winning_spec', specName)
-              triggerPhase3(specName)
+              triggerPhase3('', null)
               return
 
             } else {
@@ -622,12 +650,12 @@ export default function Questionnaire() {
             }
           } catch (e) {
             if (attempt < maxRetries) {
-              const waitSecs = attempt * 8
-              setError(`⏳ Conexión lenta, reintentando en ${waitSecs}s... (intento ${attempt}/${maxRetries})`)
+              const waitSecs = attempt * 10
+              setError(`⏳ Conexión lenta, reintentando en ${waitSecs}s... (${attempt}/${maxRetries})`)
               await sleep(waitSecs * 1000)
               setError('')
             } else {
-              setError('No se pudo conectar con el servidor. Verifica tu conexión e intenta de nuevo.')
+              setError('No se pudo conectar. Revisa que todos los servicios locales estén corriendo.')
               setSubmitting(false)
             }
           }

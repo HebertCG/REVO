@@ -85,6 +85,20 @@ class Job(Base):
     posted_days_ago   = Column(Integer, default=1)
 
 
+class PsychometricQuestion(Base):
+    __tablename__ = "psychometric_questions"
+    id                = Column(Integer, primary_key=True)
+    specialization_id = Column(Integer, nullable=False)
+    question_text     = Column(Text, nullable=False)
+    option_a          = Column(Text, nullable=False)
+    option_b          = Column(Text, nullable=False)
+    option_c          = Column(Text, nullable=False)
+    option_d          = Column(Text, nullable=False)
+    order_index       = Column(SmallInteger, default=0)
+    is_active         = Column(Boolean, default=True)
+    created_at        = Column(DateTime(timezone=True), server_default=func.now())
+
+
 def get_db():
     db = SessionLocal()
     try:

@@ -18,17 +18,19 @@ export const authApi = {
 
 // ── Survey Service ────────────────────────────────────────
 export const surveyApi = {
-  getQuestions:         ()          => surveyAxios.get('/questions/'),
-  getSessionQuestions:  (sid)       => surveyAxios.get(`/sessions/${sid}/questions`, { headers: authHeader() }),
-  getCategories:        ()          => surveyAxios.get('/questions/categories/list'),
-  createSession:        ()          => surveyAxios.post('/sessions/', {}, { headers: authHeader() }),
-  saveAnswers:          (sid, body) => surveyAxios.post(`/sessions/${sid}/answers`, body, { headers: authHeader() }),
-  submitPhase:          (sid)       => surveyAxios.post(`/sessions/${sid}/submit_phase`, {}, { headers: authHeader() }),
-  getHistory:           ()          => surveyAxios.get('/sessions/', { headers: authHeader() }),
-  getSession:           (sid)       => surveyAxios.get(`/sessions/${sid}`, { headers: authHeader() }),
-  getRecommendedCourses:(specId)    => surveyAxios.get(`/courses/specialization/${specId}`),
-  getRecommendedJobs:   (specId)    => surveyAxios.get(`/jobs/specialization/${specId}`),
+  getQuestions:              ()          => surveyAxios.get('/questions/'),
+  getSessionQuestions:       (sid)       => surveyAxios.get(`/sessions/${sid}/questions`, { headers: authHeader() }),
+  getCategories:             ()          => surveyAxios.get('/questions/categories/list'),
+  createSession:             ()          => surveyAxios.post('/sessions/', {}, { headers: authHeader() }),
+  saveAnswers:               (sid, body) => surveyAxios.post(`/sessions/${sid}/answers`, body, { headers: authHeader() }),
+  submitPhase:               (sid)       => surveyAxios.post(`/sessions/${sid}/submit_phase`, {}, { headers: authHeader() }),
+  getHistory:                ()          => surveyAxios.get('/sessions/', { headers: authHeader() }),
+  getSession:                (sid)       => surveyAxios.get(`/sessions/${sid}`, { headers: authHeader() }),
+  getRecommendedCourses:     (specId)    => surveyAxios.get(`/courses/specialization/${specId}`),
+  getRecommendedJobs:        (specId)    => surveyAxios.get(`/jobs/specialization/${specId}`),
+  getPsychometricQuestions:  (specId)    => surveyAxios.get(`/psychometric/specialization/${specId}`),
 }
+
 
 // ── ML Service ────────────────────────────────────────────
 export const mlApi = {

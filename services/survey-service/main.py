@@ -3,10 +3,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
 from config import settings
-from routers.questions import router as questions_router
-from routers.sessions  import router as sessions_router
-from routers.courses   import router as courses_router
-from routers.jobs      import router as jobs_router
+from routers.questions    import router as questions_router
+from routers.sessions     import router as sessions_router
+from routers.courses      import router as courses_router
+from routers.jobs         import router as jobs_router
+from routers.psychometric import router as psychometric_router
 
 
 @asynccontextmanager
@@ -34,6 +35,7 @@ app.include_router(questions_router)
 app.include_router(sessions_router)
 app.include_router(courses_router)
 app.include_router(jobs_router)
+app.include_router(psychometric_router)
 
 
 @app.get("/", tags=["Health"])

@@ -4,9 +4,9 @@ const getToken = () => localStorage.getItem('revo_token')
 const authHeader = () => ({ Authorization: `Bearer ${getToken()}` })
 
 // En Desarrollo, usa el Proxy de Vite. En Producción, usa las variables VITE_* de Vercel/Render.
-const authAxios = axios.create({ baseURL: import.meta.env.VITE_AUTH_URL || '/api/auth' })
-const surveyAxios = axios.create({ baseURL: import.meta.env.VITE_SURVEY_URL || '/api/survey' })
-const mlAxios = axios.create({ baseURL: import.meta.env.VITE_ML_URL || '/api/ml' })
+const authAxios = axios.create({ baseURL: import.meta.env.VITE_AUTH_URL || import.meta.env.VITE_AUTH_API || '/api/auth' })
+const surveyAxios = axios.create({ baseURL: import.meta.env.VITE_SURVEY_URL || import.meta.env.VITE_SURVEY_API || '/api/survey' })
+const mlAxios = axios.create({ baseURL: import.meta.env.VITE_ML_URL || import.meta.env.VITE_ML_API || '/api/ml' })
 
 // ── Auth Service ──────────────────────────────────────────
 export const authApi = {

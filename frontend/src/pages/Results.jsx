@@ -601,7 +601,7 @@ export default function Results() {
                 <span>🗺️</span> Plan de Acción Personalizado — ¿Qué hago ahora?
               </h3>
               <p className="text-muted text-sm" style={{ marginBottom: 24 }}>Pasos concretos basados en tu especialización. Sin excusas para empezar.</p>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(220px, 100%), 1fr))', gap: 16 }}>
                 {plan.map((step, i) => (
                   <div key={i} style={{ padding: '16px', background: 'rgba(255,255,255,0.03)', borderRadius: 12, border: `1px solid ${color}22`, borderLeft: `3px solid ${color}` }}>
                     <div style={{ fontWeight: 700, color, marginBottom: 8, fontSize: '0.85rem' }}>{step.time}</div>

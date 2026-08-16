@@ -169,7 +169,7 @@ export default function Admin() {
         </div>
 
         {/* Stats overview */}
-        <div className="admin-stats animate-fade" style={{ animationDelay: '0.2s', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
+        <div className="admin-stats animate-fade" style={{ animationDelay: '0.2s', gridTemplateColumns: 'repeat(auto-fit, minmax(min(200px, 100%), 1fr))' }}>
 
           <div className="stat-card glass" style={pointerStyle} onClick={() => setActiveModal('f1')} onMouseEnter={hoverEffect} onMouseLeave={resetEffect}>
             <div className="stat-icon" style={{ background: 'rgba(108,99,255,0.15)', color: '#6C63FF' }}>📈</div>
@@ -205,7 +205,7 @@ export default function Admin() {
 
         </div>
 
-        <div className="admin-grid animate-fade" style={{ animationDelay: '0.3s', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', marginTop: '24px' }}>
+        <div className="admin-grid animate-fade" style={{ animationDelay: '0.3s', gridTemplateColumns: 'repeat(auto-fit, minmax(min(400px, 100%), 1fr))', marginTop: '24px' }}>
 
           {/* Evolución Continua del Modelo */}
           <div className="glass admin-panel" style={pointerStyle} onClick={() => setActiveModal('chart_evol')} onMouseEnter={hoverEffect} onMouseLeave={resetEffect}>
@@ -250,7 +250,7 @@ export default function Admin() {
         </div>
 
         {/* ── Fila 3: Data Source + Feedback + Exportar CSV ── */}
-        <div className="admin-grid animate-fade" style={{ animationDelay: '0.4s', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', marginTop: '24px' }}>
+        <div className="admin-grid animate-fade" style={{ animationDelay: '0.4s', gridTemplateColumns: 'repeat(auto-fit, minmax(min(320px, 100%), 1fr))', marginTop: '24px' }}>
 
           {/* Inteligencia Sintética vs Humana */}
           {(() => {

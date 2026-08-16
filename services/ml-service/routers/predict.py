@@ -48,7 +48,7 @@ def make_prediction(
     body: PredictRequest,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
-    _: int = Depends(extract_user_id)
+    user_id: int = Depends(extract_user_id)
 ):
     """
     Recibe el feature_vector del survey-service y devuelve la
@@ -64,7 +64,8 @@ def make_prediction(
     # Guardar predicción en BD
     pred_record = Prediction(
         session_id                = body.session_id,
-        user_id                   = body.user_id,
+        # Identidad tomada del token, no del body (ver PredictRequest).
+        user_id                   = user_id,
         primary_specialization_id = primary["specialization_id"],
         confidence_score          = primary["confidence"],
         secondary_specializations = result["top3"][1:],  # posiciones 2 y 3

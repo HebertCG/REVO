@@ -1,5 +1,3 @@
-version: '3.9'
-
 services:
 
   # ─────────────────────────────────────────────
@@ -10,19 +8,21 @@ services:
     container_name: revo_postgres
     restart: unless-stopped
     environment:
-      POSTGRES_DB: revo_db
-      POSTGRES_USER: revo_user
-      POSTGRES_PASSWORD: revo_pass_2025
+      # Todo viene del .env de la raiz (ver .env.example). La sintaxis
+      # ${VAR:?mensaje} aborta el arranque si la variable no existe, en vez
+      # de continuar con un valor por defecto publicado en el repositorio.
+      POSTGRES_DB: ${POSTGRES_DB:?falta POSTGRES_DB en .env}
+      POSTGRES_USER: ${POSTGRES_USER:?falta POSTGRES_USER en .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?falta POSTGRES_PASSWORD en .env}
       PGDATA: /var/lib/postgresql/data/pgdata
     ports:
-      - "5433:5432"   # 5433 externo para no chocar con Postgres local
+      - "5434:5432"   # 5434 externo para no chocar con otros Postgres locales
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./database/01_init.sql:/docker-entrypoint-initdb.d/01_init.sql
-      - ./database/02_seed_specializations.sql:/docker-entrypoint-initdb.d/02_seed_specializations.sql
-      - ./database/03_seed_questions.sql:/docker-entrypoint-initdb.d/03_seed_questions.sql
-      - ./database/04_seed_training_data.sql:/docker-entrypoint-initdb.d/04_seed_training_data.sql
-      - ./database/05_seed_users.sql:/docker-entrypoint-initdb.d/05_seed_users.sql
+      # El directorio completo se monta en orden alfabetico. Antes solo se
+      # montaban 01-05, por lo que cursos, empleos y las preguntas
+      # psicometricas (07/08/09) nunca se sembraban.
+      - ./database:/docker-entrypoint-initdb.d:ro
     networks:
       - revo_network
     healthcheck:
@@ -41,8 +41,8 @@ services:
     container_name: revo_auth
     restart: unless-stopped
     environment:
-      DATABASE_URL: postgresql://revo_user:revo_pass_2025@postgres:5432/revo_db
-      JWT_SECRET: revo_super_secret_jwt_key_2025
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      JWT_SECRET: ${JWT_SECRET:?falta JWT_SECRET en .env}
       JWT_EXPIRE_HOURS: 24
       SERVICE_PORT: 8001
     ports:
@@ -66,8 +66,8 @@ services:
     container_name: revo_survey
     restart: unless-stopped
     environment:
-      DATABASE_URL: postgresql://revo_user:revo_pass_2025@postgres:5432/revo_db
-      JWT_SECRET: revo_super_secret_jwt_key_2025
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      JWT_SECRET: ${JWT_SECRET:?falta JWT_SECRET en .env}
       SERVICE_PORT: 8002
     ports:
       - "8002:8002"
@@ -90,8 +90,8 @@ services:
     container_name: revo_ml
     restart: unless-stopped
     environment:
-      DATABASE_URL: postgresql://revo_user:revo_pass_2025@postgres:5432/revo_db
-      JWT_SECRET: revo_super_secret_jwt_key_2025
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      JWT_SECRET: ${JWT_SECRET:?falta JWT_SECRET en .env}
       SERVICE_PORT: 8003
       MODEL_PATH: /app/model/saved/decision_tree.pkl
     ports:

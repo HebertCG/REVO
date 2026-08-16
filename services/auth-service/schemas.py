@@ -26,10 +26,32 @@ class RegisterRequest(BaseModel):
             raise ValueError("El semestre debe estar entre 1 y 12")
         return v
 
+    @field_validator("email")
+    @classmethod
+    def normalize_email(cls, v: str) -> str:
+        # Sin esto, Ana@x.com y ana@x.com son cuentas distintas: el UNIQUE
+        # de la BD distingue mayusculas y permite registrar el mismo correo.
+        return v.strip().lower()
+
+    @field_validator("student_code")
+    @classmethod
+    def normalize_student_code(cls, v):
+        # "" no es None: pasa el `if body.student_code` del router y luego
+        # choca contra el UNIQUE al registrarse un segundo usuario vacio.
+        if v is None:
+            return None
+        v = v.strip()
+        return v or None
+
 
 class LoginRequest(BaseModel):
     email: EmailStr
     password: str
+
+    @field_validator("email")
+    @classmethod
+    def normalize_email(cls, v: str) -> str:
+        return v.strip().lower()
 
 
 class UpdateProfileRequest(BaseModel):

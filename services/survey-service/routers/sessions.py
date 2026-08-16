@@ -11,6 +11,37 @@ from config import settings
 
 router = APIRouter(prefix="/sessions", tags=["Sessions"])
 
+# Numero de especializaciones (1..10). Antes estaba repetido como
+# `range(1, 11)` en cuatro sitios distintos.
+NUM_SPECS = 10
+SPEC_IDS = range(1, NUM_SPECS + 1)
+
+
+def _spec_totals(db: Session, session_id: int) -> dict[int, dict]:
+    """
+    Suma y conteo de respuestas agrupadas por especializacion, en UNA query.
+
+    Antes esto era un N+1: un SELECT a `questions` por cada respuesta
+    (25 en fase 2), es decir 27 round-trips a PostgreSQL en el endpoint
+    que cierra el cuestionario.
+    """
+    rows = (
+        db.query(
+            Question.specialization_id,
+            func.sum(Answer.value).label("total"),
+            func.count(Answer.id).label("cnt"),
+        )
+        .join(Answer, Answer.question_id == Question.id)
+        .filter(Answer.session_id == session_id)
+        .group_by(Question.specialization_id)
+        .all()
+    )
+    totals = {i: {"sum": 0.0, "count": 0} for i in SPEC_IDS}
+    for spec_id, total, cnt in rows:
+        if spec_id in totals:
+            totals[spec_id] = {"sum": float(total or 0), "count": int(cnt or 0)}
+    return totals
+
 
 def extract_user_id(authorization: str = Header(None)) -> int:
     if not authorization or not authorization.startswith("Bearer "):
@@ -98,24 +129,44 @@ def save_answers(session_id: int, body: BulkAnswerIn, db: Session = Depends(get_
     if not session:
         raise HTTPException(status_code=404, detail="Sesión no encontrada")
 
+    incoming_ids = [a.question_id for a in body.answers]
+
+    # Validar que las preguntas existen antes de tocar la BD: un question_id
+    # inexistente provocaba una violacion de FK y un HTTP 500 con traza.
+    valid_ids = {
+        qid for (qid,) in db.query(Question.id).filter(Question.id.in_(incoming_ids)).all()
+    }
+    unknown = set(incoming_ids) - valid_ids
+    if unknown:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Preguntas inexistentes: {sorted(unknown)}",
+        )
+
+    existing_map = {
+        a.question_id: a
+        for a in db.query(Answer).filter(
+            Answer.session_id == session_id,
+            Answer.question_id.in_(incoming_ids),
+        ).all()
+    }
+
+    # UN solo commit al final: antes se hacia commit + refresh por iteracion
+    # (61 sentencias y 15 transacciones para guardar 15 respuestas), y si
+    # fallaba a mitad la sesion quedaba en un estado inconsistente.
+    now = datetime.now(timezone.utc)
     saved = []
     for ans in body.answers:
-        existing = db.query(Answer).filter(
-            Answer.session_id == session_id, Answer.question_id == ans.question_id
-        ).first()
-        if existing:
-            existing.value = ans.value
-            existing.answered_at = datetime.now(timezone.utc)
-            db.commit()
-            db.refresh(existing)
-            saved.append(existing)
+        row = existing_map.get(ans.question_id)
+        if row:
+            row.value = ans.value
+            row.answered_at = now
         else:
-            new_ans = Answer(session_id=session_id, question_id=ans.question_id, value=ans.value)
-            db.add(new_ans)
-            db.commit()
-            db.refresh(new_ans)
-            saved.append(new_ans)
+            row = Answer(session_id=session_id, question_id=ans.question_id, value=ans.value)
+            db.add(row)
+        saved.append(row)
 
+    db.commit()
     return saved
 
 
@@ -136,13 +187,9 @@ def submit_phase(session_id: int, request_headers: dict = Depends(lambda: {}), d
         if len(answers) < 10:
             raise HTTPException(status_code=400, detail="Faltan respuestas de Fase 1")
             
-        # Calcular los top 3
-        spec_scores = {i: 0.0 for i in range(1, 11)}
-        for a in answers:
-            q = db.query(Question).filter(Question.id == a.question_id).first()
-            if q:
-                spec_scores[q.specialization_id] += float(a.value)
-                
+        # Calcular los top 3 (1 query agregada en vez de 10 individuales)
+        spec_scores = {i: t["sum"] for i, t in _spec_totals(db, session_id).items()}
+
         # Ordenar y sacar las 3 mejores claves
         # IMPORTANTE: Mezclamos las llaves antes de ordenar para destruir el sesgo de empates matemáticos
         import random
@@ -162,14 +209,10 @@ def submit_phase(session_id: int, request_headers: dict = Depends(lambda: {}), d
         
         # Construir afinidades de 1 a 10 (matemáticas de 0.0 a 1.0)
         # Por cada especialidad: suma_respuestas / maxima_puntuacion_posible
-        questions_answered = {i: {"sum": 0.0, "count": 0} for i in range(1, 11)}
-        
-        for a in answers:
-            q = db.query(Question).filter(Question.id == a.question_id).first()
-            if q:
-                questions_answered[q.specialization_id]["sum"] += float(a.value)
-                questions_answered[q.specialization_id]["count"] += 1
-                
+        # 1 query agregada en vez de 25 individuales
+        questions_answered = _spec_totals(db, session_id)
+
+
         # Una rama explorada tiene 6 preguntas máximas (1 Fase 1 + 5 Fase 2) = 30 pts.
         # Dividiremos la suma de TODO entre 30.0 para todos.
         # Esto colapsa las ramas no exploradas (max 5/30 = 16.6%),
@@ -190,13 +233,12 @@ def submit_phase(session_id: int, request_headers: dict = Depends(lambda: {}), d
         try:
             import os
             headers = {"Authorization": authorization, "Content-Type": "application/json"}
+            # user_id ya no se envia: ml-service lo toma del token JWT.
             payload = {
                 "session_id": session_id,
-                "user_id": user_id,
                 "feature_vector": affinities
             }
-            # Usa variable de entorno, si no asume localhost
-            base_ml = os.environ.get("ML_SERVICE_URL", "http://localhost:8013").rstrip("/")
+            base_ml = settings.ML_SERVICE_URL.rstrip("/")
             ml_url = f"{base_ml}/predict/"
             res = requests.post(ml_url, json=payload, headers=headers, timeout=30)
             res.raise_for_status()

@@ -3,11 +3,14 @@ from functools import lru_cache
 
 
 class Settings(BaseSettings):
-    # Base de datos
-    DATABASE_URL: str = "postgresql://revo_user:revo_pass_2025@localhost:5432/revo_db"
+    # Base de datos. Sin default: si falta, el arranque falla en vez de
+    # conectarse silenciosamente a una BD equivocada.
+    DATABASE_URL: str
 
-    # JWT
-    JWT_SECRET: str = "revo_super_secret_jwt_key_2025"
+    # JWT. SIN valor por defecto a proposito: un default hardcodeado aqui
+    # permite firmar tokens de admin a cualquiera que lea el repositorio.
+    # Debe venir de la variable de entorno JWT_SECRET (ver .env.example).
+    JWT_SECRET: str
     JWT_ALGORITHM: str = "HS256"
     JWT_EXPIRE_HOURS: int = 24
 

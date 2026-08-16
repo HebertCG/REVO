@@ -42,6 +42,8 @@ def retrain_model(
             precision        = metrics["precision"],
             recall           = metrics["recall"],
             f1               = metrics["f1"],
+            baseline_accuracy  = metrics["baseline_accuracy"],
+            lift_over_baseline = metrics["lift_over_baseline"],
             training_samples = metrics["training_samples"],
             test_samples     = metrics["test_samples"],
             tree_depth       = metrics["tree_depth"],
@@ -53,8 +55,11 @@ def retrain_model(
 
 # ── GET /stats/overview ──────────────────────────────────────
 @router.get("/overview")
-def get_overview(db: Session = Depends(get_db)):
-    """Estadísticas globales para el dashboard admin."""
+def get_overview(
+    db: Session = Depends(get_db),
+    admin_id: int = Depends(require_admin),
+):
+    """Estadísticas globales para el dashboard admin (solo admins)."""
     total_preds = db.query(Prediction).count()
 
     # Distribución de especializaciones
@@ -134,8 +139,11 @@ def get_overview(db: Session = Depends(get_db)):
 
 # ── GET /stats/training-history ─────────────────────────────
 @router.get("/training-history")
-def get_training_history(db: Session = Depends(get_db)):
-    """Historial de entrenamientos del modelo."""
+def get_training_history(
+    db: Session = Depends(get_db),
+    admin_id: int = Depends(require_admin),
+):
+    """Historial de entrenamientos del modelo (solo admins)."""
     logs = db.query(ModelTrainingLog).order_by(
         ModelTrainingLog.trained_at.desc()
     ).limit(20).all()

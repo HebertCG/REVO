@@ -1,11 +1,24 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from typing import Optional
 
 
 class PredictRequest(BaseModel):
     session_id: int
-    user_id: int
-    feature_vector: dict  # {q1: 4.0, q2: 3.0, ...}
+    # user_id se toma del token JWT, NUNCA del body: si viene del cliente,
+    # cualquier usuario puede crear predicciones a nombre de otro.
+    feature_vector: dict[str, float]  # {"aff_1": 0.8, ...} valores 0.0-1.0
+
+    @field_validator("feature_vector")
+    @classmethod
+    def validate_affinities(cls, v: dict) -> dict:
+        expected = {f"aff_{i}" for i in range(1, 11)}
+        unknown = set(v) - expected
+        if unknown:
+            raise ValueError(f"Claves no reconocidas: {sorted(unknown)}")
+        for key, val in v.items():
+            if not (0.0 <= val <= 1.0):
+                raise ValueError(f"{key}={val} fuera del rango 0.0-1.0")
+        return v
 
 
 class SpecializationResult(BaseModel):
@@ -39,6 +52,10 @@ class TrainResponse(BaseModel):
     precision: float
     recall: float
     f1: float
+    # Accuracy de la regla trivial argmax(aff) y cuanto aporta el modelo
+    # por encima de ella. Es la unica cifra honesta para una sustentacion.
+    baseline_accuracy: float = 0.0
+    lift_over_baseline: float = 0.0
     training_samples: int
     test_samples: int
     tree_depth: int

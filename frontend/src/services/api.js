@@ -39,8 +39,10 @@ export const mlApi = {
   getHistory:      (uid)   => mlAxios.get(`/predict/user/${uid}/history`, { headers: authHeader() }),
   importances:     ()      => mlAxios.get('/predict/model/importances', { headers: authHeader() }),
   treeViz:         ()      => mlAxios.get('/predict/model/tree', { headers: authHeader() }),
-  overview:        ()      => mlAxios.get(`/stats/overview?t=${new Date().getTime()}`),
-  trainingHistory: ()      => mlAxios.get(`/stats/training-history?t=${new Date().getTime()}`),
+  // Requieren rol admin. El `?t=` anterior anulaba toda cache y forzaba
+  // 10 queries a PostgreSQL en cada tick del polling.
+  overview:        ()      => mlAxios.get('/stats/overview', { headers: authHeader() }),
+  trainingHistory: ()      => mlAxios.get('/stats/training-history', { headers: authHeader() }),
   retrain:         ()      => mlAxios.post('/stats/train', {}, { headers: authHeader() }),
   sendFeedback:    (predId, body) => mlAxios.post(`/predict/${predId}/feedback`, body, { headers: authHeader() }),
   exportCsvUrl:    ()      => `${import.meta.env.VITE_ML_URL || '/api/ml'}/stats/export-csv`,

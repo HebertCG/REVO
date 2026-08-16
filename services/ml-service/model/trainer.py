@@ -6,6 +6,7 @@ import os
 import joblib
 import numpy as np
 import pandas as pd
+from functools import lru_cache
 from datetime import datetime, timezone
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import train_test_split
@@ -47,11 +48,13 @@ def train_model(db: Session, trained_by_id: int = None) -> dict:
         X, y, test_size=0.20, random_state=42, stratify=y
     )
 
-    # ── Regresión Logística (Más estable y sin sesgos para features 1:1) ──
+    # ── Regresión Logística ───────────────────────────────────
+    # multi_class="multinomial" se quitó: está deprecado desde scikit-learn
+    # 1.5 y se elimina en 1.8. Multinomial ya es el comportamiento por
+    # defecto, así que el modelo entrenado es idéntico.
     clf = LogisticRegression(
         max_iter=1000,
         class_weight="balanced",
-        multi_class="multinomial",
         random_state=42
     )
     clf.fit(X_train, y_train)
@@ -62,6 +65,16 @@ def train_model(db: Session, trained_by_id: int = None) -> dict:
     prec  = round(float(precision_score(y_test, y_pred, average="weighted", zero_division=0)), 4)
     rec   = round(float(recall_score(y_test, y_pred, average="weighted", zero_division=0)), 4)
     f1    = round(float(f1_score(y_test, y_pred, average="weighted", zero_division=0)), 4)
+
+    # ── Métrica honesta: comparación contra la regla trivial ──
+    # El accuracy suelto no dice nada aquí: con el dataset sintético actual
+    # la etiqueta es (casi siempre) argmax(aff_1..aff_10), así que una regla
+    # de una línea sin ML alcanza ~99.8%. Lo único informativo es el "lift":
+    # cuánto aporta el modelo POR ENCIMA de esa regla. Si el lift es <= 0,
+    # el modelo no está aprendiendo nada que no sea el argmax.
+    baseline_pred = X_test.argmax(axis=1) + 1
+    baseline_acc  = round(float(accuracy_score(y_test, baseline_pred)), 4)
+    lift          = round(acc - baseline_acc, 4)
 
     # ── Guardar modelo ────────────────────────────────────────
     os.makedirs(os.path.dirname(settings.MODEL_PATH), exist_ok=True)
@@ -88,10 +101,16 @@ def train_model(db: Session, trained_by_id: int = None) -> dict:
         },
         model_path       = settings.MODEL_PATH,
         trained_by       = trained_by_id,
-        notes            = f"Auto-train con {len(X)} muestras sintéticas"
+        notes            = (
+            f"{len(X)} muestras. Accuracy={acc:.4f} vs baseline argmax="
+            f"{baseline_acc:.4f} (lift={lift:+.4f})"
+        )
     )
     db.add(log)
     db.commit()
+
+    # El modelo cambió: invalidar la caché en memoria del predictor.
+    load_model.cache_clear()
 
     return {
         "model_version":    version,
@@ -99,6 +118,8 @@ def train_model(db: Session, trained_by_id: int = None) -> dict:
         "precision":        prec,
         "recall":           rec,
         "f1":               f1,
+        "baseline_accuracy": baseline_acc,
+        "lift_over_baseline": lift,
         "training_samples": len(X_train),
         "test_samples":     len(X_test),
         "tree_depth":       0,
@@ -107,8 +128,15 @@ def train_model(db: Session, trained_by_id: int = None) -> dict:
     }
 
 
+@lru_cache(maxsize=1)
 def load_model() -> LogisticRegression:
-    """Carga el modelo guardado en disco."""
+    """
+    Carga el modelo guardado en disco.
+
+    Cacheado en memoria: antes se leía el .pkl desde disco en CADA
+    predicción y en cada poll del panel admin (/predict/model/importances
+    se llama cada 5s). train_model() llama a cache_clear() al reentrenar.
+    """
     if not os.path.exists(settings.MODEL_PATH):
         raise FileNotFoundError(f"Modelo no encontrado en {settings.MODEL_PATH}. Entrene primero.")
     return joblib.load(settings.MODEL_PATH)

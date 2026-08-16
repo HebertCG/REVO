@@ -1009,4 +1009,4 @@ INSERT INTO ml_training_data (
 (0.1667, 0.0667, 0.4667, 0.6333, 0.0667, 0.1333, 0.0333, 0.1333, 0.8667, 0.0667, 9),
 (0.6, 0.1667, 0.1, 0.1, 0.6667, 0.0333, 0.9333, 0.1667, 0.1333, 0.1333, 7);
 
-DO \$\$ BEGIN RAISE NOTICE ✅ 1000 estudiantes REVO realistas generados para el ML.; END \$\$;
+DO $$ BEGIN RAISE NOTICE '1000 muestras de entrenamiento cargadas en ml_training_data'; END $$;

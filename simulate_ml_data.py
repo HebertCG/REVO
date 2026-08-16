@@ -50,4 +50,11 @@ with open('database/04_seed_training_data.sql', 'w', encoding='utf-8') as f:
 
     f.write(',\n'.join(rows))
     f.write(';\n\n')
-    f.write('DO \$\$ BEGIN RAISE NOTICE ''✅ 1000 estudiantes REVO realistas generados para el ML.''; END \$\$;\n')
+    # Nota: usar $$ literal (sin escapar) y comillas simples reales.
+    # El escapado \$\$ era para shell, no para psql: rompia el init de la BD
+    # con "invalid command \$" y abortaba todos los seeds posteriores.
+    f.write(
+        "DO $$ BEGIN RAISE NOTICE "
+        f"'{NUM_SAMPLES} muestras de entrenamiento cargadas en ml_training_data'"
+        "; END $$;\n"
+    )

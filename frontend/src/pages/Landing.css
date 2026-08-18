@@ -156,3 +156,18 @@
   .section { padding: 80px 0; }
   .step-num { font-size: 2.5rem; top: -15px; }
 }
+
+/* ── Landing en tema claro ──────────────────────────────────
+   El panel informativo viene del diseño en fondo blanco, pero
+   .landing traía fondo oscuro y heredaba texto claro, lo que
+   dejaba franjas negras alrededor del contenido.
+   El navbar y el footer se conservan oscuros a propósito: hacen
+   de marco superior e inferior sobre el contenido claro.        */
+.landing-light {
+  background: #ffffff;
+  color: #0d1220;
+  /* La barra de navegación es fixed y mide 68px: sin este hueco el
+     diseño arranca por debajo de ella y se le corta la cabecera. */
+  padding-top: 68px;
+}
+.landing-light .footer { border-top: none; }

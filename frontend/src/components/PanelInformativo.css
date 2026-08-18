@@ -1,0 +1,52 @@
+/* Panel informativo - animaciones y estados :hover.
+   Provienen del diseno original; ninguno de los dos puede ir en linea. */
+
+/* NOTA: el diseño original traía aquí reglas globales para `body` y `a`.
+   Se eliminaron a proposito: Vite junta todo el CSS en una hoja global, asi
+   que pintaban de blanco el fondo de TODA la aplicacion (Dashboard,
+   Cuestionario e Historial incluidos) y, como --text-primary es casi
+   blanco, dejaban el texto invisible. Sus equivalentes acotados a
+   .revo-panel estan mas abajo. */
+@keyframes revoRise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+@keyframes revoBar82{from{width:0}to{width:82%}}
+@keyframes revoBar61{from{width:0}to{width:61%}}
+@keyframes revoBar44{from{width:0}to{width:44%}}
+@keyframes revoFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-9px)}}
+@keyframes revoPulse{0%,100%{opacity:.35}50%{opacity:1}}
+
+.revo-panel {
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  color: #0d1220;
+  background: #fff;
+  -webkit-font-smoothing: antialiased;
+}
+.revo-panel a { color: #2f5fe8; text-decoration: none; }
+.revo-panel a:hover { color: #1e46bd; }
+
+/* Estados hover portados desde los atributos style-hover del diseno. */
+.rv-h1:hover { background:#1e46bd; transform:translateY(-1px); }
+.rv-h2:hover { border-color:#2f5fe8; color:#2f5fe8; }
+.rv-h3:hover { transform:translateY(-3px); box-shadow:0 14px 30px rgba(23,43,99,.1); }
+.rv-h4:hover { background:#0d1220; color:#fff; }
+.rv-h5:hover { transform:translateY(-3px); box-shadow:0 14px 30px rgba(23,43,99,.2); }
+.rv-h6:hover { background:#1e46bd; }
+
+@media (prefers-reduced-motion: reduce) {
+  .revo-panel *, .revo-panel *::before, .revo-panel *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+  }
+}
+
+/* ── Rejilla de 6 tarjetas: 3 arriba y 3 abajo ──────────────
+   Antes usaba auto-fit con mínimo de 262px, que en pantallas
+   anchas encajaba 4 columnas y dejaba la última fila coja (4+2). */
+.rv-grid-3 { grid-template-columns: repeat(3, 1fr); }
+
+@media (max-width: 900px) {
+  .rv-grid-3 { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 560px) {
+  .rv-grid-3 { grid-template-columns: 1fr; }
+}

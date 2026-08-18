@@ -1,0 +1,139 @@
+/* ────────────────────────────────────────────────────────────
+   Pie de página
+
+   Se mantiene oscuro a propósito: cierra la página clara y
+   hace juego con la barra de navegación superior.
+   ──────────────────────────────────────────────────────────── */
+
+.site-footer {
+  background: #0b1020;
+  color: #cbd5e1;
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.footer-inner {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: clamp(40px, 6vw, 64px) clamp(20px, 5vw, 40px) clamp(28px, 4vw, 40px);
+  display: grid;
+  grid-template-columns: 2.2fr 1fr 1.2fr 1fr;
+  gap: clamp(28px, 4vw, 48px);
+}
+
+/* ── Marca ────────────────────────────────────────────────── */
+.footer-logo { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
+.footer-logo-icon { font-size: 1.3rem; }
+.footer-logo-text {
+  font-size: 1.35rem; font-weight: 800; color: #fff; letter-spacing: -0.02em;
+}
+.footer-logo-dot { color: #6C63FF; }
+
+.footer-tagline {
+  margin: 0 0 14px;
+  font-size: 0.92rem;
+  line-height: 1.62;
+  color: #94a3b8;
+  max-width: 40ch;
+}
+
+.footer-meta {
+  margin: 0;
+  font-size: 0.8rem;
+  line-height: 1.55;
+  color: #64748b;
+  max-width: 38ch;
+}
+
+/* ── Columnas de enlaces ──────────────────────────────────── */
+.footer-col { display: flex; flex-direction: column; gap: 9px; }
+
+.footer-title {
+  margin: 0 0 6px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #f1f5f9;
+}
+
+.footer-col a {
+  position: relative;
+  width: fit-content;
+  color: #94a3b8;
+  text-decoration: none;
+  font-size: 0.9rem;
+  transition: color 0.2s ease, transform 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.footer-col a:hover { color: #fff; transform: translateX(3px); }
+
+/* Barrita que aparece al pasar el cursor, en lugar de subrayado. */
+.footer-col a::before {
+  content: '';
+  position: absolute; left: -10px; top: 50%;
+  width: 3px; height: 0; border-radius: 2px;
+  background: linear-gradient(180deg, #6C63FF, #00D4FF);
+  transform: translateY(-50%);
+  transition: height 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.footer-col a:hover::before { height: 14px; }
+
+.footer-rama {
+  font-size: 0.88rem;
+  color: #94a3b8;
+  line-height: 1.4;
+}
+.footer-rama-mas { color: #64748b; font-style: italic; }
+
+/* ── Línea inferior ───────────────────────────────────────── */
+.footer-bottom {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 18px clamp(20px, 5vw, 40px) 28px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px 24px;
+}
+
+.footer-bottom p { margin: 0; font-size: 0.82rem; color: #64748b; }
+
+.footer-engine {
+  display: flex; align-items: center; gap: 8px;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 0.76rem !important;
+  letter-spacing: 0.02em;
+}
+
+/* Punto que late para indicar que el modelo está activo. */
+.footer-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: #22c55e;
+  box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.6);
+  animation: footerPulse 2.4s ease-out infinite;
+  flex: none;
+}
+@keyframes footerPulse {
+  0%   { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.55); }
+  70%  { box-shadow: 0 0 0 7px rgba(34, 197, 94, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+}
+
+/* ── Adaptación ───────────────────────────────────────────── */
+@media (max-width: 900px) {
+  .footer-inner { grid-template-columns: 1fr 1fr; }
+  .footer-brand { grid-column: 1 / -1; }
+}
+@media (max-width: 560px) {
+  .footer-inner { grid-template-columns: 1fr; gap: 30px; }
+  .footer-bottom { flex-direction: column; align-items: flex-start; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .footer-col a, .footer-col a::before, .footer-dot {
+    transition-duration: 0.01ms !important;
+    animation: none !important;
+  }
+}

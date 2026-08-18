@@ -1,0 +1,158 @@
+/* ════════════════════════════════════════════════════════════
+   Sistema visual compartido — Dashboard, Cuestionario, Historial
+
+   Público objetivo: estudiantes de 18 a 24 años. La dirección es
+   "instrumento de medición nocturno": superficies profundas, un
+   acento frío, y el dato siempre por encima de la decoración.
+
+   Regla que atraviesa todo: el texto lleva color de texto, nunca el
+   color de la serie. El acento de color va en una marca al lado.
+   ════════════════════════════════════════════════════════════ */
+
+.rv {
+  --plano:      #0B1020;   /* fondo de página */
+  --sup:        #131A2E;   /* superficie de tarjeta */
+  --sup-alta:   #1A2440;   /* superficie elevada / hover */
+  --linea:      #24304D;
+  --linea-sutil:#1B2440;
+
+  --tinta:      #EEF2FB;   /* texto principal */
+  --tinta-2:    #A9B6D0;   /* texto secundario */
+  --tinta-3:    #6E7C99;   /* texto atenuado */
+
+  --acento:     #7AA7F0;
+  --acento-alto:#9DC0FA;
+
+  --r-s: 10px;
+  --r-m: 16px;
+  --r-l: 22px;
+
+  --paso: clamp(14px, 2.2vw, 22px);
+
+  --f-titulo: 'Space Grotesk', 'Plus Jakarta Sans', system-ui, sans-serif;
+  --f-texto:  'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  --f-dato:   'JetBrains Mono', ui-monospace, 'SF Mono', monospace;
+
+  background: var(--plano);
+  color: var(--tinta);
+  font-family: var(--f-texto);
+  min-height: 100vh;
+  padding-top: 68px;          /* hueco de la barra fija */
+  padding-bottom: clamp(48px, 8vw, 96px);
+  -webkit-font-smoothing: antialiased;
+}
+
+.rv-ancho {
+  width: 100%;
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 0 clamp(16px, 4vw, 32px);
+}
+.rv-ancho-est { max-width: 780px; }
+
+/* ── Tipografía ─────────────────────────────────────────── */
+.rv h1, .rv h2, .rv h3 { font-family: var(--f-titulo); margin: 0; letter-spacing: -0.02em; }
+.rv h1 { font-size: clamp(1.6rem, 3.4vw, 2.2rem); font-weight: 800; line-height: 1.12; text-wrap: balance; }
+.rv h2 { font-size: clamp(1.15rem, 2.2vw, 1.4rem); font-weight: 700; line-height: 1.2; }
+.rv h3 { font-size: 1rem; font-weight: 700; }
+.rv p  { margin: 0; }
+
+.rv-sub    { color: var(--tinta-2); font-size: .94rem; line-height: 1.55; }
+.rv-menor  { color: var(--tinta-3); font-size: .82rem; line-height: 1.5; }
+.rv-etiq {
+  font-family: var(--f-dato); font-size: .68rem; font-weight: 600;
+  letter-spacing: .12em; text-transform: uppercase; color: var(--tinta-3);
+}
+.rv-dato { font-family: var(--f-dato); font-variant-numeric: tabular-nums; }
+
+/* ── Superficies ────────────────────────────────────────── */
+.rv-tarjeta {
+  background: var(--sup);
+  border: 1px solid var(--linea-sutil);
+  border-radius: var(--r-m);
+  padding: var(--paso);
+}
+.rv-tarjeta-int { padding: 0; overflow: hidden; }
+
+/* ── Marca de color: el acento va aquí, no en el texto ──── */
+.rv-marca {
+  width: 10px; height: 10px; border-radius: 3px;
+  flex: none; display: inline-block;
+}
+.rv-marca-l { width: 4px; height: 100%; border-radius: 4px; }
+
+.rv-ficha {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 5px 11px 5px 8px;
+  border-radius: 999px;
+  background: var(--sup-alta);
+  border: 1px solid var(--linea);
+  font-size: .8rem; font-weight: 600; color: var(--tinta);
+  white-space: nowrap;
+}
+
+/* ── Barras de progreso ─────────────────────────────────── */
+.rv-pista {
+  height: 6px; border-radius: 999px;
+  background: var(--linea-sutil);
+  overflow: hidden;
+}
+.rv-relleno {
+  height: 100%; border-radius: 999px;
+  transition: width .7s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* ── Botones ────────────────────────────────────────────── */
+.rv-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 11px 20px; border-radius: 999px;
+  font-family: var(--f-texto); font-size: .92rem; font-weight: 700;
+  border: 1px solid transparent; cursor: pointer;
+  text-decoration: none; white-space: nowrap;
+  transition: transform .18s cubic-bezier(0.22,1,0.36,1), background .18s ease, border-color .18s ease;
+}
+.rv-btn:hover  { transform: translateY(-1px); }
+.rv-btn:active { transform: none; }
+.rv-btn:disabled { opacity: .45; cursor: not-allowed; transform: none; }
+
+.rv-btn-1 { background: var(--acento); color: #0B1020; }
+.rv-btn-1:hover:not(:disabled) { background: var(--acento-alto); }
+.rv-btn-2 { background: transparent; color: var(--tinta); border-color: var(--linea); }
+.rv-btn-2:hover:not(:disabled) { background: var(--sup-alta); border-color: var(--acento); }
+.rv-btn-g { background: transparent; color: var(--tinta-2); }
+.rv-btn-g:hover:not(:disabled) { color: var(--tinta); background: var(--sup-alta); }
+
+/* ── Estado vacío ───────────────────────────────────────── */
+.rv-vacio {
+  text-align: center;
+  padding: clamp(36px, 7vw, 64px) var(--paso);
+}
+.rv-vacio-icono { font-size: 2.4rem; margin-bottom: 14px; }
+
+/* ── Esqueleto de carga ─────────────────────────────────── */
+.rv-esq {
+  border-radius: var(--r-m);
+  background: linear-gradient(90deg, var(--sup) 25%, var(--sup-alta) 50%, var(--sup) 75%);
+  background-size: 200% 100%;
+  animation: rvBrillo 1.4s ease-in-out infinite;
+}
+@keyframes rvBrillo { to { background-position: -200% 0; } }
+
+/* ── Entrada escalonada ─────────────────────────────────── */
+.rv-entra { animation: rvEntra .45s cubic-bezier(0.22, 1, 0.36, 1) both; }
+@keyframes rvEntra { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+
+/* ── Foco visible ───────────────────────────────────────── */
+.rv :focus-visible {
+  outline: 2px solid var(--acento);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rv *, .rv *::before, .rv *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+  }
+}

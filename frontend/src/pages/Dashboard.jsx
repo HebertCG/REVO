@@ -2,231 +2,207 @@ import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { mlApi } from '../services/api'
+import {
+  specMeta, calcularScore, nivelDe, siguienteNivel, fechaCorta,
+} from '../theme/specs'
+import '../theme/app.css'
 import './Dashboard.css'
-
-const SPEC_COLORS = {
-  'Desarrollo de Software': '#3B82F6',
-  'Data Science & IA': '#10B981',
-  'Infraestructura & Cloud': '#8B5CF6',
-  'Ciberseguridad': '#EF4444',
-  'Soporte Técnico & IT Ops': '#F59E0B',
-  'QA & Testing': '#EC4899',
-  'Gestión y Producto': '#6366F1',
-  'Diseño UX/UI': '#F43F5E',
-  'Sistemas Empresariales': '#14B8A6',
-  'Investigación e Innovación': '#64748B',
-  // Legacy
-  'Desarrollo Web & Móvil': '#6C63FF',
-  'Data Science & Inteligencia Artificial': '#00D4FF',
-  'Redes e Infraestructura': '#F59E0B',
-  'Ingeniería de Software': '#10B981',
-  'Cloud Computing & DevOps': '#8B5CF6',
-}
-
-const SCORE_LEVELS = [
-  { min: 0,   max: 200, label: 'Explorador Inicial',        icon: '🌱', color: '#64748B' },
-  { min: 201, max: 500, label: 'Perfil Emergente',           icon: '🔥', color: '#F59E0B' },
-  { min: 501, max: 800, label: 'Técnico en Consolidación',   icon: '⚡', color: '#6C63FF' },
-  { min: 801, max: Infinity, label: 'Perfil Elite',          icon: '🏆', color: '#10B981' },
-]
-
-function calcREVOScore(history) {
-  if (!history.length) return 0
-  const evalPoints = history.length * 100
-  const avgConf = history.reduce((acc, h) => acc + (h.confidence_pct || 0), 0) / history.length
-  const confPoints = Math.round(avgConf * 2)
-  // Bonus de consistencia: si los últimos 3 tests son la misma especialización
-  let consistencyBonus = 0
-  if (history.length >= 3) {
-    const last3 = history.slice(0, 3).map(h => h.specialization)
-    if (last3.every(s => s === last3[0])) consistencyBonus = 150
-  }
-  return evalPoints + confPoints + consistencyBonus
-}
-
-function getLevel(score) {
-  return SCORE_LEVELS.find(l => score >= l.min && score <= l.max) || SCORE_LEVELS[0]
-}
 
 export default function Dashboard() {
   const { user } = useAuth()
   const navigate = useNavigate()
-  const [history, setHistory] = useState([])
-  const [overview, setOverview] = useState(null)
-  const [loading, setLoading] = useState(true)
+  const [historial, setHistorial] = useState([])
+  const [cargando, setCargando] = useState(true)
 
   useEffect(() => {
     if (!user) return
-    Promise.all([
-      mlApi.getHistory(user.id).catch(() => ({ data: [] })),
-      mlApi.overview().catch(() => ({ data: null })),
-    ]).then(([h, o]) => {
-      setHistory(h.data || [])
-      setOverview(o.data)
-    }).finally(() => setLoading(false))
+    mlApi.getHistory(user.id)
+      .then((r) => setHistorial(r.data || []))
+      .catch(() => setHistorial([]))
+      .finally(() => setCargando(false))
   }, [user])
 
-  const lastPred = history[0] || null
-  const color = lastPred ? (SPEC_COLORS[lastPred.specialization] || '#6C63FF') : '#6C63FF'
-  const revoScore = calcREVOScore(history)
-  const level = getLevel(revoScore)
-  const nextLevel = SCORE_LEVELS.find(l => l.min > revoScore)
-  const pointsToNext = nextLevel ? nextLevel.min - revoScore : 0
+  const ultima = historial[0] || null
+  const meta = ultima ? specMeta(ultima.specialization) : null
+  const score = calcularScore(historial)
+  const nivel = nivelDe(score)
+  const proximo = siguienteNivel(score)
+  const faltan = proximo ? proximo.min - score : 0
+  const avance = proximo
+    ? Math.min(((score - nivel.min) / (proximo.min - nivel.min)) * 100, 100)
+    : 100
+
+  const nombre = user?.full_name?.split(' ')[0] || 'estudiante'
 
   return (
-    <div className="page dashboard">
-      <div className="container">
-        {/* Header */}
-        <div className="dash-header animate-fade">
+    <div className="rv dash">
+      <div className="rv-ancho">
+
+        {/* ── Encabezado ───────────────────────────────── */}
+        <header className="dash-cab rv-entra">
           <div>
-            <h1 className="dash-greeting">
-              ¡Hola, <span className="gradient-text">{user?.full_name?.split(' ')[0]}</span>! 👋
-            </h1>
-            <p className="text-muted">
-              {user?.semester ? `${user.semester}° Semestre` : 'Estudiante'} · {user?.student_code || 'Sin código'}
+            <p className="rv-etiq">Tu panel</p>
+            <h1>Hola, {nombre}</h1>
+            <p className="rv-sub">
+              {user?.semester ? `Ciclo ${user.semester}` : 'Estudiante'}
+              {user?.student_code ? ` · ${user.student_code}` : ''}
             </p>
           </div>
-          <button className="btn btn-primary" onClick={() => navigate('/questionnaire')}>
-            + Nueva Evaluación
+          <button className="rv-btn rv-btn-1" onClick={() => navigate('/questionnaire')}>
+            Nueva evaluación
           </button>
-        </div>
+        </header>
 
-        {/* Stats row */}
-        <div className="dash-stats animate-fade" style={{ animationDelay: '0.1s' }}>
-          <div className="stat-card glass">
-            <div className="stat-icon" style={{ background: 'rgba(108,99,255,0.15)', color: '#6C63FF' }}>📊</div>
-            <div>
-              <div className="stat-val">{history.length}</div>
-              <div className="stat-lbl text-muted text-sm">Evaluaciones</div>
-            </div>
+        {cargando ? (
+          <div className="dash-esqueleto">
+            <div className="rv-esq" style={{ height: 260 }} />
+            <div className="rv-esq" style={{ height: 260 }} />
           </div>
-          <div className="stat-card glass">
-            <div className="stat-icon" style={{ background: 'rgba(0,212,255,0.1)', color: '#00D4FF' }}>🎯</div>
-            <div>
-              <div className="stat-val">{lastPred ? `${lastPred.confidence_pct}%` : '—'}</div>
-              <div className="stat-lbl text-muted text-sm">Última confianza</div>
-            </div>
-          </div>
-          {/* REVO Score — Reemplaza la tarjeta del DT */}
-          <div className="stat-card glass" style={{ cursor: 'default', position: 'relative', overflow: 'hidden' }}>
-            <div className="stat-icon" style={{ background: level.color + '22', color: level.color, fontSize: '1.4rem' }}>{level.icon}</div>
-            <div>
-              <div className="stat-val" style={{ color: level.color }}>{revoScore} pts</div>
-              <div className="stat-lbl text-muted text-sm">REVO Score · {level.label}</div>
-            </div>
-          </div>
-          <div className="stat-card glass">
-            <div className="stat-icon" style={{ background: 'rgba(245,158,11,0.1)', color: '#F59E0B' }}>📚</div>
-            <div>
-              <div className="stat-val">{user?.semester || '—'}</div>
-              <div className="stat-lbl text-muted text-sm">Semestre actual</div>
-            </div>
-          </div>
-        </div>
+        ) : !ultima ? (
+          /* ── Sin evaluaciones ───────────────────────── */
+          <section className="rv-tarjeta rv-vacio rv-entra">
+            <div className="rv-vacio-icono">🎯</div>
+            <h2>Aún no tienes ninguna evaluación</h2>
+            <p className="rv-sub" style={{ maxWidth: '46ch', margin: '10px auto 22px' }}>
+              Son 25 preguntas y unos seis minutos. Al terminar sabrás qué tres
+              ramas de Ingeniería de Sistemas encajan mejor contigo, con el nivel
+              de confianza de cada una.
+            </p>
+            <Link to="/questionnaire" className="rv-btn rv-btn-1">
+              Empezar el test
+            </Link>
+          </section>
+        ) : (
+          <>
+            {/* ── El resultado manda: ocupa el lugar principal ── */}
+            <section className="dash-heroe rv-tarjeta rv-entra">
+              <div className="dash-heroe-txt">
+                <p className="rv-etiq">Tu última recomendación</p>
 
-        {/* REVO Score Progress Banner */}
-        {!loading && (
-          <div className="glass animate-fade" style={{ padding: '16px 24px', marginBottom: 20, animationDelay: '0.15s', display: 'flex', alignItems: 'center', gap: 20, flexWrap: 'wrap' }}>
-            <div style={{ flex: 1, minWidth: 200 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                <span style={{ fontWeight: 700, color: level.color }}>{level.icon} {level.label}</span>
-                {nextLevel && <span className="text-muted text-sm">+{pointsToNext} pts para {nextLevel.label}</span>}
-                {!nextLevel && <span style={{ color: '#10B981', fontWeight: 700 }}>🏆 Nivel máximo alcanzado</span>}
-              </div>
-              <div style={{ height: 8, background: 'rgba(255,255,255,0.06)', borderRadius: 8, overflow: 'hidden' }}>
-                <div style={{
-                  height: '100%',
-                  width: nextLevel ? `${Math.min(((revoScore - level.min) / (nextLevel.min - level.min)) * 100, 100)}%` : '100%',
-                  background: `linear-gradient(90deg, ${level.color}, ${nextLevel?.color || level.color})`,
-                  borderRadius: 8,
-                  transition: 'width 1s ease'
-                }} />
-              </div>
-            </div>
-            <div className="text-sm text-muted" style={{ maxWidth: 280 }}>
-              {history.length === 0
-                ? '🌱 Haz tu primera evaluación para empezar a acumular puntos.'
-                : history.length < 3
-                  ? '💡 Haz 3 evaluaciones seguidas con el mismo resultado para ganar +150 pts de consistencia.'
-                  : '⚡ El árbol aprende más con cada evaluación que haces. ¡Sigue evaluándote!'}
-            </div>
-          </div>
-        )}
-
-        <div className="dash-grid">
-          {/* Última predicción */}
-          <div className="dash-main animate-fade" style={{ animationDelay: '0.2s' }}>
-            {lastPred ? (
-              <div className="result-preview glass" style={{ '--c': color }}>
-                <div className="result-preview-bg" />
-                <div className="result-preview-content">
-                  <span className="badge badge-purple">Última Recomendación</span>
-                  <h2 className="result-spec-name">{lastPred.specialization}</h2>
-                  <div className="result-conf">
-                    <span className="conf-num" style={{ color }}>{lastPred.confidence_pct}%</span>
-                    <span className="text-muted text-sm">de compatibilidad</span>
-                  </div>
-                  <div className="progress-track" style={{ marginBottom: 24 }}>
-                    <div className="progress-fill" style={{ width: `${lastPred.confidence_pct}%`, background: color }} />
-                  </div>
-                  <div className="flex gap-3 flex-wrap">
-                    <Link to={`/results/${lastPred.prediction_id}`} className="btn btn-primary btn-sm">
-                      Ver detalles →
-                    </Link>
-                    <button onClick={() => navigate('/questionnaire')} className="btn btn-secondary btn-sm">
-                      Nueva evaluación
-                    </button>
-                  </div>
+                <div className="dash-heroe-spec">
+                  <span className="dash-heroe-icono" aria-hidden="true">{meta.icon}</span>
+                  <h2>{ultima.specialization}</h2>
                 </div>
-              </div>
-            ) : (
-              <div className="empty-state glass">
-                <div className="empty-icon">🎯</div>
-                <h3>¡Haz tu primera evaluación!</h3>
-                <p className="text-muted text-sm">Responde el cuestionario y descubre tu especialización ideal.</p>
-                <Link to="/questionnaire" className="btn btn-primary">Comenzar cuestionario →</Link>
-              </div>
-            )}
-          </div>
 
-          {/* Historial reciente */}
-          <div className="dash-side animate-fade" style={{ animationDelay: '0.3s' }}>
-            <div className="glass" style={{ padding: 24 }}>
-              <div className="flex justify-between items-center" style={{ marginBottom: 20 }}>
-                <h3 className="font-semibold">Historial reciente</h3>
-                <Link to="/history" className="text-sm" style={{ color: '#6C63FF' }}>Ver todo →</Link>
-              </div>
-              {loading ? (
-                [...Array(3)].map((_, i) => (
-                  <div key={i} className="skeleton" style={{ height: 64, marginBottom: 12, borderRadius: 12 }} />
-                ))
-              ) : history.length === 0 ? (
-                <p className="text-muted text-sm text-center" style={{ padding: '20px 0' }}>Sin evaluaciones aún</p>
-              ) : (
-                history.slice(0, 5).map((h, i) => (
-                  <Link to={`/results/${h.prediction_id}`} key={i} className="history-item">
-                    <div className="history-dot" style={{ background: SPEC_COLORS[h.specialization] || '#6C63FF' }} />
-                    <div className="history-info">
-                      <div className="history-spec font-semibold text-sm">{h.specialization}</div>
-                      <div className="text-xs text-muted">{new Date(h.created_at).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })}</div>
-                    </div>
-                    <div className="history-conf text-sm font-bold" style={{ color: SPEC_COLORS[h.specialization] || '#6C63FF' }}>
-                      {h.confidence_pct}%
-                    </div>
+                <div className="dash-heroe-num">
+                  <span className="rv-dato dash-cifra">{ultima.confidence_pct}</span>
+                  <span className="dash-cifra-pct rv-dato">%</span>
+                  <span className="rv-sub">de compatibilidad</span>
+                </div>
+
+                <div className="rv-pista" style={{ margin: '4px 0 20px' }}>
+                  <div
+                    className="rv-relleno"
+                    style={{ width: `${ultima.confidence_pct}%`, background: meta.color }}
+                  />
+                </div>
+
+                <div className="dash-heroe-acc">
+                  <Link to={`/results/${ultima.prediction_id}`} className="rv-btn rv-btn-1">
+                    Ver mi resultado completo
                   </Link>
-                ))
-              )}
-            </div>
+                  <Link to="/history" className="rv-btn rv-btn-2">Ver historial</Link>
+                </div>
 
-            {/* CTA */}
-            <div className="glass cta-mini" style={{ padding: 20, textAlign: 'center' }}>
-              <div style={{ fontSize: '2rem', marginBottom: 8 }}>🌳</div>
-              <p className="text-sm font-semibold" style={{ marginBottom: 4 }}>¿Quieres re-evaluar?</p>
-              <p className="text-xs text-muted" style={{ marginBottom: 16 }}>El árbol aprende con cada evaluación</p>
-              <Link to="/questionnaire" className="btn btn-ghost btn-sm w-full">Nuevo cuestionario</Link>
-            </div>
-          </div>
-        </div>
+                <p className="rv-menor" style={{ marginTop: 14 }}>
+                  Evaluado el {fechaCorta(ultima.created_at)}
+                </p>
+              </div>
+
+              {/* Barra de color de la especialidad: el acento va aquí,
+                  no en el texto, que se mantiene legible siempre. */}
+              <div
+                className="dash-heroe-borde"
+                style={{ background: meta.color }}
+                aria-hidden="true"
+              />
+            </section>
+
+            {/* ── Métricas secundarias ───────────────────── */}
+            <section className="dash-metricas rv-entra" style={{ animationDelay: '.06s' }}>
+              <article className="rv-tarjeta dash-met">
+                <p className="rv-etiq">Evaluaciones</p>
+                <p className="rv-dato dash-met-num">{historial.length}</p>
+                <p className="rv-menor">
+                  {historial.length === 1 ? 'La primera de muchas' : 'Repite cada ciclo'}
+                </p>
+              </article>
+
+              <article className="rv-tarjeta dash-met">
+                <p className="rv-etiq">Confianza media</p>
+                <p className="rv-dato dash-met-num">
+                  {Math.round(
+                    historial.reduce((a, h) => a + h.confidence_pct, 0) / historial.length
+                  )}<span className="dash-met-pct">%</span>
+                </p>
+                <p className="rv-menor">Entre todas tus evaluaciones</p>
+              </article>
+
+              <article className="rv-tarjeta dash-met dash-met-nivel">
+                <p className="rv-etiq">REVO Score</p>
+                <p className="rv-dato dash-met-num">{score}</p>
+                <p className="rv-menor">
+                  <span className="rv-marca" style={{ background: nivel.color }} />{' '}
+                  Nivel {nivel.label}
+                </p>
+              </article>
+            </section>
+
+            {/* ── Progreso de nivel ──────────────────────── */}
+            <section className="rv-tarjeta dash-nivel rv-entra" style={{ animationDelay: '.1s' }}>
+              <div className="dash-nivel-cab">
+                <span className="rv-ficha">
+                  <span aria-hidden="true">{nivel.icon}</span> {nivel.label}
+                </span>
+                {proximo ? (
+                  <p className="rv-menor">
+                    Te faltan <strong className="rv-dato" style={{ color: 'var(--tinta)' }}>{faltan}</strong> pts
+                    {' '}para {proximo.label}
+                  </p>
+                ) : (
+                  <p className="rv-menor">Has llegado al nivel máximo</p>
+                )}
+              </div>
+
+              <div className="rv-pista" style={{ height: 8 }}>
+                <div className="rv-relleno" style={{ width: `${avance}%`, background: nivel.color }} />
+              </div>
+
+              <p className="rv-menor dash-nivel-tip">
+                {historial.length < 3
+                  ? 'Consigue el mismo resultado en tres evaluaciones seguidas y ganas 150 puntos de consistencia.'
+                  : 'Cada evaluación aporta 100 puntos, más el doble de tu confianza media.'}
+              </p>
+            </section>
+
+            {/* ── Evaluaciones recientes ─────────────────── */}
+            <section className="rv-entra" style={{ animationDelay: '.14s' }}>
+              <div className="dash-lista-cab">
+                <h3>Evaluaciones recientes</h3>
+                {historial.length > 4 && (
+                  <Link to="/history" className="dash-enlace">Ver las {historial.length}</Link>
+                )}
+              </div>
+
+              <ul className="dash-lista">
+                {historial.slice(0, 4).map((h) => {
+                  const m = specMeta(h.specialization)
+                  return (
+                    <li key={h.prediction_id}>
+                      <Link to={`/results/${h.prediction_id}`} className="dash-fila">
+                        <span className="rv-marca" style={{ background: m.color }} aria-hidden="true" />
+                        <span className="dash-fila-nom">{h.specialization}</span>
+                        <span className="rv-menor dash-fila-fecha">{fechaCorta(h.created_at)}</span>
+                        <span className="rv-dato dash-fila-pct">{h.confidence_pct}%</span>
+                        <span className="dash-fila-flecha" aria-hidden="true">→</span>
+                      </Link>
+                    </li>
+                  )
+                })}
+              </ul>
+            </section>
+          </>
+        )}
       </div>
     </div>
   )

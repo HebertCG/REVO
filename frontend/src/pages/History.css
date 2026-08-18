@@ -1,0 +1,113 @@
+/* ── Historial de evaluaciones ──────────────────────────── */
+
+.hist-cab { margin-bottom: clamp(20px, 3.4vw, 30px); }
+.hist-cab .rv-etiq { margin-bottom: 8px; }
+.hist-cab h1 { margin-bottom: 8px; }
+
+/* ── Lectura del patrón ─────────────────────────────────── */
+.hist-patron {
+  display: flex; align-items: stretch; gap: 16px;
+  margin-bottom: 16px;
+}
+.hist-patron > div { flex: 1; min-width: 0; }
+
+/* ── Gráfico ────────────────────────────────────────────── */
+.hist-gr-cab {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  flex-wrap: wrap; gap: 12px; margin-bottom: 8px;
+}
+.hist-gr-media { text-align: right; flex: none; }
+.hist-gr-media-num {
+  font-size: 1.6rem; font-weight: 700; line-height: 1;
+  color: var(--tinta); margin-bottom: 2px;
+}
+.hist-grafico { margin: 0 -6px; }
+
+.hist-globo {
+  background: var(--sup-alta);
+  border: 1px solid var(--linea);
+  border-radius: var(--r-s);
+  padding: 10px 13px;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, .45);
+}
+.hist-globo-spec {
+  display: flex; align-items: center; gap: 7px;
+  font-weight: 700; font-size: .85rem;
+  color: var(--tinta); margin-bottom: 3px;
+}
+.hist-globo-num {
+  font-size: 1.25rem; font-weight: 700;
+  color: var(--tinta); margin-top: 4px;
+}
+
+/* ── Comparación de dos evaluaciones ────────────────────── */
+.hist-comp { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+.hist-comp-col { display: grid; gap: 7px; }
+.hist-comp-num {
+  font-size: 1.9rem; font-weight: 700; line-height: 1;
+  color: var(--tinta);
+}
+.hist-comp-spec { font-size: .84rem; font-weight: 600; color: var(--tinta-2); }
+.hist-comp-delta { margin-top: 16px; }
+
+/* ── Listado ────────────────────────────────────────────── */
+.hist-lista-tit { margin-bottom: 12px; color: var(--tinta-2); }
+.hist-lista { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
+
+.hist-item {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto auto 1fr auto;
+  align-items: center; gap: 16px;
+  padding: 16px 18px 16px 20px;
+  background: var(--sup);
+  border: 1px solid var(--linea-sutil);
+  border-radius: var(--r-m);
+  overflow: hidden;
+  text-decoration: none; color: inherit;
+  transition: background .18s ease, border-color .18s ease, transform .18s cubic-bezier(0.22,1,0.36,1);
+}
+.hist-item:hover {
+  background: var(--sup-alta);
+  border-color: var(--linea);
+  transform: translateY(-2px);
+}
+
+.hist-item-barra {
+  position: absolute; left: 0; top: 0; bottom: 0;
+  width: 4px; height: auto; border-radius: 0;
+}
+.hist-item-icono { font-size: 1.3rem; line-height: 1; flex: none; }
+
+.hist-item-cuerpo { display: grid; gap: 5px; min-width: 0; }
+.hist-item-fila { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; }
+.hist-item-nom { font-weight: 700; font-size: .97rem; color: var(--tinta); }
+.hist-item-ultimo {
+  font-family: var(--f-dato); font-size: .62rem; font-weight: 600;
+  letter-spacing: .08em; text-transform: uppercase;
+  color: var(--tinta-2);
+  padding: 3px 8px; border-radius: 999px;
+  background: var(--sup-alta); border: 1px solid var(--linea);
+}
+.hist-item-pista { height: 4px; margin-top: 3px; max-width: 320px; }
+
+.hist-item-pct { text-align: right; flex: none; }
+.hist-item-num {
+  display: block;
+  font-size: 1.35rem; font-weight: 700; line-height: 1.1;
+  color: var(--tinta);
+}
+
+/* ── Adaptación ─────────────────────────────────────────── */
+@media (max-width: 640px) {
+  .hist-comp { grid-template-columns: 1fr; gap: 22px; }
+
+  .hist-item {
+    grid-template-columns: auto 1fr;
+    row-gap: 12px;
+    padding: 15px 16px 15px 19px;
+  }
+  /* El porcentaje pasa a segunda línea, alineado con el texto. */
+  .hist-item-pct { grid-column: 2; text-align: left; }
+  .hist-item-pista { max-width: none; }
+}

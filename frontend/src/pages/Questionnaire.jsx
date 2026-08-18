@@ -1,19 +1,37 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { surveyApi } from '../services/api'
+import '../theme/app.css'
 import './Questionnaire.css'
 
-const CATEGORY_META = {
-  academic:    { label: 'Académico',    icon: '📚', color: '#6C63FF' },
-  skills:      { label: 'Habilidades',  icon: '🛠️', color: '#00D4FF' },
-  interests:   { label: 'Intereses',    icon: '❤️',  color: '#FF6B9D' },
-  personality: { label: 'Personalidad', icon: '🧠', color: '#10B981' },
+// Cada categoria trae su propio color de ambiente. Solo se ve una a la
+// vez, asi que no compiten entre si: el cambio de color es lo que hace
+// que 25 preguntas no se sientan iguales.
+const CATEGORIAS = {
+  academic:    { label: 'Académico',    icon: '📚', color: '#7AA7F0' },
+  skills:      { label: 'Habilidades',  icon: '🛠️', color: '#34D399' },
+  interests:   { label: 'Intereses',    icon: '❤️', color: '#F472B6' },
+  personality: { label: 'Personalidad', icon: '🧠', color: '#A78BFA' },
 }
+const COLOR_BASE = '#7AA7F0'
 
-// Fallback mínimo: solo se usa si la BD no responde
-// La fuente real son las 40 preguntas en psychometric_questions (BD)
-const PHASE3_FALLBACK = [
+// Etiquetas de la escala. Van sobre el propio botón, no en una fila
+// aparte: antes había que cruzar la mirada entre el número y su
+// significado, que es justo lo que hace lento un test de 25 preguntas.
+// El circulo crece con el valor, asi que la escala se entiende antes
+// de leer: el tamano comunica la intensidad y la palabra la confirma.
+const ESCALA = [
+  { v: 1, corta: 'Para nada',  larga: 'No tiene nada que ver conmigo' },
+  { v: 2, corta: 'Poco',       larga: 'Me representa poco' },
+  { v: 3, corta: 'A medias',   larga: 'Ni sí ni no' },
+  { v: 4, corta: 'Bastante',   larga: 'Me representa bastante' },
+  { v: 5, corta: 'Totalmente', larga: 'Soy exactamente así' },
+]
+
+// Reserva local por si la base de datos no responde. La fuente real
+// son las 40 preguntas de psychometric_questions.
+const FASE3_RESERVA = [
   {
     id: 'p3_fb_1',
     question: 'Acabas de terminar un módulo de trabajo. ¿Cuál es tu reacción natural?',
@@ -22,7 +40,7 @@ const PHASE3_FALLBACK = [
       { key: 'B', text: 'Lo entrego y si hay correcciones, las ajusto sobre la marcha' },
       { key: 'C', text: 'Lo comparto con mi equipo para recibir retroalimentación primero' },
       { key: 'D', text: 'Lo optimizo para que sea más limpio y eficiente antes de entregarlo' },
-    ]
+    ],
   },
   {
     id: 'p3_fb_2',
@@ -32,7 +50,7 @@ const PHASE3_FALLBACK = [
       { key: 'B', text: 'Implemento una solución temporal y luego investigo la causa raíz' },
       { key: 'C', text: 'Escalo al líder del equipo de inmediato' },
       { key: 'D', text: 'No actúo hasta tener certeza sobre la causa exacta' },
-    ]
+    ],
   },
   {
     id: 'p3_fb_3',
@@ -42,7 +60,7 @@ const PHASE3_FALLBACK = [
       { key: 'B', text: 'Construyendo un proyecto real desde el primer día' },
       { key: 'C', text: 'En equipo, con mentores o grupos de estudio colaborativos' },
       { key: 'D', text: 'Con materiales curados y tomando notas detalladas para repasar' },
-    ]
+    ],
   },
   {
     id: 'p3_fb_4',
@@ -52,24 +70,31 @@ const PHASE3_FALLBACK = [
       { key: 'B', text: 'El ejecutor: soy el primero en tener resultados en mano' },
       { key: 'C', text: 'El conector: facilito la comunicación y coordinación del equipo' },
       { key: 'D', text: 'El revisor: nada sale sin que yo lo haya validado previamente' },
-    ]
+    ],
   },
 ]
 
 function calcArchetype(answers) {
-  const counts = { A: 0, B: 0, C: 0, D: 0 }
-  Object.values(answers).forEach(v => { if (counts[v] !== undefined) counts[v]++ })
-  
-  // Encontrar el valor máximo
-  const maxCount = Math.max(...Object.values(counts))
-  
-  // Filtrar los que tienen el valor máximo (para manejar empates e.g. 2-2 o 1-1-1-1)
-  const winners = Object.entries(counts)
-    .filter(([_, count]) => count === maxCount)
-    .map(([key, _]) => key)
-    
-  // Romper empate al azar si hay más de uno
-  return winners[Math.floor(Math.random() * winners.length)]
+  const cuenta = { A: 0, B: 0, C: 0, D: 0 }
+  Object.values(answers).forEach((v) => { if (cuenta[v] !== undefined) cuenta[v]++ })
+  const max = Math.max(...Object.values(cuenta))
+  const ganadores = Object.entries(cuenta).filter(([, c]) => c === max).map(([k]) => k)
+  return ganadores[Math.floor(Math.random() * ganadores.length)]
+}
+
+/** Pantalla a pantalla completa para esperas y transiciones. */
+function Pantalla({ icono, titulo, texto, aviso }) {
+  return (
+    <div className="rv quiz-espera">
+      <div className="quiz-espera-caja">
+        <div className="quiz-espera-icono" aria-hidden="true">{icono}</div>
+        <h2>{titulo}</h2>
+        <p className="rv-sub">{texto}</p>
+        {aviso && <p className="quiz-aviso">{aviso}</p>}
+        <div className="quiz-puntos" aria-hidden="true"><span /><span /><span /></div>
+      </div>
+    </div>
+  )
 }
 
 export default function Questionnaire() {
@@ -83,7 +108,7 @@ export default function Questionnaire() {
   const [phase, setPhase] = useState(1)
   const [phase3Answers, setPhase3Answers] = useState({})
   const [phase3Current, setPhase3Current] = useState(0)
-  const [phase3Questions, setPhase3Questions] = useState(PHASE3_FALLBACK)
+  const [phase3Questions, setPhase3Questions] = useState(FASE3_RESERVA)
 
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
@@ -95,18 +120,9 @@ export default function Questionnaire() {
     if (!user) return
     let sid = null
     surveyApi.createSession()
-      .then(sRes => {
-        sid = sRes.data.id
-        setSessionId(sid)
-        return surveyApi.getSessionQuestions(sid)
-      })
-      .then(qRes => {
-        setQuestions(qRes.data)
-      })
-      .catch(e => {
-        console.error('Error cargando cuestionario', e)
-        setError('Error cargando el cuestionario')
-      })
+      .then((sRes) => { sid = sRes.data.id; setSessionId(sid); return surveyApi.getSessionQuestions(sid) })
+      .then((qRes) => setQuestions(qRes.data))
+      .catch(() => setError('No se pudo iniciar el cuestionario. Revisa tu conexión.'))
       .finally(() => setLoading(false))
   }, [user])
 
@@ -117,21 +133,20 @@ export default function Questionnaire() {
       setQuestions(qRes.data)
       setCurrent(0)
       setPhase(2)
-    } catch(e) {
-      setError('Error al cargar preguntas avanzadas.')
+    } catch {
+      setError('Error al cargar las preguntas de la fase 2.')
     } finally {
       setTransitioning(false)
     }
   }
 
-  // Carga las preguntas psicométricas desde la BD según la especialización ganadora
   const triggerPhase3 = async (specName, specId) => {
     let qs = null
     if (specId) {
       try {
         const res = await surveyApi.getPsychometricQuestions(specId)
         if (res.data && res.data.length > 0) {
-          qs = res.data.map(q => ({
+          qs = res.data.map((q) => ({
             id: `p3_db_${q.id}`,
             question: q.question_text,
             options: [
@@ -139,15 +154,14 @@ export default function Questionnaire() {
               { key: 'B', text: q.option_b },
               { key: 'C', text: q.option_c },
               { key: 'D', text: q.option_d },
-            ]
+            ],
           }))
         }
       } catch (e) {
-        console.warn('No se pudieron cargar preguntas desde BD, usando fallback', e)
+        console.warn('Preguntas psicométricas no disponibles, usando la reserva local', e)
       }
     }
-    // Si no hubo specId o falló la BD, usar el fallback local
-    if (!qs) qs = PHASE3_FALLBACK
+    if (!qs) qs = FASE3_RESERVA
     setPhase3Questions(qs)
     setPhase(3)
     setPhase3Current(0)
@@ -155,305 +169,297 @@ export default function Questionnaire() {
   }
 
   const q = questions[current]
-  const progress = questions.length ? Math.round((current / questions.length) * 100) : 0
+  const total = questions.length
+  const respondidas = questions.filter((x) => answers[x.id] !== undefined).length
+  const progreso = total ? Math.round((respondidas / total) * 100) : 0
   const isAnswered = q && answers[q.id] !== undefined
-  const isLast = current === questions.length - 1
+  const isLast = current === total - 1
 
-  const setAnswer = (val) => setAnswers(a => ({ ...a, [q.id]: val }))
+  const setAnswer = (val) => setAnswers((a) => ({ ...a, [q.id]: val }))
 
   const next = async () => {
     if (!isAnswered) return
-    // Guardar respuesta actual
     surveyApi.saveAnswers(sessionId, {
-      answers: [{ question_id: q.id, value: answers[q.id] }]
+      answers: [{ question_id: q.id, value: answers[q.id] }],
     }).catch(console.error)
 
     if (isLast) {
       setSubmitting(true)
       setError('')
-
-      // Guardar TODAS las respuestas ANTES del submit (fuera del retry para evitar duplicados)
       try {
-        const allPhaseAnswers = questions.map(q2 => ({ question_id: q2.id, value: answers[q2.id] || 3 }))
-        await surveyApi.saveAnswers(sessionId, { answers: allPhaseAnswers })
+        const todas = questions.map((q2) => ({ question_id: q2.id, value: answers[q2.id] || 3 }))
+        await surveyApi.saveAnswers(sessionId, { answers: todas })
       } catch (e) {
-        console.warn('saveAnswers falló, continuando al submit...', e)
+        console.warn('El guardado masivo falló, se continúa con el envío', e)
       }
 
-      const sleep = (ms) => new Promise(r => setTimeout(r, ms))
+      const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 
-      // Submit con reintentos (manejo de cold start del ML en Render Free)
       const submitWithRetry = async (maxRetries = 3) => {
-        for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        for (let intento = 1; intento <= maxRetries; intento++) {
           try {
-            const { data: transitionData } = await surveyApi.submitPhase(sessionId)
+            const { data: t } = await surveyApi.submitPhase(sessionId)
 
-            if (transitionData.next_phase === 2) {
+            if (t.next_phase === 2) {
               setSubmitting(false)
               loadPhase2(sessionId)
               return
-
-            } else if (transitionData.prediction_id) {
+            }
+            if (t.prediction_id) {
               setSubmitting(false)
-              sessionStorage.setItem('revo_pending_result', transitionData.prediction_id)
-              const specName = transitionData.primary_specialization || ''
-              const specId   = transitionData.primary_specialization_id || null
-              sessionStorage.setItem('revo_winning_spec', specName)
-              triggerPhase3(specName, specId)
+              sessionStorage.setItem('revo_pending_result', t.prediction_id)
+              sessionStorage.setItem('revo_winning_spec', t.primary_specialization || '')
+              triggerPhase3(t.primary_specialization || '', t.primary_specialization_id || null)
               return
-
-            } else if (transitionData.error && attempt < maxRetries) {
-              const waitSecs = attempt * 10
-              setError(`⏳ El motor de IA está despertando... reintentando en ${waitSecs}s (${attempt}/${maxRetries})`)
-              await sleep(waitSecs * 1000)
+            }
+            if (t.error && intento < maxRetries) {
+              const s = intento * 10
+              setError(`El servicio está despertando. Reintentando en ${s}s (${intento}/${maxRetries})`)
+              await sleep(s * 1000)
               setError('')
-
-            } else if (transitionData.error && attempt === maxRetries) {
+            } else if (t.error) {
               setError('')
               setSubmitting(false)
               sessionStorage.removeItem('revo_pending_result')
               triggerPhase3('', null)
               return
-
             } else {
               setError('Respuesta inesperada del servidor. Intenta de nuevo.')
               setSubmitting(false)
               return
             }
-          } catch (e) {
-            if (attempt < maxRetries) {
-              const waitSecs = attempt * 10
-              setError(`⏳ Conexión lenta, reintentando en ${waitSecs}s... (${attempt}/${maxRetries})`)
-              await sleep(waitSecs * 1000)
+          } catch {
+            if (intento < maxRetries) {
+              const s = intento * 10
+              setError(`Conexión lenta. Reintentando en ${s}s (${intento}/${maxRetries})`)
+              await sleep(s * 1000)
               setError('')
             } else {
-              setError('No se pudo conectar. Revisa que todos los servicios locales estén corriendo.')
+              setError('No se pudo conectar. Comprueba que los servicios estén corriendo.')
               setSubmitting(false)
             }
           }
         }
       }
-
       await submitWithRetry()
-
     } else {
-      if (cardRef.current) { cardRef.current.style.opacity = '0'; cardRef.current.style.transform = 'translateX(30px)' }
+      if (cardRef.current) cardRef.current.dataset.saliendo = 'si'
       setTimeout(() => {
-        setCurrent(c => c + 1)
-        if (cardRef.current) { cardRef.current.style.opacity = '1'; cardRef.current.style.transform = 'translateX(0)' }
-      }, 200)
+        setCurrent((c) => c + 1)
+        if (cardRef.current) delete cardRef.current.dataset.saliendo
+      }, 160)
     }
   }
 
-  const prev = () => {
-    if (current > 0) setCurrent(c => c - 1)
+  const prev = () => { if (current > 0) setCurrent((c) => c - 1) }
+
+  // ── Atajos de teclado ────────────────────────────────────
+  // Con 25 preguntas, responder con el teclado ahorra minutos
+  // frente a apuntar y hacer clic en cada una.
+  const enFase12 = !loading && !submitting && !transitioning && phase !== 3 && !!q
+  const manejarTecla = useCallback((e) => {
+    if (!enFase12) return
+    if (e.target.matches('input, textarea, select')) return
+
+    if (e.key >= '1' && e.key <= '5') {
+      e.preventDefault()
+      setAnswers((a) => ({ ...a, [q.id]: Number(e.key) }))
+    } else if (e.key === 'ArrowRight' || e.key === 'Enter') {
+      if (answers[q.id] !== undefined) { e.preventDefault(); next() }
+    } else if (e.key === 'ArrowLeft') {
+      e.preventDefault(); prev()
+    }
+  }, [enFase12, q, answers, current, isLast])
+
+  useEffect(() => {
+    window.addEventListener('keydown', manejarTecla)
+    return () => window.removeEventListener('keydown', manejarTecla)
+  }, [manejarTecla])
+
+  // ── Pantallas de espera ──────────────────────────────────
+  if (loading) {
+    return <Pantalla icono="🌱" titulo="Preparando tu cuestionario"
+      texto="Estamos eligiendo tus primeras diez preguntas." />
   }
 
-  if (loading) return (
-    <div className="page" style={{ display:'flex', alignItems:'center', justifyContent:'center' }}>
-      <div className="text-center">
-        <div className="loading-tree">🌳</div>
-        <p className="text-muted">Iniciando Fase 1: Calibración General...</p>
-      </div>
+  if (submitting) {
+    const textos = {
+      1: ['Analizando tus respuestas', 'Buscamos las tres ramas que mejor encajan contigo.'],
+      2: ['Calculando tu perfil', 'Combinamos todo lo que respondiste para generar la recomendación.'],
+      3: ['Cerrando tu resultado', 'Un momento más.'],
+    }
+    const [t, s] = textos[phase] || textos[2]
+    return <Pantalla icono="🧠" titulo={t} texto={s} aviso={error} />
+  }
+
+  if (transitioning) {
+    return <Pantalla icono="🔥" titulo="Fase 2 desbloqueada"
+      texto="Ya sabemos por dónde van tus intereses. Ahora vamos a profundizar en las tres ramas más prometedoras." />
+  }
+
+  const Ambiente = () => (
+    <div className="quiz-ambiente" aria-hidden="true">
+      <span className="quiz-mancha quiz-mancha-1" />
+      <span className="quiz-mancha quiz-mancha-2" />
     </div>
   )
 
-  if (submitting) return (
-    <div className="page" style={{ display:'flex', alignItems:'center', justifyContent:'center' }}>
-      <div className="text-center analyzing">
-        <div className="analyzing-icon">🧠</div>
-        <h2 className="gradient-text" style={{ fontFamily:'Space Grotesk', fontSize:'1.8rem', fontWeight:800 }}>
-          {phase === 1 ? 'Calculando Inteligencia Adaptativa...' : 
-           phase === 2 ? 'Analizando afinidades...' : 
-           'Construyendo y Ejecutando Árbol de ML...'}
-        </h2>
-        <p className="text-muted">
-          {phase === 1 ? 'Encontrando tus mejores 3 ramas y generando preguntas avanzadas.' : 
-           phase === 2 ? 'Preparando las últimas preguntas específicas para tu perfil...' : 
-           'Integrando todas tus respuestas para revelar tu especialización ideal.'}
-        </p>
-        {error && <p style={{ color: '#FBBF24', marginTop: 12, fontSize: '0.9rem' }}>{error}</p>}
-        <div className="analyzing-dots"><span/><span/><span/></div>
-      </div>
-    </div>
-  )
-
-  if (transitioning) return (
-    <div className="page" style={{ display:'flex', alignItems:'center', justifyContent:'center' }}>
-      <div className="text-center analyzing">
-        <div className="analyzing-icon">🔥</div>
-        <h2 className="gradient-text" style={{ fontFamily:'Space Grotesk', fontSize:'1.8rem', fontWeight:800 }}>
-          ¡Fase 2 Desbloqueada!
-        </h2>
-        <p className="text-muted">Hemos descubierto para qué eres bueno. Ahora, a profundizar.</p>
-        <div className="analyzing-dots"><span/><span/><span/></div>
-      </div>
-    </div>
-  )
-
-  // ── FASE 3: Cuestionario Psicométrico ──────────────────────────────────────
+  // ── FASE 3: perfil profesional ───────────────────────────
   if (phase === 3) {
     const p3q = phase3Questions[phase3Current]
-    const p3Progress = Math.round(((phase3Current) / phase3Questions.length) * 100)
-    const p3Selected = phase3Answers[p3q?.id]
-    const isLastP3 = phase3Current === phase3Questions.length - 1
-    const winningSpec = sessionStorage.getItem('revo_winning_spec') || ''
+    const p3Sel = phase3Answers[p3q?.id]
+    const p3Total = phase3Questions.length
+    const p3Prog = Math.round((phase3Current / p3Total) * 100)
+    const p3Ultima = phase3Current === p3Total - 1
 
-    const handleP3Select = (key) => {
-      setPhase3Answers(prev => ({ ...prev, [p3q.id]: key }))
-    }
+    const elegir = (key) => setPhase3Answers((prev) => ({ ...prev, [p3q.id]: key }))
 
-    const handleP3Next = () => {
-      if (!p3Selected) return
-      if (isLastP3) {
+    const siguienteP3 = () => {
+      if (!p3Sel) return
+      if (p3Ultima) {
         setSubmitting(true)
-        const finalAnswers = { ...phase3Answers, [p3q.id]: p3Selected }
-        const archetype = calcArchetype(finalAnswers)
-        sessionStorage.setItem('revo_archetype', JSON.stringify(archetype))
-        const pendingId = sessionStorage.getItem('revo_pending_result')
-        
-        // Simular tiempo de carga del ML para generar el clímax visual antes de los resultados
-        setTimeout(() => {
-          navigate(`/results/${pendingId}`)
-        }, 3500)
+        const finales = { ...phase3Answers, [p3q.id]: p3Sel }
+        sessionStorage.setItem('revo_archetype', JSON.stringify(calcArchetype(finales)))
+        const pendiente = sessionStorage.getItem('revo_pending_result')
+        setTimeout(() => navigate(`/results/${pendiente}`), 3500)
       } else {
-        setPhase3Current(c => c + 1)
+        setPhase3Current((c) => c + 1)
       }
     }
 
     return (
-      <div className="page quiz-page">
-        <div className="container quiz-container">
-          <div className="quiz-header animate-fade">
-            <div className="quiz-progress-info">
-              <span className="text-sm text-muted">🧠 Fase 3/3 — Perfil Profesional · Pregunta {phase3Current + 1} de {phase3Questions.length}</span>
-              <span className="text-sm font-semibold" style={{ color: '#10B981' }}>{p3Progress}%</span>
-            </div>
-            <div className="progress-track" style={{ height: 8 }}>
-              <div className="progress-fill" style={{ width: `${p3Progress}%`, background: '#10B981' }} />
-            </div>
-            <div style={{ marginTop: 12, padding: '8px 14px', background: 'rgba(16,185,129,0.08)', borderRadius: 8, border: '1px solid rgba(16,185,129,0.2)' }}>
-              <span className="text-sm" style={{ color: '#10B981' }}>
-                🎉 <strong>¡Última etapa!</strong> Responde estas preguntas para que el algoritmo determine tu perfil profesional y especialidad ideal.
+      <div className="rv quiz" style={{ '--cat': '#A78BFA' }}>
+        <Ambiente />
+        <div className="rv-ancho rv-ancho-est quiz-lienzo">
+          <header className="quiz-cab rv-entra">
+            <div className="quiz-cab-fila">
+              <span className="rv-etiq quiz-fase">Fase 3 de 3 · Perfil profesional</span>
+              <span className="rv-dato quiz-cuenta">
+                {phase3Current + 1}<small>/{p3Total}</small>
               </span>
             </div>
-          </div>
+            <div className="quiz-sendero">
+              {phase3Questions.map((x, i) => (
+                <span key={x.id}
+                  className={'quiz-paso' + (phase3Answers[x.id] ? ' hecho' : '') + (i === phase3Current ? ' actual' : '')} />
+              ))}
+            </div>
+            <span className="rv-menor quiz-cab-nota">
+              Última etapa: aquí definimos tu estilo de trabajo.
+            </span>
+          </header>
 
           {p3q && (
-            <div className="glass question-card animate-scale" style={{ transition: 'opacity 0.2s, transform 0.2s' }}>
-              <div className="q-category-badge" style={{ background: 'rgba(16,185,129,0.15)', color: '#10B981' }}>
-                🧠 Perfil Psicométrico
-              </div>
-              <h2 className="q-text">{p3q.question}</h2>
+            <section className="rv-tarjeta quiz-carta rv-entra" style={{ animationDelay: '.05s' }}>
+              <h1 className="quiz-pregunta">{p3q.question}</h1>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 12, margin: '24px 0' }}>
-                {p3q.options.map(opt => (
-                  <button
-                    key={opt.key}
-                    onClick={() => handleP3Select(opt.key)}
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: 14, textAlign: 'left',
-                      padding: '14px 18px', borderRadius: 12, cursor: 'pointer',
-                      border: p3Selected === opt.key ? '2px solid #10B981' : '1px solid rgba(255,255,255,0.08)',
-                      background: p3Selected === opt.key ? 'rgba(16,185,129,0.12)' : 'rgba(255,255,255,0.03)',
-                      color: p3Selected === opt.key ? '#F1F5F9' : '#94A3B8',
-                      transition: 'all 0.2s ease', fontFamily: 'inherit', fontSize: '0.95rem',
-                    }}
-                  >
-                    <span style={{
-                      width: 32, height: 32, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontWeight: 800, fontSize: '0.85rem', flexShrink: 0,
-                      background: p3Selected === opt.key ? '#10B981' : 'rgba(255,255,255,0.08)',
-                      color: p3Selected === opt.key ? '#fff' : '#64748B',
-                    }}>
-                      {opt.key}
-                    </span>
-                    {opt.text}
+              <div className="quiz-ops" role="radiogroup" aria-label="Opciones">
+                {p3q.options.map((opt) => (
+                  <button key={opt.key} type="button" role="radio"
+                    aria-checked={p3Sel === opt.key}
+                    onClick={() => elegir(opt.key)}
+                    className={`quiz-op ${p3Sel === opt.key ? 'sel' : ''}`}>
+                    <span className="quiz-op-letra" aria-hidden="true">{opt.key}</span>
+                    <span className="quiz-op-txt">{opt.text}</span>
                   </button>
                 ))}
               </div>
 
-              <div className="quiz-nav">
-                <button onClick={() => phase3Current > 0 && setPhase3Current(c => c - 1)} disabled={phase3Current === 0} className="btn btn-secondary">
+              <nav className="quiz-nav">
+                <button onClick={() => phase3Current > 0 && setPhase3Current((c) => c - 1)}
+                  disabled={phase3Current === 0} className="rv-btn rv-btn-g">
                   ← Anterior
                 </button>
-                <button onClick={handleP3Next} disabled={!p3Selected} className="btn btn-primary"
-                  style={{ background: '#10B981', borderColor: '#10B981' }}>
-                  {isLastP3 ? '🎯 Ver mi Resultado Completo →' : 'Siguiente →'}
+                <button onClick={siguienteP3} disabled={!p3Sel} className="rv-btn rv-btn-1">
+                  {p3Ultima ? 'Ver mi resultado' : 'Siguiente →'}
                 </button>
-              </div>
-            </div>
+              </nav>
+            </section>
           )}
         </div>
       </div>
     )
   }
 
-  // ── FASES 1 y 2: Cuestionario normal ───────────────────────────────────────
+  // ── FASES 1 y 2 ──────────────────────────────────────────
+  const cat = CATEGORIAS[q?.category] || {}
+  const color = cat.color || COLOR_BASE
+
   return (
-    <div className="page quiz-page">
-      <div className="container quiz-container">
-        <div className="quiz-header animate-fade">
-          <div className="quiz-progress-info">
-            <span className="text-sm text-muted"> Fase {phase}/3 — Pregunta {current + 1} de {questions.length}</span>
-            <span className="text-sm font-semibold" style={{ color: '#6C63FF' }}>{progress}%</span>
+    <div className="rv quiz" style={{ '--cat': color }}>
+      <Ambiente />
+
+      <div className="rv-ancho rv-ancho-est quiz-lienzo">
+
+        <header className="quiz-cab rv-entra">
+          <div className="quiz-cab-fila">
+            <span className="rv-etiq quiz-fase">
+              Fase {phase} de 3 · {phase === 1 ? 'Calibración' : 'Profundización'}
+            </span>
+            <span className="rv-dato quiz-cuenta">
+              {current + 1}<small>/{total}</small>
+            </span>
           </div>
-          <div className="progress-track" style={{ height: 8 }}>
-            <div className="progress-fill" style={{ width: `${progress}%` }} />
+
+          {/* Un punto por pregunta: se ve de un vistazo cuánto falta
+              y cuáles quedaron sin responder. */}
+          <div className="quiz-sendero" aria-hidden="true">
+            {questions.map((x, i) => (
+              <span key={x.id}
+                className={
+                  'quiz-paso' +
+                  (answers[x.id] !== undefined ? ' hecho' : '') +
+                  (i === current ? ' actual' : '')
+                } />
+            ))}
           </div>
-          {q && (
-            <div className="quiz-categories">
-              {Object.entries(CATEGORY_META).map(([key, meta]) => (
-                <div key={key} className={`cat-chip ${q.category === key ? 'active' : ''}`}
-                  style={{ '--cc': meta.color }}>
-                  {meta.icon} {meta.label}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+
+          <span className="rv-menor quiz-cab-nota">
+            {respondidas} de {total} respondidas · {progreso}%
+          </span>
+        </header>
 
         {q && (
-          <div className="glass question-card animate-scale" ref={cardRef}
-            style={{ transition: 'opacity 0.2s, transform 0.2s' }}>
-            <div className="q-category-badge" style={{ background: CATEGORY_META[q.category]?.color + '22', color: CATEGORY_META[q.category]?.color }}>
-              {CATEGORY_META[q.category]?.icon} {CATEGORY_META[q.category]?.label}
-            </div>
-            <h2 className="q-text">{q.text}</h2>
-            {error && <div className="auth-error text-sm">{error}</div>}
+          <section ref={cardRef} className="quiz-carta" key={q.id}>
+            {cat.label && (
+              <span className="rv-ficha quiz-cat">
+                <span aria-hidden="true">{cat.icon}</span> {cat.label}
+              </span>
+            )}
 
-            <div className="scale-container">
-              <span className="scale-label">{q.min_label}</span>
-              <div className="scale-buttons">
-                {[1,2,3,4,5].map(v => (
-                  <button key={v} onClick={() => setAnswer(v)}
-                    className={`scale-btn ${answers[q.id] === v ? 'selected' : ''}`}
-                    style={ answers[q.id] === v ? { background: CATEGORY_META[q.category]?.color, borderColor: CATEGORY_META[q.category]?.color } : {} }>
-                    {v}
-                  </button>
-                ))}
-              </div>
-              <span className="scale-label">{q.max_label}</span>
-            </div>
+            <h1 className="quiz-pregunta">{q.text}</h1>
 
-            <div className="scale-desc">
-              {[
-                { v:1, l:'Muy bajo' }, { v:2, l:'Bajo'}, { v:3, l:'Regular'},
-                { v:4, l:'Bueno'}, { v:5, l:'Excelente'}
-              ].map(d => (
-                <span key={d.v} className={`scale-desc-item ${answers[q.id] === d.v ? 'sel' : ''}`}>{d.l}</span>
+            {error && <p className="quiz-error" role="alert">{error}</p>}
+
+            <div className="quiz-escala" role="radiogroup" aria-label="Qué tanto te representa">
+              {ESCALA.map(({ v, corta, larga }) => (
+                <button key={v} type="button" role="radio" data-v={v}
+                  aria-checked={answers[q.id] === v}
+                  aria-label={`${v} de 5: ${larga}`}
+                  onClick={() => setAnswer(v)}
+                  className={`quiz-op-esc ${answers[q.id] === v ? 'sel' : ''}`}>
+                  <span className="quiz-bolita" aria-hidden="true" />
+                  <span className="quiz-esc-txt">{corta}</span>
+                  <span className="quiz-esc-num" aria-hidden="true">{v}</span>
+                </button>
               ))}
             </div>
 
-            <div className="quiz-nav">
-              <button onClick={prev} disabled={current === 0} className="btn btn-secondary">
+            <nav className="quiz-nav">
+              <button onClick={prev} disabled={current === 0} className="rv-btn rv-btn-g">
                 ← Anterior
               </button>
-              <button onClick={next} disabled={!isAnswered} className="btn btn-primary">
-                {isLast ? (phase === 1 ? '🔥 Ir a Fase 2 →' : '🧠 Ir a Perfil Profesional →') : 'Siguiente →'}
+              <button onClick={next} disabled={!isAnswered} className="rv-btn rv-btn-1">
+                {isLast
+                  ? (phase === 1 ? 'Ir a la fase 2' : 'Ir al perfil profesional')
+                  : 'Siguiente →'}
               </button>
-            </div>
-          </div>
+            </nav>
+
+            <p className="quiz-atajos">
+              Responde con <kbd>1</kbd>–<kbd>5</kbd> y muévete con <kbd>←</kbd> <kbd>→</kbd>
+            </p>
+          </section>
         )}
       </div>
     </div>

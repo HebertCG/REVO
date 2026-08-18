@@ -1,62 +1,207 @@
-.navbar {
-  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
-  background: rgba(10,14,26,0.85);
+/* ────────────────────────────────────────────────────────────
+   Barra de navegación
+
+   En reposo ocupa todo el ancho pegada al borde superior. Al
+   hacer scroll se despega, se estrecha y redondea los lados
+   convirtiéndose en una píldora flotante. La animación vive en
+   el contenedor (.navbar-shell) para que solo se animen padding
+   y ancho, sin recalcular el layout del resto de la página.
+   ──────────────────────────────────────────────────────────── */
+
+.navbar-shell {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 100;
+  padding: 0;
+  /* En reposo el fondo lo pinta el propio contenedor, no la barra: asi
+     cubre todo el ancho y no puede asomar el fondo oscuro del body por
+     los costados. Al hacer scroll se vuelve transparente y el color pasa
+     a la pildora. */
+  background: rgba(10, 14, 26, 0.85);
   backdrop-filter: blur(20px);
-  border-bottom: 1px solid rgba(255,255,255,0.06);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  transition:
+    padding 0.38s cubic-bezier(0.22, 1, 0.36, 1),
+    background 0.38s ease,
+    border-color 0.38s ease;
+  will-change: padding;
+}
+
+.navbar-shell.scrolled {
+  padding: 12px clamp(12px, 4vw, 40px);
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border-bottom-color: transparent;
+}
+
+.navbar {
+  position: relative;
+  max-width: 100%;
+  margin: 0 auto;
   height: 68px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 0;
+  box-shadow: none;
+  overflow: hidden;
+  transition:
+    max-width 0.38s cubic-bezier(0.22, 1, 0.36, 1),
+    height 0.38s cubic-bezier(0.22, 1, 0.36, 1),
+    border-radius 0.38s cubic-bezier(0.22, 1, 0.36, 1),
+    background 0.38s ease,
+    box-shadow 0.38s ease,
+    border-color 0.38s ease;
 }
+
+.navbar-shell.scrolled .navbar {
+  max-width: 1180px;
+  height: 60px;
+  border-radius: 999px;
+  border-color: rgba(255, 255, 255, 0.1);
+  background: rgba(10, 14, 26, 0.72);
+  box-shadow:
+    0 10px 30px rgba(0, 0, 0, 0.35),
+    0 1px 0 rgba(255, 255, 255, 0.05) inset;
+}
+
 .navbar-inner {
-  max-width: 1200px; margin: 0 auto; padding: 0 24px;
-  height: 100%; display: flex; align-items: center; justify-content: space-between;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  transition: padding 0.38s cubic-bezier(0.22, 1, 0.36, 1);
 }
+
+.navbar-shell.scrolled .navbar-inner { padding: 0 20px; }
+
+/* ── Logo ─────────────────────────────────────────────────── */
 .navbar-logo {
   display: flex; align-items: center; gap: 8px; text-decoration: none;
+  transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1);
 }
-.logo-icon { font-size: 1.4rem; }
+.navbar-logo:hover { transform: translateY(-1px); }
+
+.logo-icon {
+  font-size: 1.4rem;
+  display: inline-block;
+  transition: transform 0.38s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.navbar-shell.scrolled .logo-icon { transform: scale(0.9) rotate(-8deg); }
+
 .logo-text {
-  font-family: 'Space Grotesk', sans-serif; font-size: 1.4rem;
-  font-weight: 800; color: white; letter-spacing: -0.02em;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 1.4rem; font-weight: 800; color: white; letter-spacing: -0.02em;
+  transition: font-size 0.38s cubic-bezier(0.22, 1, 0.36, 1);
 }
+.navbar-shell.scrolled .logo-text { font-size: 1.25rem; }
 .logo-dot { color: #6C63FF; }
 
+/* ── Enlaces ──────────────────────────────────────────────── */
 .navbar-right { display: flex; align-items: center; gap: 8px; }
 
 .nav-link {
-  color: #94A3B8; text-decoration: none; font-size: 0.9rem; font-weight: 500;
-  padding: 6px 14px; border-radius: 8px; transition: all 0.2s;
+  position: relative;
+  color: #94A3B8; text-decoration: none;
+  font-size: 0.9rem; font-weight: 500;
+  padding: 6px 14px; border-radius: 8px;
+  transition: color 0.2s ease, background 0.2s ease;
 }
-.nav-link:hover, .nav-link.active { color: white; background: rgba(255,255,255,0.06); }
+.nav-link:hover { color: white; background: rgba(255, 255, 255, 0.06); }
 .nav-link.active { color: #6C63FF; }
 
-.navbar-user { display: flex; align-items: center; gap: 8px; margin-left: 8px; }
-.user-avatar {
-  width: 34px; height: 34px; border-radius: 50%; background: linear-gradient(135deg,#6C63FF,#00D4FF);
-  display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.85rem;
+/* Subrayado que crece desde el centro en el enlace activo. */
+.nav-link.active::after {
+  content: '';
+  position: absolute; left: 14px; right: 14px; bottom: 1px;
+  height: 2px; border-radius: 2px;
+  background: linear-gradient(90deg, #6C63FF, #00D4FF);
+  animation: navUnderline 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+  transform-origin: center;
 }
+@keyframes navUnderline { from { transform: scaleX(0); opacity: 0; } to { transform: scaleX(1); opacity: 1; } }
+
+.navbar-user { display: flex; align-items: center; gap: 8px; margin-left: 8px; }
+
+.user-avatar {
+  width: 34px; height: 34px; border-radius: 50%;
+  background: linear-gradient(135deg, #6C63FF, #00D4FF);
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: 0.85rem;
+  transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.25s ease;
+}
+.user-avatar:hover { transform: scale(1.06); box-shadow: 0 0 0 3px rgba(108, 99, 255, 0.25); }
+
 .user-name { font-size: 0.9rem; font-weight: 600; color: #F1F5F9; }
 
+/* ── Hamburguesa animada ──────────────────────────────────── */
 .hamburger {
-  display: none; background: none; border: none; color: white;
-  font-size: 1.8rem; cursor: pointer; transition: transform 0.2s;
+  display: none;
+  width: 40px; height: 40px;
+  background: none; border: none; cursor: pointer;
+  padding: 0;
+  flex-direction: column; align-items: center; justify-content: center; gap: 5px;
 }
+.hamburger-bar {
+  display: block; width: 22px; height: 2px; border-radius: 2px;
+  background: white;
+  transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.2s ease;
+}
+.hamburger.open .hamburger-bar:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+.hamburger.open .hamburger-bar:nth-child(2) { opacity: 0; transform: scaleX(0); }
+.hamburger.open .hamburger-bar:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
 
+/* ── Móvil ────────────────────────────────────────────────── */
 @media (max-width: 768px) {
-  .hamburger { display: flex; align-items: center; justify-content: center; }
+  .hamburger { display: flex; }
+
+  .navbar { overflow: visible; }
 
   .navbar-right {
-    position: fixed; top: 68px; left: 0; right: 0;
-    background: rgba(10,14,26,0.95);
+    position: absolute; top: calc(100% + 10px); left: 0; right: 0;
+    background: rgba(10, 14, 26, 0.96);
     backdrop-filter: blur(20px);
-    flex-direction: column; padding: 24px; gap: 16px;
-    border-bottom: 1px solid rgba(255,255,255,0.06);
-    transform: translateY(-150%); opacity: 0;
-    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease;
-    z-index: 99; box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 18px;
+    flex-direction: column; padding: 20px; gap: 10px;
+    transform: translateY(-12px) scale(0.98);
+    opacity: 0; pointer-events: none;
+    transition:
+      transform 0.32s cubic-bezier(0.22, 1, 0.36, 1),
+      opacity 0.24s ease;
+    z-index: 99;
+    box-shadow: 0 18px 50px rgba(0, 0, 0, 0.55);
   }
   .navbar-right.open {
-    transform: translateY(0); opacity: 1;
+    transform: translateY(0) scale(1);
+    opacity: 1; pointer-events: auto;
   }
-  .nav-link { width: 100%; text-align: center; padding: 12px; font-size: 1.1rem; }
-  .navbar-user { flex-direction: column; width: 100%; align-items: center; gap: 12px; padding-top: 16px; border-top: 1px solid rgba(255,255,255,0.05); }
+
+  .navbar-shell.scrolled .navbar-right { left: 0; right: 0; }
+
+  .nav-link { width: 100%; text-align: center; padding: 12px; font-size: 1.05rem; }
+  .nav-link.active::after { display: none; }
+
+  .navbar-user {
+    flex-direction: column; width: 100%; align-items: center;
+    gap: 12px; padding-top: 16px; margin-left: 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.07);
+  }
   .user-name { display: block; font-size: 1rem; }
+}
+
+/* Respeta la preferencia del sistema: sin esto la barra se
+   encoge y el menú se desliza igual para quien pidió no animar. */
+@media (prefers-reduced-motion: reduce) {
+  .navbar-shell, .navbar, .navbar-inner, .navbar-logo,
+  .logo-icon, .logo-text, .nav-link, .user-avatar,
+  .hamburger-bar, .navbar-right {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
 }

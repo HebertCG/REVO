@@ -1,39 +1,76 @@
-.auth-page {
-  min-height: 100vh; display: flex; align-items: center; justify-content: center;
-  padding: 100px 24px 40px; position: relative; overflow: hidden;
-}
-.auth-orb {
-  position: fixed; border-radius: 50%; filter: blur(100px); opacity: 0.2; pointer-events: none;
-}
-.auth-orb.orb-1 { width: 400px; height: 400px; background: #6C63FF; top: -100px; right: -100px; }
-.auth-orb.orb-2 { width: 300px; height: 300px; background: #00D4FF; bottom: 0; left: -80px; }
+/* ────────────────────────────────────────────────────────────
+   Pantalla de acceso (login y registro)
 
-.auth-card {
-  width: 100%; max-width: 440px; padding: 44px 40px; display: flex;
-  flex-direction: column; gap: 20px; position: relative; z-index: 1;
-}
-.auth-logo {
-  font-family: 'Space Grotesk', sans-serif; font-size: 1.4rem; font-weight: 800;
-  text-align: center; letter-spacing: -0.02em;
-}
-.auth-title {
-  font-family: 'Space Grotesk', sans-serif; font-size: 1.6rem; font-weight: 800;
-  text-align: center; letter-spacing: -0.02em; color: #F1F5F9;
-}
-.auth-error {
-  background: rgba(255,107,107,0.1); border: 1px solid rgba(255,107,107,0.3);
-  color: #FF6B6B; padding: 10px 14px; border-radius: 10px; font-size: 0.85rem; text-align: center;
-}
-.auth-form { display: flex; flex-direction: column; gap: 16px; }
-.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-.auth-footer { text-align: center; font-size: 0.85rem; color: #64748B; }
-.auth-link { color: #6C63FF; font-weight: 600; text-decoration: none; }
-.auth-link:hover { text-decoration: underline; }
-select.form-input option { background: #111827; }
+   Portada desde el diseño de Claude Design. Los estilos van en
+   línea dentro del componente; aquí viven solo las animaciones y
+   los pseudo-estados, que no pueden expresarse en línea.
+   ──────────────────────────────────────────────────────────── */
 
-@media (max-width: 480px) {
-  .auth-page { padding: 80px 16px 20px; }
-  .auth-card { padding: 32px 24px; max-width: 100%; border-radius: 20px; }
-  .form-row { grid-template-columns: 1fr; gap: 16px; }
-  .auth-orb { display: none; }
+.revo-auth {
+  min-height: 100vh;
+  background: #0d1220;
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.revo-auth a { color: #2f5fe8; text-decoration: none; }
+.revo-auth a:hover { color: #1e46bd; }
+.revo-auth input::placeholder { color: #a3abbb; }
+.revo-auth input:focus { outline: none; }
+.revo-auth select:focus { outline: none; }
+
+/* ── Animaciones del diseño original ──────────────────────── */
+@keyframes revoRise {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes revoPulse {
+  0%, 100% { opacity: .35; }
+  50%      { opacity: 1; }
+}
+@keyframes revoFloat {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-10px); }
+}
+
+/* ── Pseudo-estados portados de los atributos style-* ─────── */
+.rvl-f1 { transition: border-color .16s ease, box-shadow .16s ease; }
+.rvl-f1:focus { border-color: #2f5fe8; box-shadow: 0 0 0 3px rgba(47,95,232,.14); }
+.rvl-h2:hover { background: #e6eaf3; }
+.rvl-h3:hover { background: #1e46bd; transform: translateY(-1px); }
+.rvl-a4:active { transform: none; }
+.rvl-h5:hover { border-color: #2f5fe8; color: #2f5fe8; }
+
+/* El botón de envío se deshabilita mientras la petición está en curso. */
+.revo-auth button[type="submit"]:disabled {
+  opacity: .62;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+/* ── Mensaje de error ─────────────────────────────────────── */
+.revo-auth-error {
+  position: fixed;
+  top: 18px; left: 50%;
+  transform: translateX(-50%);
+  z-index: 50;
+  max-width: min(520px, calc(100vw - 32px));
+  padding: 12px 18px;
+  border-radius: 12px;
+  background: #fdeceb;
+  border: 1px solid #f3bfba;
+  color: #9b2c22;
+  font-size: 13.5px;
+  font-weight: 600;
+  line-height: 1.45;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, .3);
+  animation: revoRise .3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .revo-auth *, .revo-auth *::before, .revo-auth *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+  }
 }

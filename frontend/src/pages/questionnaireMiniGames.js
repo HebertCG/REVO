@@ -1,7 +1,10 @@
 export const MINI_GAMES = {
   CARDS: 'cards',
   ROAD: 'road',
+  ARCADE: 'arcade',
 }
+
+const QUESTIONNAIRE_MINI_GAMES = [MINI_GAMES.CARDS, MINI_GAMES.ROAD, MINI_GAMES.ARCADE]
 
 export const ROAD_CHECKPOINT_PROGRESS = 84
 export const ROAD_ACCELERATION_STEP = 8
@@ -14,9 +17,13 @@ const ROAD_OBSTACLE_PATTERNS = [
 ]
 
 export function chooseQuestionnaireMiniGame(randomValue = Math.random(), previousGame = null) {
-  const selected = randomValue < .5 ? MINI_GAMES.CARDS : MINI_GAMES.ROAD
+  const selectedIndex = Math.min(
+    QUESTIONNAIRE_MINI_GAMES.length - 1,
+    Math.floor(Math.max(0, randomValue) * QUESTIONNAIRE_MINI_GAMES.length),
+  )
+  const selected = QUESTIONNAIRE_MINI_GAMES[selectedIndex]
   if (selected !== previousGame) return selected
-  return selected === MINI_GAMES.CARDS ? MINI_GAMES.ROAD : MINI_GAMES.CARDS
+  return QUESTIONNAIRE_MINI_GAMES[(selectedIndex + 1) % QUESTIONNAIRE_MINI_GAMES.length]
 }
 
 export function resolveQuestionnaireEntryView({ stage, miniGame, loading, hasQuestion }) {

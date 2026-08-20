@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext'
 import { surveyApi } from '../services/api'
 import personaCelularGaming from '../assets/persona-celular-gaming.png'
 import personaDiferenciaGaming from '../assets/persona-diferencia-gaming.png'
+import personaRepartiendoGaming from '../assets/persona-repartiendo-gaming.png'
 import '../theme/app.css'
 import './Questionnaire.css'
 
@@ -17,6 +18,7 @@ const CATEGORIAS = {
   personality: { label: 'Personalidad', icon: 'PR', color: '#D9B35B' },
 }
 const COLOR_BASE = '#5BB8FF'
+const CARGA_INICIAL_MIN_MS = 3200
 
 const FASES = [
   { n: 1, nombre: 'Explora', detalle: 'Calibración' },
@@ -179,7 +181,7 @@ function PanelMazo({ fase, items, respuestas, actual }) {
 }
 
 /** Pantalla completa para esperas y transiciones. */
-function Pantalla({ titulo, texto, aviso, imagen = personaCelularGaming, etiqueta = 'Preparando la partida' }) {
+function Pantalla({ titulo, texto, aviso, imagen = personaRepartiendoGaming, etiqueta = 'Preparando la partida' }) {
   return (
     <div className="rv quiz-espera">
       <Ambiente />
@@ -223,12 +225,29 @@ export default function Questionnaire() {
 
   useEffect(() => {
     if (!user) return
-    let sid = null
-    surveyApi.createSession()
-      .then((sRes) => { sid = sRes.data.id; setSessionId(sid); return surveyApi.getSessionQuestions(sid) })
-      .then((qRes) => setQuestions(qRes.data))
-      .catch(() => setError('No se pudo iniciar el cuestionario. Revisa tu conexión.'))
-      .finally(() => setLoading(false))
+
+    let active = true
+    const minimumDelay = new Promise((resolve) => setTimeout(resolve, CARGA_INICIAL_MIN_MS))
+
+    const iniciarPartida = async () => {
+      try {
+        const sRes = await surveyApi.createSession()
+        if (!active) return
+
+        const sid = sRes.data.id
+        setSessionId(sid)
+        const qRes = await surveyApi.getSessionQuestions(sid)
+        if (active) setQuestions(qRes.data)
+      } catch {
+        if (active) setError('No se pudo iniciar el cuestionario. Revisa tu conexión.')
+      } finally {
+        await minimumDelay
+        if (active) setLoading(false)
+      }
+    }
+
+    iniciarPartida()
+    return () => { active = false }
   }, [user])
 
   const loadPhase2 = async (sid) => {
@@ -400,7 +419,7 @@ export default function Questionnaire() {
   if (transitioning) {
     return <Pantalla titulo="Nueva ronda desbloqueada"
       texto="Ya encontramos señal. Ahora el mazo se concentra en tus tres ramas más prometedoras."
-      imagen={personaDiferenciaGaming} etiqueta="Fase 2: Afina" />
+      imagen={personaCelularGaming} etiqueta="Fase 2: Afina" />
   }
 
   if (phase !== 3 && !q) {
@@ -525,7 +544,7 @@ export default function Questionnaire() {
                   }}
                   className={`quiz-op-esc ${answers[q.id] === v ? 'sel' : ''}`}>
                   <span className="quiz-esc-num" aria-hidden="true">0{v}</span>
-                  <span className="quiz-bolita" aria-hidden="true"><i /></span>
+                  <span className="quiz-arte" aria-hidden="true"><i /><i /><i /></span>
                   <span className="quiz-esc-txt"><strong>{corta}</strong><small>{larga}</small></span>
                   <span className="quiz-op-confirmacion" aria-hidden="true">Elegida</span>
                 </button>

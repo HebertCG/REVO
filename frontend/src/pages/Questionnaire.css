@@ -369,9 +369,15 @@
   height: 44px;
   border-color: var(--cat);
   opacity: .55;
+  animation: quizEsquinas 3.4s ease-in-out infinite;
 }
 .quiz-carta-borde::before { top: 8px; left: 8px; border-top: 2px solid; border-left: 2px solid; }
-.quiz-carta-borde::after { right: 8px; bottom: 8px; border-right: 2px solid; border-bottom: 2px solid; }
+.quiz-carta-borde::after { right: 8px; bottom: 8px; border-right: 2px solid; border-bottom: 2px solid; animation-delay: -1.7s; }
+
+@keyframes quizEsquinas {
+  0%, 100% { opacity: .38; }
+  50% { opacity: .9; }
+}
 
 @keyframes quizReparte {
   from { opacity: 0; transform: translate3d(42px, 22px, 0) rotate(2deg) scale(.965); }
@@ -423,8 +429,8 @@
 }
 
 .quiz-pregunta {
-  max-width: 22ch;
-  margin: 0 0 clamp(28px, 4vw, 42px);
+  max-width: 34ch;
+  margin: 0 0 clamp(34px, 4.6vw, 52px);
   color: #f7f3ea;
   font-family: var(--f-titulo);
   font-size: clamp(1.55rem, 3.2vw, 2.55rem);
@@ -450,8 +456,9 @@
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
   align-items: end;
-  gap: clamp(7px, 1.1vw, 13px);
+  gap: clamp(10px, 1.35vw, 18px);
   margin-bottom: clamp(30px, 4vw, 42px);
+  padding: 8px 5px 6px;
   perspective: 1000px;
 }
 
@@ -459,11 +466,11 @@
   position: relative;
   display: flex;
   min-width: 0;
-  min-height: 205px;
+  min-height: 224px;
   flex-direction: column;
   align-items: stretch;
-  gap: 13px;
-  padding: 12px 11px 14px;
+  gap: 15px;
+  padding: 16px 14px 18px;
   overflow: hidden;
   border: 1px solid #465778;
   border-radius: 13px;
@@ -527,44 +534,178 @@
 }
 .quiz-op-esc.sel .quiz-esc-num { color: var(--cat); }
 
-.quiz-bolita {
+.quiz-arte {
+  --arte: #5bb8ff;
   position: relative;
   display: grid;
-  width: clamp(46px, 4vw, 58px);
+  width: clamp(54px, 4.7vw, 68px);
   aspect-ratio: 1;
-  margin: 3px auto 2px;
+  margin: 2px auto 4px;
   place-items: center;
-  border: 2px solid #506181;
-  border-radius: 50%;
-  background: radial-gradient(circle, #243759 0 24%, #101a2f 25% 43%, #385073 44% 47%, #111a2d 48%);
-  box-shadow: inset 0 0 0 5px rgba(255,255,255,.025), 0 6px 12px rgba(0,0,0,.28);
-  transition: transform .24s ease, border-color .2s ease, background .2s ease;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--arte) 52%, #52617b);
+  border-radius: 17px;
+  background: linear-gradient(145deg, color-mix(in srgb, var(--arte) 16%, #172640), #0d1628 72%);
+  box-shadow: inset 0 1px rgba(255,255,255,.08), 0 7px 14px rgba(0,0,0,.3);
+  transition: transform .28s cubic-bezier(.18,.9,.24,1.2), border-color .2s ease, box-shadow .2s ease;
 }
-.quiz-bolita::before,
-.quiz-bolita::after {
+.quiz-arte::before,
+.quiz-arte::after,
+.quiz-arte i {
   content: '';
   position: absolute;
-  width: 64%;
-  height: 2px;
-  border-radius: 2px;
-  background: #536687;
-}
-.quiz-bolita::after { transform: rotate(90deg); }
-.quiz-bolita i {
-  position: relative;
-  z-index: 1;
   display: block;
-  width: calc(8px + var(--i) * 3px);
+  pointer-events: none;
+}
+
+/* Cada nivel tiene su propio pequeño arte en movimiento. */
+.quiz-op-esc[data-v="1"] .quiz-arte { --arte: #5bb8ff; border-radius: 50%; }
+.quiz-op-esc[data-v="1"] .quiz-arte::before {
+  inset: 10px;
+  border: 1px solid color-mix(in srgb, var(--arte) 70%, transparent);
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 7px rgba(91,184,255,.06), 0 0 12px rgba(91,184,255,.16);
+}
+.quiz-op-esc[data-v="1"] .quiz-arte::after {
+  top: 11%;
+  left: calc(50% - 1px);
+  width: 2px;
+  height: 78%;
+  background: linear-gradient(transparent, var(--arte), transparent);
+  animation: quizRadar 3.6s linear infinite;
+}
+.quiz-op-esc[data-v="1"] .quiz-arte i:first-child {
+  top: calc(50% - 5.5px);
+  left: calc(50% - 5.5px);
+  z-index: 1;
+  width: 11px;
   aspect-ratio: 1;
   border-radius: 50%;
-  background: #8391aa;
+  background: #d9f1ff;
+  box-shadow: 0 0 10px var(--arte);
 }
-.quiz-op-esc.sel .quiz-bolita {
-  border-color: var(--cat);
-  background: radial-gradient(circle, color-mix(in srgb, var(--cat) 80%, #fff) 0 24%, color-mix(in srgb, var(--cat) 36%, #101a2f) 25% 43%, var(--cat) 44% 47%, #111a2d 48%);
-  transform: rotate(8deg) scale(1.08);
+
+.quiz-op-esc[data-v="2"] .quiz-arte { --arte: #55ddc5; }
+.quiz-op-esc[data-v="2"] .quiz-arte::before {
+  inset: 8px;
+  border: 1px solid rgba(85,221,197,.28);
+  border-radius: 11px;
 }
-.quiz-op-esc.sel .quiz-bolita i { background: #fff8e7; }
+.quiz-op-esc[data-v="2"] .quiz-arte i {
+  left: 13px;
+  width: 40px;
+  height: 7px;
+  border: 2px solid var(--arte);
+  border-width: 2px 0 0;
+  border-radius: 50%;
+  animation: quizOnda 2.4s ease-in-out infinite;
+}
+.quiz-op-esc[data-v="2"] .quiz-arte i:nth-child(1) { top: 21px; }
+.quiz-op-esc[data-v="2"] .quiz-arte i:nth-child(2) { top: 31px; animation-delay: -.8s; }
+.quiz-op-esc[data-v="2"] .quiz-arte i:nth-child(3) { top: 41px; animation-delay: -1.6s; }
+
+.quiz-op-esc[data-v="3"] .quiz-arte { --arte: #d9b35b; border-radius: 50%; }
+.quiz-op-esc[data-v="3"] .quiz-arte::before {
+  inset: 9px;
+  border: 1px solid var(--arte);
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 8px rgba(217,179,91,.06);
+}
+.quiz-op-esc[data-v="3"] .quiz-arte::after {
+  top: calc(50% - 6px);
+  left: calc(50% - 6px);
+  width: 12px;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: #fff0b9;
+  box-shadow: 0 0 11px var(--arte);
+}
+.quiz-op-esc[data-v="3"] .quiz-arte i {
+  top: calc(50% - 3.5px);
+  left: calc(50% - 3.5px);
+  width: 7px;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: var(--arte);
+  box-shadow: 0 0 7px var(--arte);
+  transform-origin: 3px 3px;
+  animation: quizOrbita 3.8s linear infinite;
+}
+.quiz-op-esc[data-v="3"] .quiz-arte i:nth-child(2) { animation-delay: -1.25s; }
+.quiz-op-esc[data-v="3"] .quiz-arte i:nth-child(3) { animation-delay: -2.5s; }
+
+.quiz-op-esc[data-v="4"] .quiz-arte { --arte: #ff756a; transform: rotate(2deg); }
+.quiz-op-esc[data-v="4"] .quiz-arte::before {
+  top: calc(50% - 21px);
+  left: calc(50% - 14px);
+  width: 28px;
+  height: 42px;
+  background: linear-gradient(#ffd2c9, var(--arte));
+  clip-path: polygon(55% 0, 100% 0, 68% 36%, 94% 36%, 27% 100%, 42% 55%, 11% 55%);
+  filter: drop-shadow(0 0 7px var(--arte));
+  animation: quizChispa 1.7s ease-in-out infinite;
+}
+.quiz-op-esc[data-v="4"] .quiz-arte i {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #ffd2c9;
+  animation: quizParticula 2s ease-out infinite;
+}
+.quiz-op-esc[data-v="4"] .quiz-arte i:nth-child(1) { left: 12px; bottom: 13px; }
+.quiz-op-esc[data-v="4"] .quiz-arte i:nth-child(2) { right: 12px; top: 17px; animation-delay: -.7s; }
+.quiz-op-esc[data-v="4"] .quiz-arte i:nth-child(3) { left: 16px; top: 13px; animation-delay: -1.35s; }
+
+.quiz-op-esc[data-v="5"] .quiz-arte { --arte: #ae84ff; border-radius: 50%; }
+.quiz-op-esc[data-v="5"] .quiz-arte::before {
+  inset: 8px;
+  border-radius: 50%;
+  background: repeating-conic-gradient(from 0deg, var(--arte) 0 8deg, transparent 8deg 25deg);
+  opacity: .72;
+  animation: quizEstrella 7s linear infinite;
+}
+.quiz-op-esc[data-v="5"] .quiz-arte::after {
+  top: calc(50% - 15px);
+  left: calc(50% - 15px);
+  width: 30px;
+  aspect-ratio: 1;
+  background: #f0e7ff;
+  clip-path: polygon(50% 0, 61% 35%, 100% 50%, 61% 64%, 50% 100%, 39% 64%, 0 50%, 39% 35%);
+  filter: drop-shadow(0 0 7px var(--arte));
+  animation: quizPulso 2.2s ease-in-out infinite;
+}
+
+.quiz-op-esc.sel .quiz-arte {
+  border-color: color-mix(in srgb, var(--arte) 75%, white);
+  box-shadow: inset 0 1px rgba(255,255,255,.14), 0 0 18px color-mix(in srgb, var(--arte) 38%, transparent), 0 8px 16px rgba(0,0,0,.34);
+  transform: translateY(-3px) scale(1.1);
+}
+.quiz-op-esc[data-v="4"].sel .quiz-arte { transform: translateY(-3px) rotate(2deg) scale(1.1); }
+.quiz-op-esc:active { transform: translateY(-5px) rotate(0deg) scale(.985); }
+
+@keyframes quizRadar { to { transform: rotate(360deg); } }
+@keyframes quizOnda {
+  0%, 100% { transform: translateX(-5px) scaleX(.82); opacity: .5; }
+  50% { transform: translateX(5px) scaleX(1); opacity: 1; }
+}
+@keyframes quizOrbita {
+  from { transform: rotate(0deg) translateX(23px) rotate(0deg); }
+  to { transform: rotate(360deg) translateX(23px) rotate(-360deg); }
+}
+@keyframes quizChispa {
+  0%, 100% { transform: scale(.9) skewY(-3deg); opacity: .78; }
+  45% { transform: scale(1.09) skewY(3deg); opacity: 1; }
+}
+@keyframes quizParticula {
+  0% { transform: translateY(9px) scale(.5); opacity: 0; }
+  45% { opacity: 1; }
+  100% { transform: translateY(-12px) scale(1.25); opacity: 0; }
+}
+@keyframes quizEstrella { to { transform: rotate(360deg); } }
+@keyframes quizPulso {
+  0%, 100% { transform: scale(.84) rotate(0); opacity: .76; }
+  50% { transform: scale(1.08) rotate(12deg); opacity: 1; }
+}
 
 .quiz-esc-txt { display: grid; gap: 5px; margin-top: auto; text-align: center; }
 .quiz-esc-txt strong { color: inherit; font-size: .82rem; line-height: 1.15; }
@@ -646,7 +787,7 @@
 .quiz-op:nth-child(even) .quiz-op-letra { transform: rotate(3deg); }
 .quiz-op.sel .quiz-op-letra { border-color: var(--cat); color: var(--cat); transform: rotate(0) scale(1.06); }
 .quiz-op-txt { min-width: 0; }
-.quiz-carta-final .quiz-pregunta { max-width: 25ch; }
+.quiz-carta-final .quiz-pregunta { max-width: 34ch; }
 
 /* Navegación */
 .quiz-nav {
@@ -863,20 +1004,28 @@
   .quiz-carta-borde { inset: 6px; border-radius: 12px; }
   .quiz-instruccion { display: none; }
   .quiz-pregunta { font-size: clamp(1.45rem, 7vw, 2rem); }
-  .quiz-escala { grid-template-columns: 1fr; gap: 8px; }
+  .quiz-escala { grid-template-columns: 1fr; gap: 10px; padding: 5px 2px; }
   .quiz-op-esc {
     display: grid;
-    grid-template-columns: 32px 38px minmax(0,1fr);
+    grid-template-columns: 32px 46px minmax(0,1fr);
     align-items: center;
-    min-height: 72px;
-    gap: 10px;
-    padding: 10px 12px;
+    min-height: 78px;
+    gap: 12px;
+    padding: 12px 14px;
     transform: none;
   }
   .quiz-op-esc:hover,
   .quiz-op-esc:focus-visible,
   .quiz-op-esc.sel { transform: translateX(3px); }
-  .quiz-bolita { width: 36px; margin: 0; }
+  .quiz-arte { width: 44px; margin: 0; border-radius: 12px; }
+  .quiz-op-esc[data-v="1"] .quiz-arte,
+  .quiz-op-esc[data-v="3"] .quiz-arte,
+  .quiz-op-esc[data-v="5"] .quiz-arte { border-radius: 50%; }
+  .quiz-op-esc[data-v="2"] .quiz-arte i { left: 8px; width: 28px; }
+  .quiz-op-esc[data-v="2"] .quiz-arte i:nth-child(1) { top: 13px; }
+  .quiz-op-esc[data-v="2"] .quiz-arte i:nth-child(2) { top: 21px; }
+  .quiz-op-esc[data-v="2"] .quiz-arte i:nth-child(3) { top: 29px; }
+  .quiz-op-esc[data-v="3"] .quiz-arte i { animation-name: quizOrbitaMovil; }
   .quiz-esc-txt { margin: 0; text-align: left; }
   .quiz-esc-txt small { display: none; }
   .quiz-op-confirmacion { top: 8px; right: 9px; }
@@ -923,8 +1072,14 @@
   .quiz-espera-visual img,
   .quiz-baraja span,
   .quiz-cargando span,
+  .quiz-carta-borde::before,
+  .quiz-carta-borde::after,
   .quiz-carta,
   .quiz-op-esc,
+  .quiz-arte,
+  .quiz-arte::before,
+  .quiz-arte::after,
+  .quiz-arte i,
   .quiz-op { animation: none !important; }
   .quiz-op-esc,
   .quiz-op-esc:hover,
@@ -934,4 +1089,9 @@
   .quiz-op:hover,
   .quiz-op:focus-visible,
   .quiz-op.sel { transform: none; }
+}
+
+@keyframes quizOrbitaMovil {
+  from { transform: rotate(0deg) translateX(14px) rotate(0deg); }
+  to { transform: rotate(360deg) translateX(14px) rotate(-360deg); }
 }

@@ -13,7 +13,10 @@ import cartaRevoConecta from '../assets/carta-revo-conecta.png'
 import cartaRevoAnaliza from '../assets/carta-revo-analiza.png'
 import cartaRevoConstruye from '../assets/carta-revo-construye.png'
 import cartaRevoVision from '../assets/carta-revo-vision.png'
-import { shouldStartQuestionShuffle } from './questionnaireAnimation'
+import {
+  getRemainingPhaseTransitionMs,
+  shouldStartQuestionShuffle,
+} from './questionnaireAnimation'
 import '../theme/app.css'
 import './Questionnaire.css'
 
@@ -357,6 +360,7 @@ export default function Questionnaire() {
   }, [user])
 
   const loadPhase2 = async (sid) => {
+    const transitionStartedAt = Date.now()
     setTransitioning(true)
     try {
       const qRes = await surveyApi.getSessionQuestions(sid)
@@ -366,6 +370,10 @@ export default function Questionnaire() {
     } catch {
       setError('Error al cargar las preguntas de la fase 2.')
     } finally {
+      const remainingMs = getRemainingPhaseTransitionMs(Date.now() - transitionStartedAt)
+      if (remainingMs > 0) {
+        await new Promise((resolve) => setTimeout(resolve, remainingMs))
+      }
       setTransitioning(false)
     }
   }

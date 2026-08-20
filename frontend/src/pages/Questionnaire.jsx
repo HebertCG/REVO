@@ -16,6 +16,9 @@ import cartaRevoVision from '../assets/carta-revo-vision.png'
 import personaSelectorMinijuego from '../assets/persona-selector-minijuego.png'
 import personaRutaGaming from '../assets/persona-ruta-gaming.png'
 import carritoRevo from '../assets/carrito-revo.png'
+import personaArcadeGaming from '../assets/persona-arcade-gaming.png'
+import naveRevo from '../assets/nave-revo.png'
+import enemigoRevo from '../assets/enemigo-revo.png'
 import {
   getRemainingPhaseTransitionMs,
   shouldStartQuestionShuffle,
@@ -29,6 +32,14 @@ import {
   getRoadTargetLane,
   resolveQuestionnaireEntryView,
 } from './questionnaireMiniGames'
+import {
+  ARCADE_TARGET_SCORE,
+  activateArcadePulse,
+  advanceArcadeWave,
+  createArcadeState,
+  getArcadeThreats,
+  moveArcadeShip,
+} from './questionnaireArcade'
 import '../theme/app.css'
 import './Questionnaire.css'
 
@@ -131,13 +142,15 @@ function Ambiente() {
 
 function FaseHud({ fase, actual, total, miniGame }) {
   const esRuta = miniGame === MINI_GAMES.ROAD
+  const esArcade = miniGame === MINI_GAMES.ARCADE
+  const unidad = esRuta ? 'Parada' : esArcade ? 'Señal' : 'Carta'
   return (
     <header className="quiz-hud">
       <div className="quiz-partida">
         <span className="quiz-partida-marca" aria-hidden="true">R</span>
         <span>
           <strong>Partida de afinidad</strong>
-          <small>{esRuta ? 'Tu perfil avanza parada a parada' : 'Tu perfil se construye carta a carta'}</small>
+          <small>{esRuta ? 'Tu perfil avanza parada a parada' : esArcade ? 'Tu perfil avanza señal a señal' : 'Tu perfil se construye carta a carta'}</small>
         </span>
       </div>
 
@@ -154,8 +167,8 @@ function FaseHud({ fase, actual, total, miniGame }) {
         ))}
       </ol>
 
-      <div className="quiz-marcador" aria-label={`${esRuta ? 'Parada' : 'Carta'} ${actual} de ${total}`}>
-        <small>{esRuta ? 'Parada' : 'Carta'}</small>
+      <div className="quiz-marcador" aria-label={`${unidad} ${actual} de ${total}`}>
+        <small>{unidad}</small>
         <strong>{String(actual).padStart(2, '0')}</strong>
         <span>/ {String(total).padStart(2, '0')}</span>
       </div>
@@ -175,20 +188,27 @@ function PanelMazo({ fase, items, respuestas, actual, miniGame }) {
   }
 
   const esRuta = miniGame === MINI_GAMES.ROAD
+  const esArcade = miniGame === MINI_GAMES.ARCADE
+  const descripcion = esRuta
+    ? 'Conduce hasta cada parada. Cada meta abre una nueva señal.'
+    : esArcade
+      ? 'Supera cada oleada. La destreza abre preguntas, nunca cambia tu perfil.'
+      : textos[fase]
+  const progresoLabel = esRuta ? 'Paradas superadas' : esArcade ? 'Oleadas superadas' : 'Cartas resueltas'
 
   return (
-    <aside className={`quiz-panel ${esRuta ? 'quiz-panel-ruta' : ''}`}>
+    <aside className={`quiz-panel ${esRuta ? 'quiz-panel-ruta' : ''} ${esArcade ? 'quiz-panel-arcade' : ''}`}>
       <figure className="quiz-panel-visual">
-        <img src={esRuta ? personaRutaGaming : personaDiferenciaGaming} alt="" decoding="async" />
+        <img src={esRuta ? personaRutaGaming : esArcade ? personaArcadeGaming : personaDiferenciaGaming} alt="" decoding="async" />
       </figure>
       <span className="quiz-ronda">Ronda {fase}</span>
       <h2>{FASES[fase - 1].nombre}</h2>
-      <p>{esRuta ? 'Conduce hasta cada parada. Cada meta abre una nueva señal.' : textos[fase]}</p>
+      <p>{descripcion}</p>
 
       <div
         className="quiz-mini-mazo"
         role="progressbar"
-        aria-label={esRuta ? 'Paradas superadas' : 'Cartas resueltas'}
+        aria-label={progresoLabel}
         aria-valuemin="0"
         aria-valuemax={total}
         aria-valuenow={resueltas}
@@ -203,8 +223,8 @@ function PanelMazo({ fase, items, respuestas, actual, miniGame }) {
             />
           ))}
         </div>
-        <span className="quiz-mini-etiqueta">{esRuta ? 'Paradas superadas' : 'Cartas jugadas'}</span>
-        <strong>{jugadas.length} {esRuta ? 'en la ruta' : 'en el mazo'}</strong>
+        <span className="quiz-mini-etiqueta">{progresoLabel}</span>
+        <strong>{jugadas.length} {esRuta ? 'en la ruta' : esArcade ? 'en escuadrón' : 'en el mazo'}</strong>
       </div>
 
       <div className="quiz-panel-datos">
@@ -259,6 +279,16 @@ const DATOS_MINIJUEGO = {
     accion: 'Comenzar recorrido',
     imagen: personaRutaGaming,
   },
+  [MINI_GAMES.ARCADE]: {
+    numero: '03',
+    etiqueta: 'Escuadrón de señales',
+    titulo: 'Defiende la señal que abre cada pregunta',
+    texto: 'Pilota la nave REVO, esquiva dos líneas de ataque y completa una oleada breve para desbloquear cada pregunta.',
+    instrucciones: ['Muévete en cuatro direcciones', 'Usa el pulso para limpiar una amenaza', 'Completa la oleada y responde con calma'],
+    control: 'Flechas o WASD · espacio activa el pulso · cruceta táctil en celular',
+    accion: 'Iniciar misión',
+    imagen: personaArcadeGaming,
+  },
 }
 
 function SelectorMinijuego({ reduceMotion, miniGame, loading, ready, error, onPlay }) {
@@ -274,7 +304,7 @@ function SelectorMinijuego({ reduceMotion, miniGame, loading, ready, error, onPl
           <h1>{seleccionado ? seleccionado.etiqueta : '¿Qué desafío te toca hoy?'}</h1>
           <p>{seleccionado
             ? `¡Listo! REVO eligió ${seleccionado.etiqueta}. Presiona Jugar para conocer la dinámica.`
-            : 'Observa el sorteo: las cartas compiten contra el carrito por ser tu desafío de hoy.'}</p>
+            : 'Observa el sorteo: cartas, carrito y nave compiten por ser tu desafío de hoy.'}</p>
           <div className="quiz-selector-opciones" aria-hidden="true">
             <span className={`quiz-selector-opcion cartas ${miniGame === MINI_GAMES.CARDS ? 'ganadora' : ''}`}>
               <b>01</b>
@@ -285,6 +315,11 @@ function SelectorMinijuego({ reduceMotion, miniGame, loading, ready, error, onPl
               <b>02</b>
               <i><img src={carritoRevo} alt="" /></i>
               <em>Ruta de afinidad</em>
+            </span>
+            <span className={`quiz-selector-opcion arcade ${miniGame === MINI_GAMES.ARCADE ? 'ganadora' : ''}`}>
+              <b>03</b>
+              <i><img src={naveRevo} alt="" /></i>
+              <em>Escuadrón de señales</em>
             </span>
           </div>
 
@@ -316,6 +351,8 @@ function SelectorMinijuego({ reduceMotion, miniGame, loading, ready, error, onPl
           <span className="cartas"><img src={cartaRevoExplora} alt="" /></span>
           <i>VS</i>
           <span className="ruta"><img src={carritoRevo} alt="" /></span>
+          <i>VS</i>
+          <span className="arcade"><img src={naveRevo} alt="" /></span>
         </div>
         <p className="quiz-selector-estado">{seleccionado ? `${seleccionado.etiqueta} elegido` : 'Sorteando desafío…'}</p>
       </div>
@@ -516,6 +553,152 @@ function RutaPreguntas({ questionIndex, fase, onLlegar, reduceMotion }) {
   )
 }
 
+function ArcadePreguntas({ questionIndex, fase, onCompletar, reduceMotion }) {
+  const [estado, setEstado] = useState(createArcadeState)
+  const amenazasIniciales = useMemo(() => getArcadeThreats(questionIndex, 0), [questionIndex])
+  const [amenazas, setAmenazas] = useState(amenazasIniciales)
+  const [tick, setTick] = useState(0)
+  const tickRef = useRef(0)
+  const amenazasRef = useRef(amenazasIniciales)
+  const notificarCompletado = useEffectEvent(() => onCompletar())
+
+  const mover = useCallback((direccion) => {
+    setEstado((actual) => moveArcadeShip(actual, direccion))
+  }, [])
+
+  const activarPulso = useCallback(() => {
+    setEstado((actual) => activateArcadePulse(actual))
+  }, [])
+
+  useEffect(() => {
+    const manejarTecla = (event) => {
+      if (event.target.matches('input, textarea, select, button')) return
+      const controles = {
+        ArrowLeft: 'left', a: 'left', A: 'left',
+        ArrowRight: 'right', d: 'right', D: 'right',
+        ArrowUp: 'up', w: 'up', W: 'up',
+        ArrowDown: 'down', s: 'down', S: 'down',
+      }
+      if (event.code === 'Space') {
+        event.preventDefault()
+        activarPulso()
+        return
+      }
+      const direccion = controles[event.key]
+      if (!direccion) return
+      event.preventDefault()
+      mover(direccion)
+    }
+    window.addEventListener('keydown', manejarTecla)
+    return () => window.removeEventListener('keydown', manejarTecla)
+  }, [activarPulso, mover])
+
+  useEffect(() => {
+    if (estado.completed) return undefined
+    const timer = setInterval(() => {
+      setEstado((actual) => advanceArcadeWave(actual, amenazasRef.current))
+      tickRef.current += 1
+      const siguientesAmenazas = getArcadeThreats(questionIndex, tickRef.current)
+      amenazasRef.current = siguientesAmenazas
+      setAmenazas(siguientesAmenazas)
+      setTick(tickRef.current)
+    }, reduceMotion ? 720 : 640)
+    return () => clearInterval(timer)
+  }, [estado.completed, questionIndex, reduceMotion])
+
+  useEffect(() => {
+    if (!estado.completed) return undefined
+    const timer = setTimeout(notificarCompletado, reduceMotion ? 100 : 900)
+    return () => clearTimeout(timer)
+  }, [estado.completed, reduceMotion])
+
+  const estadoTexto = estado.completed
+    ? 'Señal protegida. Abriendo pregunta…'
+    : estado.hit
+      ? estado.assist
+        ? 'Asistencia activada: sigues en misión sin perder tu progreso.'
+        : 'Impacto recibido. Muévete a otra celda o usa el pulso.'
+        : estado.pulseActive
+          ? 'Pulso preparado: la próxima amenaza quedará neutralizada.'
+          : estado.pulseCooldown > 0
+          ? 'Pulso recuperándose. Sigue moviéndote.'
+          : 'Esquiva las señales rojas. El pulso está disponible.'
+
+  return (
+    <MotionDiv
+      key="arcade-preguntas"
+      className="quiz-arcade"
+      initial={{ opacity: 0, y: reduceMotion ? 0 : 18 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, scale: reduceMotion ? 1 : .985 }}
+      transition={{ duration: reduceMotion ? .1 : .38, ease: [0.22, 1, 0.36, 1] }}
+    >
+      <div className="quiz-arcade-cab">
+        <span>Minijuego 03 · Ronda {fase}</span>
+        <strong>Señal {String(questionIndex + 1).padStart(2, '0')}</strong>
+      </div>
+      <h1>Protege la señal de tu próxima pregunta</h1>
+      <p>Muévete por la cuadrícula, esquiva los disparos y completa la oleada. Tu destreza no cambia ninguna respuesta.</p>
+
+      <div className={`quiz-arcade-arena ${estado.hit ? 'impacto' : ''} ${estado.pulseActive ? 'pulso-activo' : ''} ${estado.completed ? 'completada' : ''}`}>
+        <span className="quiz-arcade-estrellas" aria-hidden="true" />
+        <div className="quiz-arcade-formacion" aria-hidden="true">
+          {[0, 1, 2, 3, 4].map((enemigo) => (
+            <img key={enemigo} src={enemigoRevo} alt="" style={{ '--enemigo': enemigo }} />
+          ))}
+        </div>
+        <div className="quiz-arcade-rejilla" aria-hidden="true" />
+        {amenazas.map((amenaza, indice) => (
+          <span
+            key={`${tick}-${indice}`}
+            className="quiz-arcade-amenaza"
+            style={{ '--amenaza-x': `${(amenaza.column + .5) * 20}%`, '--amenaza-y': `${(amenaza.row + .5) * 25}%` }}
+          ><i /></span>
+        ))}
+        <span
+          className="quiz-arcade-nave"
+          style={{ '--nave-x': `${estado.column * 20}cqw`, '--nave-y': `${estado.row * 25}cqh` }}
+        >
+          <i aria-hidden="true" />
+          <img src={naveRevo} alt="Nave REVO" />
+        </span>
+        {estado.completed && <span className="quiz-arcade-capsula" aria-hidden="true"><i />SEÑAL</span>}
+
+        <div className="quiz-arcade-hud">
+          <span><small>Oleada</small><b>{estado.score}/{ARCADE_TARGET_SCORE}</b></span>
+          <span><small>Escudo</small><b>{'◆'.repeat(estado.shield)}</b></span>
+          <span><small>Impactos</small><b>{estado.hits}</b></span>
+        </div>
+        <div
+          className="quiz-arcade-progreso"
+          role="progressbar"
+          aria-label="Progreso de la oleada"
+          aria-valuemin="0"
+          aria-valuemax={ARCADE_TARGET_SCORE}
+          aria-valuenow={estado.score}
+        ><i style={{ transform: `scaleX(${estado.score / ARCADE_TARGET_SCORE})` }} /></div>
+      </div>
+
+      <div className="quiz-controles-arcade" role="group" aria-label="Controles de la nave">
+        <button type="button" className="arriba" onClick={() => mover('up')} aria-label="Mover nave arriba">↑</button>
+        <button type="button" className="izquierda" onClick={() => mover('left')} aria-label="Mover nave a la izquierda">←</button>
+        <button type="button" className="abajo" onClick={() => mover('down')} aria-label="Mover nave abajo">↓</button>
+        <button type="button" className="derecha" onClick={() => mover('right')} aria-label="Mover nave a la derecha">→</button>
+        <button
+          type="button"
+          className="pulso"
+          onClick={activarPulso}
+          disabled={estado.pulseCooldown > 0 || estado.completed}
+        >
+          <span aria-hidden="true">✦</span>{estado.pulseCooldown > 0 ? `Pulso ${estado.pulseCooldown}` : 'Pulso'}
+        </button>
+      </div>
+      <p className="quiz-arcade-estado" role="status" aria-live="polite">{estadoTexto}</p>
+      <p className="quiz-arcade-teclas">Teclado: <kbd>←</kbd><kbd>↑</kbd><kbd>↓</kbd><kbd>→</kbd> o <kbd>WASD</kbd> · <kbd>Espacio</kbd> pulso</p>
+    </MotionDiv>
+  )
+}
+
 const CARTAS_DE_LA_MANO = [
   { arte: cartaRevoExplora, nombre: 'Explora' },
   { arte: cartaRevoConecta, nombre: 'Conecta' },
@@ -529,6 +712,9 @@ const RECURSOS_MINIJUEGO = [
   personaSelectorMinijuego,
   personaRutaGaming,
   carritoRevo,
+  personaArcadeGaming,
+  naveRevo,
+  enemigoRevo,
   ...CARTAS_DE_LA_MANO.map((carta) => carta.arte),
 ]
 
@@ -616,6 +802,7 @@ export default function Questionnaire() {
   const [miniGame, setMiniGame] = useState(null)
   const [miniGameStage, setMiniGameStage] = useState('selecting')
   const [rutaPreguntaId, setRutaPreguntaId] = useState(null)
+  const [arcadePreguntaId, setArcadePreguntaId] = useState(null)
   const cardRef = useRef(null)
   const questionHeadingRef = useRef(null)
   const shuffleTimerRef = useRef(null)
@@ -735,9 +922,12 @@ export default function Questionnaire() {
     : preguntaActivaRespondida ? 'pregunta' : 'barajando'
   const manoElegidaActiva = manoPreguntaId === preguntaActivaId ? manoElegida : null
   const rutaActivaCompletada = rutaPreguntaId === preguntaActivaId || preguntaActivaRespondida
+  const arcadeActivoCompletado = arcadePreguntaId === preguntaActivaId || preguntaActivaRespondida
   const preguntaVisible = miniGame === MINI_GAMES.ROAD
     ? rutaActivaCompletada
-    : estadoActivoMano === 'pregunta'
+    : miniGame === MINI_GAMES.ARCADE
+      ? arcadeActivoCompletado
+      : estadoActivoMano === 'pregunta'
 
   useEffect(() => {
     clearTimeout(shuffleTimerRef.current)
@@ -782,6 +972,12 @@ export default function Questionnaire() {
   const completarRutaPregunta = (questionId) => {
     if (!questionId) return
     setRutaPreguntaId(questionId)
+    requestAnimationFrame(() => questionHeadingRef.current?.focus())
+  }
+
+  const completarArcadePregunta = (questionId) => {
+    if (!questionId) return
+    setArcadePreguntaId(questionId)
     requestAnimationFrame(() => questionHeadingRef.current?.focus())
   }
 
@@ -936,16 +1132,18 @@ export default function Questionnaire() {
     }
     const [t, s] = textos[phase] || textos[2]
     return <Pantalla titulo={t} texto={s} aviso={error}
-      imagen={miniGame === MINI_GAMES.ROAD ? personaRutaGaming : personaDiferenciaGaming}
-      etiqueta={miniGame === MINI_GAMES.ROAD ? 'Leyendo tu recorrido' : 'Leyendo tu jugada'} />
+      imagen={miniGame === MINI_GAMES.ROAD ? personaRutaGaming : miniGame === MINI_GAMES.ARCADE ? personaArcadeGaming : personaDiferenciaGaming}
+      etiqueta={miniGame === MINI_GAMES.ROAD ? 'Leyendo tu recorrido' : miniGame === MINI_GAMES.ARCADE ? 'Leyendo tu misión' : 'Leyendo tu jugada'} />
   }
 
   if (transitioning) {
     return <Pantalla titulo="Nueva ronda desbloqueada"
       texto={miniGame === MINI_GAMES.ROAD
         ? 'Ya encontramos señal. La siguiente etapa abre una ruta hacia tus tres ramas más prometedoras.'
-        : 'Ya encontramos señal. Ahora el mazo se concentra en tus tres ramas más prometedoras.'}
-      imagen={miniGame === MINI_GAMES.ROAD ? personaRutaGaming : personaCelularGaming}
+        : miniGame === MINI_GAMES.ARCADE
+          ? 'Misión cumplida. El siguiente sector concentra las señales de tus tres ramas más prometedoras.'
+          : 'Ya encontramos señal. Ahora el mazo se concentra en tus tres ramas más prometedoras.'}
+      imagen={miniGame === MINI_GAMES.ROAD ? personaRutaGaming : miniGame === MINI_GAMES.ARCADE ? personaArcadeGaming : personaCelularGaming}
       etiqueta="Fase 2: Afina" />
   }
 
@@ -1000,6 +1198,14 @@ export default function Questionnaire() {
                         reduceMotion={reduceMotion}
                         onLlegar={() => completarRutaPregunta(p3q.id)}
                       />
+                    ) : miniGame === MINI_GAMES.ARCADE ? (
+                      <ArcadePreguntas
+                        key={`arcade-${p3q.id}`}
+                        questionIndex={phase3Current}
+                        fase={3}
+                        reduceMotion={reduceMotion}
+                        onCompletar={() => completarArcadePregunta(p3q.id)}
+                      />
                     ) : (
                       <ManoPreguntas
                         key={`mano-${p3q.id}`}
@@ -1046,7 +1252,7 @@ export default function Questionnaire() {
                           <span aria-hidden="true">←</span> Anterior
                         </button>
                         <button onClick={siguienteP3} disabled={!p3Sel} className="quiz-btn quiz-btn-pri">
-                          {p3Ultima ? 'Revelar mi perfil' : miniGame === MINI_GAMES.ROAD ? 'Continuar la ruta' : 'Jugar esta carta'} <span aria-hidden="true">→</span>
+                          {p3Ultima ? 'Revelar mi perfil' : miniGame === MINI_GAMES.ROAD ? 'Continuar la ruta' : miniGame === MINI_GAMES.ARCADE ? 'Continuar misión' : 'Jugar esta carta'} <span aria-hidden="true">→</span>
                         </button>
                       </nav>
                     </MotionDiv>
@@ -1086,6 +1292,14 @@ export default function Questionnaire() {
                     fase={phase}
                     reduceMotion={reduceMotion}
                     onLlegar={() => completarRutaPregunta(q.id)}
+                  />
+                ) : miniGame === MINI_GAMES.ARCADE ? (
+                  <ArcadePreguntas
+                    key={`arcade-${q.id}`}
+                    questionIndex={current}
+                    fase={phase}
+                    reduceMotion={reduceMotion}
+                    onCompletar={() => completarArcadePregunta(q.id)}
                   />
                 ) : (
                   <ManoPreguntas
@@ -1146,7 +1360,7 @@ export default function Questionnaire() {
                     <button onClick={next} disabled={!isAnswered} className="quiz-btn quiz-btn-pri">
                       {isLast
                         ? (phase === 1 ? 'Desbloquear fase 2' : 'Ir al perfil profesional')
-                        : miniGame === MINI_GAMES.ROAD ? 'Continuar la ruta' : 'Jugar esta carta'} <span aria-hidden="true">→</span>
+                        : miniGame === MINI_GAMES.ROAD ? 'Continuar la ruta' : miniGame === MINI_GAMES.ARCADE ? 'Continuar misión' : 'Jugar esta carta'} <span aria-hidden="true">→</span>
                     </button>
                   </nav>
 

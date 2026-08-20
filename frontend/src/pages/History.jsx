@@ -1,243 +1,354 @@
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine,
+  Area,
+  AreaChart,
+  CartesianGrid,
+  ReferenceLine,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
 } from 'recharts'
 import { useAuth } from '../context/AuthContext'
 import { mlApi } from '../services/api'
-import { specMeta, SERIE, ESTADO, fechaCorta, fechaLarga } from '../theme/specs'
+import { ESTADO, SERIE, fechaCorta, fechaLarga, specMeta } from '../theme/specs'
+import personaHistorial from '../assets/persona-historial-revo.png'
+import { buildHistorySeries, buildHistorySummary } from './historyInsights'
 import '../theme/app.css'
 import './History.css'
 
-/**
- * Lectura del patrón del estudiante a partir de sus últimas evaluaciones.
- * Se apoya en la repetición, que es la única señal fiable con pocos datos.
- */
-function leerPatron(historial) {
-  if (historial.length < 2) return null
-  const ultimas = historial.slice(0, 3).map((h) => h.specialization)
+function readPattern(history) {
+  if (history.length < 2) {
+    return {
+      color: ESTADO.neutro,
+      title: 'Primera señal registrada',
+      text: 'Este es tu punto de partida. Las siguientes evaluaciones permitirán reconocer qué intereses se mantienen en el tiempo.',
+    }
+  }
 
-  if (ultimas.length >= 3 && ultimas.every((s) => s === ultimas[0])) {
+  const latest = history.slice(0, 3).map((item) => item.specialization)
+
+  if (latest.length >= 3 && latest.every((specialization) => specialization === latest[0])) {
     return {
       color: ESTADO.bueno,
-      titulo: 'Perfil consolidado',
-      texto: `Tres evaluaciones seguidas apuntan a ${ultimas[0]}. Cuando el resultado se repite así, la recomendación es sólida.`,
+      title: 'Perfil consolidado',
+      text: `Tres evaluaciones seguidas apuntan a ${latest[0]}. La repetición hace que esta señal sea especialmente consistente.`,
     }
   }
-  if (ultimas[0] === ultimas[1]) {
+
+  if (latest[0] === latest[1]) {
     return {
       color: ESTADO.aviso,
-      titulo: 'Perfil emergente',
-      texto: `Tus dos últimas evaluaciones coinciden en ${ultimas[0]}. Haz una más para confirmar la tendencia.`,
+      title: 'Perfil emergente',
+      text: `Tus dos últimas evaluaciones coinciden en ${latest[0]}. Una nueva partida ayudará a confirmar la tendencia.`,
     }
   }
+
   return {
     color: ESTADO.neutro,
-    titulo: 'Perfil en exploración',
-    texto: 'Tus resultados todavía cambian entre evaluaciones. Es lo normal en los primeros ciclos: aún estás descubriendo qué te engancha.',
+    title: 'Perfil en exploración',
+    text: 'Tus resultados todavía cambian entre evaluaciones. Es normal: estás probando rutas y descubriendo qué te engancha más.',
   }
+}
+
+function formatValue(value) {
+  return Number(value).toLocaleString('es-PE', { maximumFractionDigits: 1 })
+}
+
+function HistoryTooltip({ active, payload }) {
+  if (!active || !payload?.length) return null
+  const data = payload[0].payload
+  const meta = specMeta(data.specialization)
+
+  return (
+    <div className="hist-tooltip">
+      <p className="hist-tooltip-spec">
+        <span className="rv-marca" style={{ background: meta.color }} aria-hidden="true" />
+        {data.specialization}
+      </p>
+      <p className="rv-menor">{data.date}</p>
+      <p className="rv-dato hist-tooltip-value">{formatValue(data.confidence)}%</p>
+    </div>
+  )
+}
+
+function TrendMark({ trend }) {
+  if (trend === 'up') return <span aria-hidden="true">↗</span>
+  if (trend === 'down') return <span aria-hidden="true">↘</span>
+  return <span aria-hidden="true">→</span>
 }
 
 export default function History() {
   const { user } = useAuth()
-  const [historial, setHistorial] = useState([])
-  const [cargando, setCargando] = useState(true)
+  const [history, setHistory] = useState([])
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     if (!user) return
     mlApi.getHistory(user.id)
-      .then((r) => setHistorial(r.data || []))
-      .catch(() => setHistorial([]))
-      .finally(() => setCargando(false))
+      .then((response) => setHistory(response.data || []))
+      .catch(() => setHistory([]))
+      .finally(() => setLoading(false))
   }, [user])
 
-  // Orden cronológico ascendente para el eje temporal.
-  const serie = [...historial].reverse().map((h, i) => ({
-    n: i + 1,
-    confianza: h.confidence_pct,
-    spec: h.specialization,
-    fecha: fechaCorta(h.created_at),
-  }))
-
-  const patron = leerPatron(historial)
-  const media = historial.length
-    ? Math.round(historial.reduce((a, h) => a + h.confidence_pct, 0) / historial.length)
-    : 0
-
-  const primera = serie[0]
-  const ultima = serie[serie.length - 1]
-  const delta = serie.length >= 2 ? ultima.confianza - primera.confianza : 0
-
-  const Globo = ({ active, payload }) => {
-    if (!active || !payload?.length) return null
-    const d = payload[0].payload
-    return (
-      <div className="hist-globo">
-        <p className="hist-globo-spec">
-          <span className="rv-marca" style={{ background: specMeta(d.spec).color }} />
-          {d.spec}
-        </p>
-        <p className="rv-menor">{d.fecha}</p>
-        <p className="rv-dato hist-globo-num">{d.confianza}%</p>
-      </div>
-    )
-  }
+  const series = buildHistorySeries(history, fechaCorta)
+  const summary = buildHistorySummary(history)
+  const latest = history[0]
+  const latestMeta = latest ? specMeta(latest.specialization) : null
+  const pattern = history.length ? readPattern(history) : null
+  const trendLabel = summary.total < 2
+    ? 'Punto de partida'
+    : summary.trend === 'up'
+      ? 'En ascenso'
+      : summary.trend === 'down'
+        ? 'Nueva exploración'
+        : 'Trayectoria estable'
 
   return (
     <div className="rv hist">
-      <div className="rv-ancho rv-ancho-est">
+      <div className="hist-atmosphere" aria-hidden="true" />
+      <div className="rv-ancho hist-shell">
+        <header
+          className="hist-hero rv-entra"
+          style={{ '--hist-spec': latestMeta?.color || SERIE }}
+        >
+          <div className="hist-hero-copy">
+            <p className="hist-kicker">
+              <span aria-hidden="true">◆</span>
+              Tu trayectoria REVO
+            </p>
+            <h1>Cada evaluación deja una señal.</h1>
+            <p className="hist-hero-lead">
+              Mira cómo evoluciona tu perfil, reconoce los intereses que se repiten
+              y vuelve a jugar cuando quieras descubrir una ruta nueva.
+            </p>
 
-        <header className="hist-cab rv-entra">
-          <p className="rv-etiq">Tu trayectoria</p>
-          <h1>Historial de evaluaciones</h1>
-          <p className="rv-sub">
-            Cómo ha cambiado tu perfil desde que empezaste a usar REVO.
-          </p>
+            <dl className="hist-hero-stats">
+              <div>
+                <dt>Evaluaciones</dt>
+                <dd className="rv-dato">{loading ? '—' : summary.total}</dd>
+              </div>
+              <div>
+                <dt>Confianza actual</dt>
+                <dd className="rv-dato">
+                  {loading || !summary.total ? '—' : `${formatValue(summary.latestConfidence)}%`}
+                </dd>
+              </div>
+              <div>
+                <dt>Desde el inicio</dt>
+                <dd className={`rv-dato hist-trend hist-trend-${summary.trend}`}>
+                  {!loading && summary.total >= 2 ? (
+                    <>
+                      <TrendMark trend={summary.trend} />
+                      {summary.delta > 0 ? '+' : ''}{formatValue(summary.delta)} pts
+                    </>
+                  ) : 'Nueva ruta'}
+                </dd>
+              </div>
+            </dl>
+
+            <div className="hist-hero-actions">
+              <Link to="/questionnaire" className="rv-btn hist-primary-action">
+                Jugar otra evaluación
+                <span aria-hidden="true">→</span>
+              </Link>
+              {latest && (
+                <Link to={`/results/${latest.prediction_id}`} className="hist-text-link">
+                  Ver último resultado
+                </Link>
+              )}
+            </div>
+          </div>
+
+          <div className="hist-hero-visual">
+            <div className="hist-orbit hist-orbit-one" aria-hidden="true" />
+            <div className="hist-orbit hist-orbit-two" aria-hidden="true" />
+            <img
+              src={personaHistorial}
+              alt="Personaje REVO revisando los hitos de su trayectoria"
+              className="hist-mascot"
+            />
+            <div className="hist-live-signal">
+              <span className="hist-live-dot" aria-hidden="true" />
+              <span>
+                <small>Señal actual</small>
+                <strong>{latest?.specialization || 'Lista para comenzar'}</strong>
+              </span>
+            </div>
+          </div>
         </header>
 
-        {cargando ? (
-          <div style={{ display: 'grid', gap: 14 }}>
-            {[0, 1, 2].map((i) => <div key={i} className="rv-esq" style={{ height: 86 }} />)}
+        {loading ? (
+          <div className="hist-loading" aria-label="Cargando historial">
+            <div className="rv-esq hist-loading-chart" />
+            <div className="rv-esq hist-loading-side" />
+            <div className="rv-esq hist-loading-row" />
+            <div className="rv-esq hist-loading-row" />
           </div>
-        ) : historial.length === 0 ? (
-          <section className="rv-tarjeta rv-vacio rv-entra">
-            <div className="rv-vacio-icono">📋</div>
-            <h2>Todavía no hay nada que mostrar</h2>
-            <p className="rv-sub" style={{ maxWidth: '44ch', margin: '10px auto 22px' }}>
-              Cuando completes tu primera evaluación aparecerá aquí, y a partir de
-              la segunda podrás ver cómo evoluciona tu perfil.
-            </p>
-            <Link to="/questionnaire" className="rv-btn rv-btn-1">Hacer mi primera evaluación</Link>
+        ) : history.length === 0 ? (
+          <section className="hist-empty rv-entra">
+            <span className="hist-empty-mark" aria-hidden="true">01</span>
+            <div>
+              <p className="rv-etiq">Tu primer hito</p>
+              <h2>Tu trayectoria empieza con una partida</h2>
+              <p className="rv-sub">
+                Completa las tres fases del cuestionario y aquí aparecerán tu primera
+                señal, su nivel de confianza y el inicio de tu evolución.
+              </p>
+            </div>
+            <Link to="/questionnaire" className="rv-btn rv-btn-2">Comenzar ahora</Link>
           </section>
         ) : (
-          <>
-            {/* ── Resumen del patrón ─────────────────────── */}
-            {patron && (
-              <section className="rv-tarjeta hist-patron rv-entra">
-                <span className="rv-marca-l" style={{ background: patron.color }} aria-hidden="true" />
-                <div>
-                  <h2 style={{ marginBottom: 6 }}>{patron.titulo}</h2>
-                  <p className="rv-sub">{patron.texto}</p>
-                </div>
-              </section>
-            )}
-
-            {/* ── Evolución ──────────────────────────────────
-                Con menos de tres puntos una línea no dice nada:
-                se muestra la comparación directa en su lugar. */}
-            {serie.length >= 3 ? (
-              <section className="rv-tarjeta rv-entra" style={{ animationDelay: '.06s' }}>
-                <div className="hist-gr-cab">
+          <main className="hist-content">
+            <section className="hist-overview" aria-label="Resumen de trayectoria">
+              <article className="hist-chart-panel rv-entra">
+                <div className="hist-section-heading">
                   <div>
-                    <h2>Evolución de tu confianza</h2>
-                    <p className="rv-menor">
-                      Qué tan seguro estuvo el modelo en cada evaluación
-                    </p>
+                    <p className="rv-etiq">Mapa de confianza</p>
+                    <h2>Tu evolución, evaluación a evaluación</h2>
                   </div>
-                  <div className="hist-gr-media">
-                    <p className="rv-dato hist-gr-media-num">{media}%</p>
-                    <p className="rv-menor">promedio</p>
+                  <div className="hist-average">
+                    <span className="rv-dato">{summary.average}%</span>
+                    <small>promedio</small>
                   </div>
                 </div>
 
-                <div className="hist-grafico">
-                  <ResponsiveContainer width="100%" height={210}>
-                    <LineChart data={serie} margin={{ left: -18, right: 12, top: 12, bottom: 0 }}>
-                      <CartesianGrid stroke="var(--linea-sutil)" vertical={false} />
-                      <XAxis
-                        dataKey="fecha"
-                        tick={{ fill: 'var(--tinta-3)', fontSize: 11 }}
-                        axisLine={false} tickLine={false} dy={6}
-                      />
-                      <YAxis
-                        domain={[0, 100]} ticks={[0, 25, 50, 75, 100]}
-                        tick={{ fill: 'var(--tinta-3)', fontSize: 11 }}
-                        axisLine={false} tickLine={false}
-                      />
-                      <ReferenceLine y={media} stroke="var(--linea)" strokeDasharray="4 4" />
-                      <Tooltip content={<Globo />} cursor={{ stroke: 'var(--linea)' }} />
-                      {/* Una sola serie: sin leyenda, el título la nombra. */}
-                      <Line
-                        type="monotone" dataKey="confianza"
-                        stroke={SERIE} strokeWidth={2}
-                        dot={{ r: 4, fill: SERIE, stroke: 'var(--sup)', strokeWidth: 2 }}
-                        activeDot={{ r: 6, fill: SERIE, stroke: 'var(--sup)', strokeWidth: 2 }}
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </div>
-              </section>
-            ) : serie.length === 2 && (
-              <section className="rv-tarjeta rv-entra" style={{ animationDelay: '.06s' }}>
-                <h2 style={{ marginBottom: 4 }}>Tus dos evaluaciones</h2>
-                <p className="rv-menor" style={{ marginBottom: 18 }}>
-                  Con una tercera evaluación aparecerá aquí tu curva de evolución.
-                </p>
-                <div className="hist-comp">
-                  {serie.map((d, i) => (
-                    <div key={i} className="hist-comp-col">
-                      <p className="rv-menor">{d.fecha}</p>
-                      <p className="rv-dato hist-comp-num">{d.confianza}%</p>
-                      <div className="rv-pista">
-                        <div className="rv-relleno"
-                          style={{ width: `${d.confianza}%`, background: specMeta(d.spec).color }} />
-                      </div>
-                      <p className="hist-comp-spec">{d.spec}</p>
+                {series.length >= 2 ? (
+                  <div className="hist-chart" role="img" aria-label="Gráfica de la confianza de tus evaluaciones en orden cronológico">
+                    <ResponsiveContainer width="100%" height={280}>
+                      <AreaChart data={series} margin={{ left: -18, right: 12, top: 24, bottom: 0 }}>
+                        <defs>
+                          <linearGradient id="historyConfidenceFill" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor={SERIE} stopOpacity={0.34} />
+                            <stop offset="100%" stopColor={SERIE} stopOpacity={0} />
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid stroke="var(--linea-sutil)" vertical={false} />
+                        <XAxis
+                          dataKey="date"
+                          tick={{ fill: 'var(--tinta-3)', fontSize: 11 }}
+                          axisLine={false}
+                          tickLine={false}
+                          dy={8}
+                        />
+                        <YAxis
+                          domain={[0, 100]}
+                          ticks={[0, 25, 50, 75, 100]}
+                          tick={{ fill: 'var(--tinta-3)', fontSize: 11 }}
+                          axisLine={false}
+                          tickLine={false}
+                        />
+                        <ReferenceLine y={summary.average} stroke="var(--linea)" strokeDasharray="5 5" />
+                        <Tooltip content={<HistoryTooltip />} cursor={{ stroke: 'var(--linea)' }} />
+                        <Area
+                          type="monotone"
+                          dataKey="confidence"
+                          stroke={SERIE}
+                          strokeWidth={3}
+                          fill="url(#historyConfidenceFill)"
+                          dot={{ r: 4, fill: SERIE, stroke: 'var(--sup)', strokeWidth: 3 }}
+                          activeDot={{ r: 7, fill: '#EEF2FB', stroke: SERIE, strokeWidth: 3 }}
+                        />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </div>
+                ) : (
+                  <div className="hist-first-point">
+                    <span className="hist-first-line" aria-hidden="true" />
+                    <span className="hist-first-node" aria-hidden="true" />
+                    <div>
+                      <strong>Primer punto guardado</strong>
+                      <p>Con tu siguiente evaluación aparecerá la primera tendencia.</p>
                     </div>
-                  ))}
-                </div>
-                {delta !== 0 && (
-                  <p className="rv-menor hist-comp-delta">
-                    Tu confianza {delta > 0 ? 'subió' : 'bajó'}{' '}
-                    <strong className="rv-dato" style={{ color: 'var(--tinta)' }}>
-                      {Math.abs(delta).toFixed(1)} puntos
-                    </strong>{' '}
-                    entre ambas.
-                  </p>
+                  </div>
                 )}
-              </section>
-            )}
 
-            {/* ── Listado ────────────────────────────────── */}
-            <section className="rv-entra" style={{ animationDelay: '.1s' }}>
-              <h3 className="hist-lista-tit">
-                {historial.length} {historial.length === 1 ? 'evaluación' : 'evaluaciones'}
-              </h3>
+                <div className="hist-chart-caption">
+                  <span><i className="hist-caption-line" aria-hidden="true" />Confianza del modelo</span>
+                  <span><i className="hist-caption-dash" aria-hidden="true" />Promedio histórico</span>
+                </div>
+              </article>
 
-              <ol className="hist-lista">
-                {historial.map((h, i) => {
-                  const m = specMeta(h.specialization)
+              <aside
+                className="hist-insight rv-entra"
+                style={{ '--hist-insight': pattern.color, animationDelay: '.06s' }}
+              >
+                <div className="hist-insight-top">
+                  <span className="hist-insight-icon" aria-hidden="true">✦</span>
+                  <span className="rv-etiq">Lectura de trayectoria</span>
+                </div>
+                <div>
+                  <h2>{pattern.title}</h2>
+                  <p>{pattern.text}</p>
+                </div>
+                <div className="hist-insight-route">
+                  <span className="hist-route-node is-old" aria-hidden="true" />
+                  <span className="hist-route-line" aria-hidden="true" />
+                  <span className="hist-route-node is-current" aria-hidden="true" />
+                </div>
+                <div className="hist-insight-foot">
+                  <span>
+                    <small>Estado</small>
+                    <strong>{trendLabel}</strong>
+                  </span>
+                  <span>
+                    <small>Última afinidad</small>
+                    <strong>{latest.specialization}</strong>
+                  </span>
+                </div>
+              </aside>
+            </section>
+
+            <section className="hist-timeline rv-entra" style={{ animationDelay: '.1s' }}>
+              <div className="hist-timeline-heading">
+                <div>
+                  <p className="rv-etiq">Bitácora de señales</p>
+                  <h2>Tu recorrido completo</h2>
+                  <p className="rv-sub">Abre cualquier hito para revisar el resultado de esa evaluación.</p>
+                </div>
+                <span className="hist-count rv-dato">
+                  {summary.total.toString().padStart(2, '0')} / 10
+                </span>
+              </div>
+
+              <ol className="hist-list">
+                {history.map((item, index) => {
+                  const meta = specMeta(item.specialization)
+                  const sequence = history.length - index
+
                   return (
-                    <li key={h.prediction_id}>
-                      <Link to={`/results/${h.prediction_id}`} className="hist-item">
-                        <span className="rv-marca-l hist-item-barra"
-                          style={{ background: m.color }} aria-hidden="true" />
-
-                        <span className="hist-item-icono" aria-hidden="true">{m.icon}</span>
-
-                        <span className="hist-item-cuerpo">
-                          <span className="hist-item-fila">
-                            <span className="hist-item-nom">{h.specialization}</span>
-                            {i === 0 && <span className="hist-item-ultimo">Más reciente</span>}
+                    <li key={item.prediction_id} style={{ '--hist-item-color': meta.color }}>
+                      <span className="hist-timeline-node rv-dato" aria-hidden="true">
+                        {String(sequence).padStart(2, '0')}
+                      </span>
+                      <Link to={`/results/${item.prediction_id}`} className="hist-item">
+                        <span className="hist-item-icon" aria-hidden="true">{meta.icon}</span>
+                        <span className="hist-item-body">
+                          <span className="hist-item-topline">
+                            <strong>{item.specialization}</strong>
+                            {index === 0 && <span className="hist-current-label">Más reciente</span>}
                           </span>
-                          <span className="rv-menor">{fechaLarga(h.created_at)}</span>
-                          <span className="rv-pista hist-item-pista">
-                            <span className="rv-relleno"
-                              style={{ width: `${h.confidence_pct}%`, background: m.color }} />
+                          <span className="rv-menor">{fechaLarga(item.created_at)}</span>
+                          <span className="rv-pista hist-item-progress" aria-hidden="true">
+                            <span
+                              className="rv-relleno"
+                              style={{ width: `${item.confidence_pct}%`, background: meta.color }}
+                            />
                           </span>
                         </span>
-
-                        <span className="hist-item-pct">
-                          <span className="rv-dato hist-item-num">{h.confidence_pct}%</span>
-                          <span className="rv-menor">confianza</span>
+                        <span className="hist-item-confidence">
+                          <span className="rv-dato">{formatValue(item.confidence_pct)}%</span>
+                          <small>confianza</small>
                         </span>
+                        <span className="hist-item-arrow" aria-hidden="true">↗</span>
                       </Link>
                     </li>
                   )
                 })}
               </ol>
             </section>
-          </>
+          </main>
         )}
       </div>
     </div>

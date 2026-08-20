@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "revo-common"
+version = "1.0.0"
+description = "Preocupaciones transversales compartidas por los microservicios de REVO"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.111.0",
+    "pydantic>=2.7.1",
+    "pydantic-settings>=2.2.1",
+    "python-jose[cryptography]>=3.3.0",
+    "sqlalchemy>=2.0.30",
+    "redis>=5.0.4",
+]
+
+[project.optional-dependencies]
+test = ["pytest>=8.2.0", "fakeredis>=2.23.0"]
+
+[tool.setuptools.packages.find]
+include = ["revo_common*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

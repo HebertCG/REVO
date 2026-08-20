@@ -5,9 +5,9 @@ import personaCelular from '../assets/persona-celular.png'
 import personaDiferencia from '../assets/persona-diferencia.png'
 import personaTrayectoria from '../assets/persona-historial-revo.png'
 import {
-  LANDING_BRANCHES,
   LANDING_OUTCOMES,
   LANDING_PHASES,
+  LANDING_ROUTE_GROUPS,
   getLandingCta,
   getQuestionBreakdown,
 } from './landingContent'
@@ -27,7 +27,6 @@ export default function PanelInformativo() {
   const { user } = useAuth()
   const [activePhaseId, setActivePhaseId] = useState(LANDING_PHASES[0].id)
   const activePhase = LANDING_PHASES.find((phase) => phase.id === activePhaseId)
-  const activePhaseIndex = LANDING_PHASES.findIndex((phase) => phase.id === activePhaseId)
   const questions = getQuestionBreakdown()
   const primaryCta = getLandingCta(Boolean(user))
 
@@ -42,7 +41,6 @@ export default function PanelInformativo() {
 
         <div className="lp-wrap lp-hero-layout">
           <div className="lp-hero-copy">
-            <p className="lp-eyebrow"><span /> Orientación que sí se deja terminar</p>
             <h1 id="landing-title">
               Tu carrera ya empezó.<br />
               Ahora encuentra <em>tu dirección.</em>
@@ -111,33 +109,40 @@ export default function PanelInformativo() {
         </div>
       </section>
 
-      <section className="lp-routes" aria-labelledby="routes-title">
-        <div className="lp-wrap lp-routes-heading">
-          <p className="lp-section-index">10 rutas, una señal personal</p>
-          <h2 id="routes-title">No tienes que elegir entre nombres abstractos.</h2>
-        </div>
-        <div className="lp-route-scroll" tabIndex="0" aria-label="Especializaciones que analiza REVO">
-          <div className="lp-route-track">
-            {LANDING_BRANCHES.map((branch) => (
-              <span className="lp-route-item" key={branch.code}>
-                <b>{branch.code}</b>
-                {branch.name}
-              </span>
+      <section className="lp-routes lp-section" aria-labelledby="routes-title">
+        <div className="lp-wrap">
+          <header className="lp-routes-intro">
+            <h2 id="routes-title">Diez rutas dentro de Sistemas. Cinco formas de mirar el trabajo.</h2>
+            <p>
+              REVO compara tu afinidad con las diez especializaciones. Aquí están
+              agrupadas únicamente para que puedas entenderlas de un vistazo.
+            </p>
+          </header>
+
+          <ol className="lp-route-map">
+            {LANDING_ROUTE_GROUPS.map((group) => (
+              <li key={group.number}>
+                <span className="lp-route-number">{group.number}</span>
+                <div className="lp-route-copy">
+                  <h3>{group.verb}</h3>
+                  <p>{group.description}</p>
+                </div>
+                <ul>
+                  {group.routes.map((route) => <li key={route}>{route}</li>)}
+                </ul>
+              </li>
             ))}
-          </div>
+          </ol>
         </div>
       </section>
 
       <section className="lp-process lp-section" id="revo-como" aria-labelledby="process-title">
         <div className="lp-wrap">
-          <header className="lp-split-heading">
-            <div>
-              <p className="lp-section-index">Así se construye tu perfil</p>
-              <h2 id="process-title">Tres fases. Cada una escucha la señal anterior.</h2>
-            </div>
+          <header className="lp-process-heading">
+            <h2 id="process-title">Tres fases que se van enfocando contigo.</h2>
             <p>
-              El sistema parte de diez áreas, profundiza únicamente en tus tres
-              finalistas y termina entendiendo cómo trabajas con otras personas.
+              Primero observa las diez rutas, después profundiza en tus tres
+              finalistas y al final incorpora tu forma de trabajar.
             </p>
           </header>
 
@@ -159,9 +164,8 @@ export default function PanelInformativo() {
                     <span className="lp-phase-number">{phase.number}</span>
                     <span>
                       <strong>{phase.name}</strong>
-                      <small>{phase.subtitle}</small>
+                      <small>{phase.countLabel}</small>
                     </span>
-                    <em>{phase.countLabel}</em>
                   </button>
                 )
               })}
@@ -175,52 +179,35 @@ export default function PanelInformativo() {
               style={{ '--phase-accent': activePhase.accent }}
               aria-live="polite"
             >
-              <div className="lp-phase-toolbar">
-                <span>Fase {activePhase.number} / 03</span>
-                <strong>{activePhase.countLabel}</strong>
+              <span className="lp-phase-watermark" aria-hidden="true">{activePhase.number}</span>
+              <div className="lp-phase-summary">
+                <h3>{activePhase.name}</h3>
+                <p>{activePhase.description}</p>
+                <span>{activePhase.subtitle} · {activePhase.countLabel}</span>
               </div>
-              <div className="lp-phase-progress" aria-hidden="true">
-                {LANDING_PHASES.map((phase, index) => (
-                  <span
-                    key={phase.id}
-                    className={index <= activePhaseIndex ? 'is-complete' : ''}
-                  />
-                ))}
+              <div className="lp-phase-example">
+                <blockquote>“{activePhase.example}”</blockquote>
+                <p className="lp-phase-outcome">
+                  <span aria-hidden="true">↳</span>
+                  {activePhase.outcome}
+                </p>
               </div>
-              <p className="lp-phase-kicker">{activePhase.name} · {activePhase.subtitle}</p>
-              <h3>{activePhase.description}</h3>
-              <blockquote>“{activePhase.example}”</blockquote>
-              <p className="lp-phase-outcome">
-                <span aria-hidden="true">↳</span>
-                {activePhase.outcome}
-              </p>
             </article>
           </div>
         </div>
       </section>
 
       <section className="lp-outcomes lp-section" id="revo-ofrece" aria-labelledby="outcomes-title">
-        <div className="lp-wrap lp-outcomes-layout">
-          <figure className="lp-outcomes-visual">
-            <div className="lp-visual-grid" aria-hidden="true" />
-            <img
-              src={personaCelular}
-              alt="Personaje REVO analizando alternativas profesionales desde su computadora"
-            />
-            <figcaption>
-              <span className="lp-status-dot" aria-hidden="true" />
-              Del resultado a tu siguiente movimiento
-            </figcaption>
-          </figure>
-
-          <div className="lp-outcomes-copy">
-            <p className="lp-section-index">Lo que te llevas</p>
-            <h2 id="outcomes-title">El resultado no es una etiqueta. Es qué hacer el lunes.</h2>
-            <p className="lp-section-lead">
+        <div className="lp-wrap">
+          <header className="lp-outcomes-heading">
+            <h2 id="outcomes-title">Tu resultado se convierte en una ruta que puedes poner a prueba.</h2>
+            <p>
               No terminas con un nombre bonito y nada más. REVO organiza la señal
               en decisiones pequeñas que puedes probar mientras todavía estudias.
             </p>
+          </header>
 
+          <div className="lp-outcomes-layout">
             <ol className="lp-outcome-list">
               {LANDING_OUTCOMES.map((outcome) => (
                 <li key={outcome.number}>
@@ -233,12 +220,24 @@ export default function PanelInformativo() {
               ))}
             </ol>
 
-            <p className="lp-teacher-note">
-              <span aria-hidden="true">◎</span>
-              Para docentes: una lectura agregada permite orientar electivas y proyectos
-              sin exponer respuestas individuales.
-            </p>
+            <figure className="lp-outcomes-visual">
+              <div className="lp-visual-grid" aria-hidden="true" />
+              <img
+                src={personaCelular}
+                alt="Personaje REVO analizando alternativas profesionales desde su computadora"
+              />
+              <figcaption>
+                <span className="lp-status-dot" aria-hidden="true" />
+                Del resultado a tu siguiente movimiento
+              </figcaption>
+            </figure>
           </div>
+
+          <p className="lp-teacher-note">
+            <span aria-hidden="true">◎</span>
+            Para docentes: una lectura agregada permite orientar electivas y proyectos
+            sin exponer respuestas individuales.
+          </p>
         </div>
       </section>
 
@@ -289,7 +288,6 @@ export default function PanelInformativo() {
       <section className="lp-final" aria-labelledby="final-title">
         <div className="lp-wrap lp-final-layout">
           <div>
-            <p className="lp-section-index">Tu siguiente señal está a ocho minutos</p>
             <h2 id="final-title">Empieza jugando. Termina con una dirección.</h2>
           </div>
           <div className="lp-final-action">

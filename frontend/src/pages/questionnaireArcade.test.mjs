@@ -3,12 +3,20 @@ import assert from 'node:assert/strict'
 
 import {
   ARCADE_TARGET_SCORE,
+  ARCADE_MIN_PLAY_MS,
   activateArcadePulse,
   advanceArcadeWave,
   createArcadeState,
   getArcadeThreats,
+  getArcadeRemainingPlayMs,
   moveArcadeShip,
 } from './questionnaireArcade.js'
+
+test('mantiene la oleada visible un tiempo minimo antes de abrir la pregunta', () => {
+  assert.equal(ARCADE_MIN_PLAY_MS >= 10000, true)
+  assert.equal(getArcadeRemainingPlayMs(900), ARCADE_MIN_PLAY_MS - 900)
+  assert.equal(getArcadeRemainingPlayMs(ARCADE_MIN_PLAY_MS + 500), 0)
+})
 
 test('mueve la nave en las cuatro direcciones sin salir de la arena', () => {
   const initial = createArcadeState()

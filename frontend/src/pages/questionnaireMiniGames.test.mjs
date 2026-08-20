@@ -6,11 +6,41 @@ import {
   chooseQuestionnaireMiniGame,
   createRoadState,
   getRoadTargetLane,
+  resolveQuestionnaireEntryView,
 } from './questionnaireMiniGames.js'
 
 test('elige de forma determinista uno de los dos minijuegos', () => {
   assert.equal(chooseQuestionnaireMiniGame(0.12), 'cards')
   assert.equal(chooseQuestionnaireMiniGame(0.72), 'road')
+})
+
+test('evita repetir el mismo minijuego dos entradas seguidas', () => {
+  assert.equal(chooseQuestionnaireMiniGame(0.12, 'cards'), 'road')
+  assert.equal(chooseQuestionnaireMiniGame(0.72, 'road'), 'cards')
+})
+
+test('muestra primero el selector aunque las preguntas sigan cargando', () => {
+  assert.equal(resolveQuestionnaireEntryView({
+    stage: 'selecting',
+    miniGame: null,
+    loading: true,
+    hasQuestion: false,
+  }), 'selector')
+})
+
+test('espera el boton Jugar antes de abrir el banner del minijuego', () => {
+  assert.equal(resolveQuestionnaireEntryView({
+    stage: 'selected',
+    miniGame: 'road',
+    loading: false,
+    hasQuestion: true,
+  }), 'selected')
+  assert.equal(resolveQuestionnaireEntryView({
+    stage: 'intro',
+    miniGame: 'road',
+    loading: false,
+    hasQuestion: true,
+  }), 'intro')
 })
 
 test('distribuye las paradas entre los tres carriles', () => {

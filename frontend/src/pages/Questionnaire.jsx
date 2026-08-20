@@ -1,7 +1,9 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useEffectEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { surveyApi } from '../services/api'
+import personaCelularGaming from '../assets/persona-celular-gaming.png'
+import personaDiferenciaGaming from '../assets/persona-diferencia-gaming.png'
 import '../theme/app.css'
 import './Questionnaire.css'
 
@@ -9,12 +11,18 @@ import './Questionnaire.css'
 // vez, asi que no compiten entre si: el cambio de color es lo que hace
 // que 25 preguntas no se sientan iguales.
 const CATEGORIAS = {
-  academic:    { label: 'Académico',    icon: '📚', color: '#7AA7F0' },
-  skills:      { label: 'Habilidades',  icon: '🛠️', color: '#34D399' },
-  interests:   { label: 'Intereses',    icon: '❤️', color: '#F472B6' },
-  personality: { label: 'Personalidad', icon: '🧠', color: '#A78BFA' },
+  academic:    { label: 'Académico',    icon: 'AC', color: '#5BB8FF' },
+  skills:      { label: 'Habilidades',  icon: 'HB', color: '#79D89B' },
+  interests:   { label: 'Intereses',    icon: 'IN', color: '#FF756A' },
+  personality: { label: 'Personalidad', icon: 'PR', color: '#D9B35B' },
 }
-const COLOR_BASE = '#7AA7F0'
+const COLOR_BASE = '#5BB8FF'
+
+const FASES = [
+  { n: 1, nombre: 'Explora', detalle: 'Calibración' },
+  { n: 2, nombre: 'Afina', detalle: 'Profundización' },
+  { n: 3, nombre: 'Revela', detalle: 'Perfil profesional' },
+]
 
 // Etiquetas de la escala. Van sobre el propio botón, no en una fila
 // aparte: antes había que cruzar la mirada entre el número y su
@@ -82,16 +90,113 @@ function calcArchetype(answers) {
   return ganadores[Math.floor(Math.random() * ganadores.length)]
 }
 
-/** Pantalla a pantalla completa para esperas y transiciones. */
-function Pantalla({ icono, titulo, texto, aviso }) {
+function Ambiente() {
+  return (
+    <div className="quiz-ambiente" aria-hidden="true">
+      <span className="quiz-tinta quiz-tinta-1" />
+      <span className="quiz-tinta quiz-tinta-2" />
+      <span className="quiz-grano" />
+      <span className="quiz-orbita quiz-orbita-1" />
+      <span className="quiz-orbita quiz-orbita-2" />
+    </div>
+  )
+}
+
+function FaseHud({ fase, actual, total }) {
+  return (
+    <header className="quiz-hud">
+      <div className="quiz-partida">
+        <span className="quiz-partida-marca" aria-hidden="true">R</span>
+        <span>
+          <strong>Partida de afinidad</strong>
+          <small>Tu perfil se construye carta a carta</small>
+        </span>
+      </div>
+
+      <ol className="quiz-fases" aria-label={`Fase ${fase} de 3`}>
+        {FASES.map((item) => (
+          <li
+            key={item.n}
+            className={item.n === fase ? 'activa' : item.n < fase ? 'superada' : ''}
+            aria-current={item.n === fase ? 'step' : undefined}
+          >
+            <span>{item.n}</span>
+            <div><strong>{item.nombre}</strong><small>{item.detalle}</small></div>
+          </li>
+        ))}
+      </ol>
+
+      <div className="quiz-marcador" aria-label={`Carta ${actual} de ${total}`}>
+        <small>Carta</small>
+        <strong>{String(actual).padStart(2, '0')}</strong>
+        <span>/ {String(total).padStart(2, '0')}</span>
+      </div>
+    </header>
+  )
+}
+
+function PanelMazo({ fase, items, respuestas, actual }) {
+  const total = items.length
+  const resueltas = items.filter((item) => respuestas[item.id] !== undefined).length
+  const porcentaje = total ? Math.round((resueltas / total) * 100) : 0
+  const textos = {
+    1: 'Prueba distintos territorios. No hay respuestas correctas, solo señales.',
+    2: 'El mazo se concentra en las áreas donde mostraste más afinidad.',
+    3: 'Tus elecciones finales revelan cómo trabajas cuando toca decidir.',
+  }
+
+  return (
+    <aside className="quiz-panel">
+      <figure className="quiz-panel-visual">
+        <img src={personaDiferenciaGaming} alt="" decoding="async" />
+      </figure>
+      <span className="quiz-ronda">Ronda {fase}</span>
+      <h2>{FASES[fase - 1].nombre}</h2>
+      <p>{textos[fase]}</p>
+
+      <div
+        className="quiz-mini-mazo"
+        role="progressbar"
+        aria-label="Cartas resueltas"
+        aria-valuemin="0"
+        aria-valuemax={total}
+        aria-valuenow={resueltas}
+      >
+        {items.map((item, i) => (
+          <span
+            key={item.id}
+            className={(respuestas[item.id] !== undefined ? 'resuelta ' : '') + (i === actual ? 'en-mesa' : '')}
+          />
+        ))}
+      </div>
+
+      <div className="quiz-panel-datos">
+        <span><small>Resueltas</small><strong>{resueltas}/{total}</strong></span>
+        <span><small>Avance</small><strong>{porcentaje}%</strong></span>
+      </div>
+    </aside>
+  )
+}
+
+/** Pantalla completa para esperas y transiciones. */
+function Pantalla({ titulo, texto, aviso, imagen = personaCelularGaming, etiqueta = 'Preparando la partida' }) {
   return (
     <div className="rv quiz-espera">
-      <div className="quiz-espera-caja">
-        <div className="quiz-espera-icono" aria-hidden="true">{icono}</div>
-        <h2>{titulo}</h2>
-        <p className="rv-sub">{texto}</p>
-        {aviso && <p className="quiz-aviso">{aviso}</p>}
-        <div className="quiz-puntos" aria-hidden="true"><span /><span /><span /></div>
+      <Ambiente />
+      <div className="quiz-espera-tablero">
+        <figure className="quiz-espera-visual">
+          <img src={imagen} alt="Personaje de REVO preparando las cartas del cuestionario" decoding="async" />
+          <div className="quiz-baraja" aria-hidden="true"><span /><span /><span /></div>
+        </figure>
+        <div className="quiz-espera-caja" role="status" aria-live="polite">
+          <span className="quiz-espera-etiq">{etiqueta}</span>
+          <h2>{titulo}</h2>
+          <p>{texto}</p>
+          {aviso && <p className="quiz-aviso">{aviso}</p>}
+          <div className="quiz-cargando" aria-hidden="true">
+            <span /><span /><span /><span /><span />
+          </div>
+        </div>
       </div>
     </div>
   )
@@ -170,8 +275,6 @@ export default function Questionnaire() {
 
   const q = questions[current]
   const total = questions.length
-  const respondidas = questions.filter((x) => answers[x.id] !== undefined).length
-  const progreso = total ? Math.round((respondidas / total) * 100) : 0
   const isAnswered = q && answers[q.id] !== undefined
   const isLast = current === total - 1
 
@@ -257,7 +360,7 @@ export default function Questionnaire() {
   // Con 25 preguntas, responder con el teclado ahorra minutos
   // frente a apuntar y hacer clic en cada una.
   const enFase12 = !loading && !submitting && !transitioning && phase !== 3 && !!q
-  const manejarTecla = useCallback((e) => {
+  const manejarTecla = useEffectEvent((e) => {
     if (!enFase12) return
     if (e.target.matches('input, textarea, select')) return
 
@@ -269,17 +372,18 @@ export default function Questionnaire() {
     } else if (e.key === 'ArrowLeft') {
       e.preventDefault(); prev()
     }
-  }, [enFase12, q, answers, current, isLast])
+  })
 
   useEffect(() => {
-    window.addEventListener('keydown', manejarTecla)
-    return () => window.removeEventListener('keydown', manejarTecla)
-  }, [manejarTecla])
+    const onKeyDown = (event) => manejarTecla(event)
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [])
 
   // ── Pantallas de espera ──────────────────────────────────
   if (loading) {
-    return <Pantalla icono="🌱" titulo="Preparando tu cuestionario"
-      texto="Estamos eligiendo tus primeras diez preguntas." />
+    return <Pantalla titulo="Barajando tus primeras cartas"
+      texto="Estamos eligiendo diez preguntas para descubrir dónde aparece tu primera señal." />
   }
 
   if (submitting) {
@@ -289,27 +393,28 @@ export default function Questionnaire() {
       3: ['Cerrando tu resultado', 'Un momento más.'],
     }
     const [t, s] = textos[phase] || textos[2]
-    return <Pantalla icono="🧠" titulo={t} texto={s} aviso={error} />
+    return <Pantalla titulo={t} texto={s} aviso={error}
+      imagen={personaDiferenciaGaming} etiqueta="Leyendo tu jugada" />
   }
 
   if (transitioning) {
-    return <Pantalla icono="🔥" titulo="Fase 2 desbloqueada"
-      texto="Ya sabemos por dónde van tus intereses. Ahora vamos a profundizar en las tres ramas más prometedoras." />
+    return <Pantalla titulo="Nueva ronda desbloqueada"
+      texto="Ya encontramos señal. Ahora el mazo se concentra en tus tres ramas más prometedoras."
+      imagen={personaDiferenciaGaming} etiqueta="Fase 2: Afina" />
   }
 
-  const Ambiente = () => (
-    <div className="quiz-ambiente" aria-hidden="true">
-      <span className="quiz-mancha quiz-mancha-1" />
-      <span className="quiz-mancha quiz-mancha-2" />
-    </div>
-  )
+  if (phase !== 3 && !q) {
+    return <Pantalla titulo="No pudimos repartir las cartas"
+      texto="Revisa tu conexión y vuelve a cargar la página para intentarlo otra vez."
+      aviso={error || 'El cuestionario no recibió preguntas.'}
+      imagen={personaDiferenciaGaming} etiqueta="Partida interrumpida" />
+  }
 
   // ── FASE 3: perfil profesional ───────────────────────────
   if (phase === 3) {
     const p3q = phase3Questions[phase3Current]
     const p3Sel = phase3Answers[p3q?.id]
     const p3Total = phase3Questions.length
-    const p3Prog = Math.round((phase3Current / p3Total) * 100)
     const p3Ultima = phase3Current === p3Total - 1
 
     const elegir = (key) => setPhase3Answers((prev) => ({ ...prev, [p3q.id]: key }))
@@ -328,54 +433,50 @@ export default function Questionnaire() {
     }
 
     return (
-      <div className="rv quiz" style={{ '--cat': '#A78BFA' }}>
+      <div className="rv quiz" style={{ '--cat': '#D9B35B' }}>
         <Ambiente />
-        <div className="rv-ancho rv-ancho-est quiz-lienzo">
-          <header className="quiz-cab rv-entra">
-            <div className="quiz-cab-fila">
-              <span className="rv-etiq quiz-fase">Fase 3 de 3 · Perfil profesional</span>
-              <span className="rv-dato quiz-cuenta">
-                {phase3Current + 1}<small>/{p3Total}</small>
-              </span>
-            </div>
-            <div className="quiz-sendero">
-              {phase3Questions.map((x, i) => (
-                <span key={x.id}
-                  className={'quiz-paso' + (phase3Answers[x.id] ? ' hecho' : '') + (i === phase3Current ? ' actual' : '')} />
-              ))}
-            </div>
-            <span className="rv-menor quiz-cab-nota">
-              Última etapa: aquí definimos tu estilo de trabajo.
-            </span>
-          </header>
+        <div className="quiz-lienzo">
+          <FaseHud fase={3} actual={phase3Current + 1} total={p3Total} />
 
-          {p3q && (
-            <section className="rv-tarjeta quiz-carta rv-entra" style={{ animationDelay: '.05s' }}>
-              <h1 className="quiz-pregunta">{p3q.question}</h1>
+          <main className="quiz-mesa">
+            <PanelMazo fase={3} items={phase3Questions} respuestas={phase3Answers} actual={phase3Current} />
 
-              <div className="quiz-ops" role="radiogroup" aria-label="Opciones">
-                {p3q.options.map((opt) => (
-                  <button key={opt.key} type="button" role="radio"
-                    aria-checked={p3Sel === opt.key}
-                    onClick={() => elegir(opt.key)}
-                    className={`quiz-op ${p3Sel === opt.key ? 'sel' : ''}`}>
-                    <span className="quiz-op-letra" aria-hidden="true">{opt.key}</span>
-                    <span className="quiz-op-txt">{opt.text}</span>
+            {p3q && (
+              <section key={p3q.id} className="quiz-carta quiz-carta-final rv-entra" style={{ animationDelay: '.05s' }}>
+                <div className="quiz-carta-borde" aria-hidden="true" />
+                <div className="quiz-carta-cab">
+                  <span className="quiz-sello"><b>PR</b> Perfil profesional</span>
+                  <span className="quiz-instruccion">Elige una carta</span>
+                </div>
+
+                <h1 className="quiz-pregunta">{p3q.question}</h1>
+
+                <div className="quiz-ops" role="radiogroup" aria-label="Opciones de perfil profesional">
+                  {p3q.options.map((opt, i) => (
+                    <button key={opt.key} type="button" role="radio"
+                      aria-checked={p3Sel === opt.key}
+                      onClick={() => elegir(opt.key)}
+                      style={{ '--i': i }}
+                      className={`quiz-op ${p3Sel === opt.key ? 'sel' : ''}`}>
+                      <span className="quiz-op-letra" aria-hidden="true">{opt.key}</span>
+                      <span className="quiz-op-txt">{opt.text}</span>
+                      <span className="quiz-op-confirmacion" aria-hidden="true">Elegida</span>
+                    </button>
+                  ))}
+                </div>
+
+                <nav className="quiz-nav" aria-label="Navegación del cuestionario">
+                  <button onClick={() => phase3Current > 0 && setPhase3Current((c) => c - 1)}
+                    disabled={phase3Current === 0} className="quiz-btn quiz-btn-sec">
+                    <span aria-hidden="true">←</span> Anterior
                   </button>
-                ))}
-              </div>
-
-              <nav className="quiz-nav">
-                <button onClick={() => phase3Current > 0 && setPhase3Current((c) => c - 1)}
-                  disabled={phase3Current === 0} className="rv-btn rv-btn-g">
-                  ← Anterior
-                </button>
-                <button onClick={siguienteP3} disabled={!p3Sel} className="rv-btn rv-btn-1">
-                  {p3Ultima ? 'Ver mi resultado' : 'Siguiente →'}
-                </button>
-              </nav>
-            </section>
-          )}
+                  <button onClick={siguienteP3} disabled={!p3Sel} className="quiz-btn quiz-btn-pri">
+                    {p3Ultima ? 'Revelar mi perfil' : 'Jugar esta carta'} <span aria-hidden="true">→</span>
+                  </button>
+                </nav>
+              </section>
+            )}
+          </main>
         </div>
       </div>
     )
@@ -389,78 +490,65 @@ export default function Questionnaire() {
     <div className="rv quiz" style={{ '--cat': color }}>
       <Ambiente />
 
-      <div className="rv-ancho rv-ancho-est quiz-lienzo">
+      <div className="quiz-lienzo">
+        <FaseHud fase={phase} actual={current + 1} total={total} />
 
-        <header className="quiz-cab rv-entra">
-          <div className="quiz-cab-fila">
-            <span className="rv-etiq quiz-fase">
-              Fase {phase} de 3 · {phase === 1 ? 'Calibración' : 'Profundización'}
-            </span>
-            <span className="rv-dato quiz-cuenta">
-              {current + 1}<small>/{total}</small>
-            </span>
-          </div>
-
-          {/* Un punto por pregunta: se ve de un vistazo cuánto falta
-              y cuáles quedaron sin responder. */}
-          <div className="quiz-sendero" aria-hidden="true">
-            {questions.map((x, i) => (
-              <span key={x.id}
-                className={
-                  'quiz-paso' +
-                  (answers[x.id] !== undefined ? ' hecho' : '') +
-                  (i === current ? ' actual' : '')
-                } />
-            ))}
-          </div>
-
-          <span className="rv-menor quiz-cab-nota">
-            {respondidas} de {total} respondidas · {progreso}%
-          </span>
-        </header>
+        <main className="quiz-mesa">
+          <PanelMazo fase={phase} items={questions} respuestas={answers} actual={current} />
 
         {q && (
           <section ref={cardRef} className="quiz-carta" key={q.id}>
+            <div className="quiz-carta-borde" aria-hidden="true" />
+            <div className="quiz-carta-cab">
             {cat.label && (
-              <span className="rv-ficha quiz-cat">
-                <span aria-hidden="true">{cat.icon}</span> {cat.label}
+              <span className="quiz-sello">
+                <b aria-hidden="true">{cat.icon}</b> {cat.label}
               </span>
             )}
+              <span className="quiz-instruccion">Elige tu nivel</span>
+            </div>
 
             <h1 className="quiz-pregunta">{q.text}</h1>
 
             {error && <p className="quiz-error" role="alert">{error}</p>}
 
             <div className="quiz-escala" role="radiogroup" aria-label="Qué tanto te representa">
-              {ESCALA.map(({ v, corta, larga }) => (
+              {ESCALA.map(({ v, corta, larga }, i) => (
                 <button key={v} type="button" role="radio" data-v={v}
                   aria-checked={answers[q.id] === v}
                   aria-label={`${v} de 5: ${larga}`}
                   onClick={() => setAnswer(v)}
+                  style={{
+                    '--i': i,
+                    '--spread': `${Math.abs(2 - i) * 4}px`,
+                    '--rotation': `${(i - 2) * 1.6}deg`,
+                  }}
                   className={`quiz-op-esc ${answers[q.id] === v ? 'sel' : ''}`}>
-                  <span className="quiz-bolita" aria-hidden="true" />
-                  <span className="quiz-esc-txt">{corta}</span>
-                  <span className="quiz-esc-num" aria-hidden="true">{v}</span>
+                  <span className="quiz-esc-num" aria-hidden="true">0{v}</span>
+                  <span className="quiz-bolita" aria-hidden="true"><i /></span>
+                  <span className="quiz-esc-txt"><strong>{corta}</strong><small>{larga}</small></span>
+                  <span className="quiz-op-confirmacion" aria-hidden="true">Elegida</span>
                 </button>
               ))}
             </div>
 
-            <nav className="quiz-nav">
-              <button onClick={prev} disabled={current === 0} className="rv-btn rv-btn-g">
-                ← Anterior
+            <nav className="quiz-nav" aria-label="Navegación del cuestionario">
+              <button onClick={prev} disabled={current === 0} className="quiz-btn quiz-btn-sec">
+                <span aria-hidden="true">←</span> Anterior
               </button>
-              <button onClick={next} disabled={!isAnswered} className="rv-btn rv-btn-1">
+              <button onClick={next} disabled={!isAnswered} className="quiz-btn quiz-btn-pri">
                 {isLast
-                  ? (phase === 1 ? 'Ir a la fase 2' : 'Ir al perfil profesional')
-                  : 'Siguiente →'}
+                  ? (phase === 1 ? 'Desbloquear fase 2' : 'Ir al perfil profesional')
+                  : 'Jugar esta carta'} <span aria-hidden="true">→</span>
               </button>
             </nav>
 
             <p className="quiz-atajos">
-              Responde con <kbd>1</kbd>–<kbd>5</kbd> y muévete con <kbd>←</kbd> <kbd>→</kbd>
+              Teclado: <kbd>1</kbd><span>-</span><kbd>5</kbd> para elegir, <kbd>Enter</kbd> para jugar
             </p>
           </section>
         )}
+        </main>
       </div>
     </div>
   )

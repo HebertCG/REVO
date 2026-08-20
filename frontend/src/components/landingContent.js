@@ -50,6 +50,39 @@ export const LANDING_BRANCHES = [
   { code: '10', name: 'Investigación e Innovación' },
 ]
 
+export const LANDING_ROUTE_GROUPS = [
+  {
+    number: '01',
+    verb: 'Crear',
+    description: 'Convertir ideas en productos que otras personas puedan usar.',
+    routes: ['Desarrollo de Software', 'Diseño UX/UI'],
+  },
+  {
+    number: '02',
+    verb: 'Entender',
+    description: 'Encontrar patrones, formular preguntas y producir conocimiento nuevo.',
+    routes: ['Data Science e IA', 'Investigación e Innovación'],
+  },
+  {
+    number: '03',
+    verb: 'Sostener',
+    description: 'Mantener la tecnología disponible, conectada y funcionando.',
+    routes: ['Infraestructura y Cloud', 'Soporte Técnico e IT Ops'],
+  },
+  {
+    number: '04',
+    verb: 'Proteger',
+    description: 'Reducir riesgos y comprobar que cada entrega responda como debe.',
+    routes: ['Ciberseguridad', 'QA y Testing'],
+  },
+  {
+    number: '05',
+    verb: 'Coordinar',
+    description: 'Conectar tecnología, negocio, procesos y equipos.',
+    routes: ['Gestión y Producto', 'Sistemas Empresariales'],
+  },
+]
+
 export const LANDING_OUTCOMES = [
   {
     number: '01',

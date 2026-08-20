@@ -5,6 +5,7 @@ import {
   advanceRoadState,
   chooseQuestionnaireMiniGame,
   createRoadState,
+  getRoadObstacles,
   getRoadTargetLane,
   resolveQuestionnaireEntryView,
 } from './questionnaireMiniGames.js'
@@ -53,18 +54,38 @@ test('distribuye las paradas entre los tres carriles', () => {
   assert.deepEqual([0, 1, 2, 3, 4].map(getRoadTargetLane), [0, 1, 2, 0, 1])
 })
 
-test('permite dirigir el carrito con izquierda y derecha', () => {
+test('usa arriba y abajo para cambiar entre los tres carriles', () => {
   const initial = createRoadState()
-  const left = advanceRoadState(initial, 'left', 0)
-  const right = advanceRoadState(left, 'right', 0)
+  const up = advanceRoadState(initial, 'up', 0)
+  const down = advanceRoadState(up, 'down', 0)
 
-  assert.equal(left.lane, 0)
-  assert.equal(right.lane, 1)
+  assert.equal(up.lane, 0)
+  assert.equal(down.lane, 1)
+})
+
+test('usa derecha para avanzar e izquierda para frenar o retroceder', () => {
+  const initial = createRoadState()
+  const forward = advanceRoadState(initial, 'right', 0)
+  const reverse = advanceRoadState(forward, 'left', 0)
+
+  assert.ok(forward.progress > initial.progress)
+  assert.ok(reverse.progress < forward.progress)
+})
+
+test('genera obstaculos variados y penaliza una colision', () => {
+  const obstacles = getRoadObstacles(0)
+  const obstacle = obstacles[0]
+  const state = { ...createRoadState(), lane: obstacle.lane, progress: obstacle.progress - 8 }
+  const crashed = advanceRoadState(state, 'right', 0, obstacles)
+
+  assert.equal(obstacles.length, 3)
+  assert.equal(crashed.collision, true)
+  assert.ok(crashed.progress < obstacle.progress)
 })
 
 test('detiene el carrito en el control si esta en el carril incorrecto', () => {
   const state = { ...createRoadState(), lane: 1, progress: 82 }
-  const blocked = advanceRoadState(state, 'accelerate', 2)
+  const blocked = advanceRoadState(state, 'right', 2)
 
   assert.equal(blocked.progress, 84)
   assert.equal(blocked.blocked, true)
@@ -75,7 +96,7 @@ test('alcanza la parada y completa la ruta desde el carril correcto', () => {
   const state = { ...createRoadState(), lane: 2, progress: 84 }
   let driven = state
   while (!driven.completed) {
-    driven = advanceRoadState(driven, 'accelerate', 2)
+    driven = advanceRoadState(driven, 'right', 2)
   }
 
   assert.equal(driven.progress, 100)

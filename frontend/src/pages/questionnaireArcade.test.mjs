@@ -32,12 +32,21 @@ test('mueve la nave en las cuatro direcciones sin salir de la arena', () => {
 
 test('esperar mueve a los enemigos pero no suma progreso automaticamente', () => {
   const initial = createArcadeState()
-  const advanced = advanceArcadeWave(initial)
+  const firstAdvance = advanceArcadeWave(initial)
+  let advanced = firstAdvance
+  for (let tick = 0; tick < 20; tick += 1) advanced = advanceArcadeWave(advanced)
 
   assert.equal(advanced.score, 0)
   assert.equal(advanced.enemies.length, ARCADE_ENEMY_COUNT)
-  assert.notDeepEqual(advanced.enemies, initial.enemies)
+  assert.notDeepEqual(firstAdvance.enemies, initial.enemies)
   assert.equal(advanced.completed, false)
+})
+
+test('la formacion enemiga genera sus propios disparos', () => {
+  const firstAdvance = advanceArcadeWave(createArcadeState())
+  const secondAdvance = advanceArcadeWave(firstAdvance)
+
+  assert.equal(secondAdvance.enemyShots.length, 1)
 })
 
 test('disparar alineado destruye una nave y activa la recarga', () => {

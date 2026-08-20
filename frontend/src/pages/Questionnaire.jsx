@@ -33,12 +33,12 @@ import {
   resolveQuestionnaireEntryView,
 } from './questionnaireMiniGames'
 import {
+  ARCADE_ENEMY_COUNT,
   ARCADE_TARGET_SCORE,
-  activateArcadePulse,
   advanceArcadeWave,
   createArcadeState,
+  fireArcadeShot,
   getArcadeRemainingPlayMs,
-  getArcadeThreats,
   moveArcadeShip,
 } from './questionnaireArcade'
 import '../theme/app.css'
@@ -284,9 +284,9 @@ const DATOS_MINIJUEGO = {
     numero: '03',
     etiqueta: 'Escuadrón de señales',
     titulo: 'Defiende la señal que abre cada pregunta',
-    texto: 'Pilota la nave REVO, esquiva dos líneas de ataque y completa una oleada breve para desbloquear cada pregunta.',
-    instrucciones: ['Muévete en cuatro direcciones', 'Usa el pulso para limpiar una amenaza', 'Completa la oleada y responde con calma'],
-    control: 'Flechas o WASD · espacio activa el pulso · cruceta táctil en celular',
+    texto: 'Pilota la nave REVO, alinea el cañón y derriba toda la formación enemiga para desbloquear cada pregunta.',
+    instrucciones: ['Muévete para apuntar a una nave', 'Dispara y espera la recarga del cañón', 'Derriba la flota y responde con calma'],
+    control: 'Flechas o WASD · espacio dispara · controles táctiles en celular',
     accion: 'Iniciar misión',
     imagen: personaArcadeGaming,
   },
@@ -556,20 +556,15 @@ function RutaPreguntas({ questionIndex, fase, onLlegar, reduceMotion }) {
 
 function ArcadePreguntas({ questionIndex, fase, onCompletar, reduceMotion }) {
   const [estado, setEstado] = useState(createArcadeState)
-  const amenazasIniciales = useMemo(() => getArcadeThreats(questionIndex, 0), [questionIndex])
-  const [amenazas, setAmenazas] = useState(amenazasIniciales)
-  const [tick, setTick] = useState(0)
   const [inicioOleada] = useState(Date.now)
-  const tickRef = useRef(0)
-  const amenazasRef = useRef(amenazasIniciales)
   const notificarCompletado = useEffectEvent(() => onCompletar())
 
   const mover = useCallback((direccion) => {
     setEstado((actual) => moveArcadeShip(actual, direccion))
   }, [])
 
-  const activarPulso = useCallback(() => {
-    setEstado((actual) => activateArcadePulse(actual))
+  const disparar = useCallback(() => {
+    setEstado((actual) => fireArcadeShot(actual))
   }, [])
 
   useEffect(() => {
@@ -583,7 +578,7 @@ function ArcadePreguntas({ questionIndex, fase, onCompletar, reduceMotion }) {
       }
       if (event.code === 'Space') {
         event.preventDefault()
-        activarPulso()
+        disparar()
         return
       }
       const direccion = controles[event.key]
@@ -593,20 +588,15 @@ function ArcadePreguntas({ questionIndex, fase, onCompletar, reduceMotion }) {
     }
     window.addEventListener('keydown', manejarTecla)
     return () => window.removeEventListener('keydown', manejarTecla)
-  }, [activarPulso, mover])
+  }, [disparar, mover])
 
   useEffect(() => {
     if (estado.completed) return undefined
     const timer = setInterval(() => {
-      setEstado((actual) => advanceArcadeWave(actual, amenazasRef.current))
-      tickRef.current += 1
-      const siguientesAmenazas = getArcadeThreats(questionIndex, tickRef.current)
-      amenazasRef.current = siguientesAmenazas
-      setAmenazas(siguientesAmenazas)
-      setTick(tickRef.current)
-    }, reduceMotion ? 720 : 640)
+      setEstado((actual) => advanceArcadeWave(actual))
+    }, reduceMotion ? 680 : 520)
     return () => clearInterval(timer)
-  }, [estado.completed, questionIndex, reduceMotion])
+  }, [estado.completed, reduceMotion])
 
   useEffect(() => {
     if (!estado.completed) return undefined
@@ -616,16 +606,16 @@ function ArcadePreguntas({ questionIndex, fase, onCompletar, reduceMotion }) {
   }, [estado.completed, inicioOleada, reduceMotion])
 
   const estadoTexto = estado.completed
-    ? 'Señal protegida. Abriendo pregunta…'
+    ? 'Flota derrotada. Abriendo pregunta…'
+    : estado.explosion
+      ? 'Impacto confirmado. Busca tu próximo objetivo.'
     : estado.hit
       ? estado.assist
         ? 'Asistencia activada: sigues en misión sin perder tu progreso.'
-        : 'Impacto recibido. Muévete a otra celda o usa el pulso.'
-        : estado.pulseActive
-          ? 'Pulso preparado: la próxima amenaza quedará neutralizada.'
-          : estado.pulseCooldown > 0
-          ? 'Pulso recuperándose. Sigue moviéndote.'
-          : 'Esquiva las señales rojas. El pulso está disponible.'
+        : 'Impacto recibido. Cambia de posición y responde al ataque.'
+      : estado.shotCooldown > 0
+        ? 'Cañón recargando. Sigue a la formación.'
+        : 'Alinea la nave con un enemigo y dispara.'
 
   return (
     <MotionDiv
@@ -640,24 +630,43 @@ function ArcadePreguntas({ questionIndex, fase, onCompletar, reduceMotion }) {
         <span>Minijuego 03 · Ronda {fase}</span>
         <strong>Señal {String(questionIndex + 1).padStart(2, '0')}</strong>
       </div>
-      <h1>Protege la señal de tu próxima pregunta</h1>
-      <p>Muévete por la cuadrícula, esquiva los disparos y completa la oleada. Tu destreza no cambia ninguna respuesta.</p>
+      <h1>Derrota la flota de tu próxima pregunta</h1>
+      <p>Muévete para apuntar, dispara con espacio y elimina las seis naves. El combate desbloquea la pregunta, pero nunca cambia tu respuesta.</p>
 
-      <div className={`quiz-arcade-arena ${estado.hit ? 'impacto' : ''} ${estado.pulseActive ? 'pulso-activo' : ''} ${estado.completed ? 'completada' : ''}`}>
+      <div className={`quiz-arcade-arena ${estado.hit ? 'impacto' : ''} ${estado.completed ? 'completada' : ''}`}>
         <span className="quiz-arcade-estrellas" aria-hidden="true" />
-        <div className="quiz-arcade-formacion" aria-hidden="true">
-          {[0, 1, 2, 3, 4].map((enemigo) => (
-            <img key={enemigo} src={enemigoRevo} alt="" style={{ '--enemigo': enemigo }} />
-          ))}
-        </div>
         <div className="quiz-arcade-rejilla" aria-hidden="true" />
-        {amenazas.map((amenaza, indice) => (
+        {estado.enemies.map((enemigo) => (
           <span
-            key={`${tick}-${indice}`}
-            className="quiz-arcade-amenaza"
-            style={{ '--amenaza-x': `${(amenaza.column + .5) * 20}%`, '--amenaza-y': `${(amenaza.row + .5) * 25}%` }}
-          ><i /></span>
+            key={enemigo.id}
+            className="quiz-arcade-enemigo"
+            style={{ '--enemigo-x': `${enemigo.column * 20}cqw`, '--enemigo-y': `${enemigo.row * 25}cqh` }}
+          ><img src={enemigoRevo} alt="" /></span>
         ))}
+        {estado.enemyShots.map((disparo) => (
+          <span
+            key={disparo.id}
+            className="quiz-arcade-disparo-enemigo"
+            style={{ '--disparo-x': `${disparo.column * 20}cqw`, '--disparo-y': `${disparo.row * 25}cqh` }}
+            aria-hidden="true"
+          />
+        ))}
+        {estado.lastShot && (
+          <span
+            key={estado.lastShot.id}
+            className="quiz-arcade-disparo-revo"
+            style={{ '--disparo-revo-x': `${estado.lastShot.column * 20}cqw` }}
+            aria-hidden="true"
+          />
+        )}
+        {estado.explosion && (
+          <span
+            key={estado.explosion.id}
+            className="quiz-arcade-explosion"
+            style={{ '--explosion-x': `${estado.explosion.column * 20}cqw`, '--explosion-y': `${estado.explosion.row * 25}cqh` }}
+            aria-hidden="true"
+          ><i /><i /><i /></span>
+        )}
         <span
           className="quiz-arcade-nave"
           style={{ '--nave-x': `${estado.column * 20}cqw`, '--nave-y': `${estado.row * 25}cqh` }}
@@ -668,9 +677,9 @@ function ArcadePreguntas({ questionIndex, fase, onCompletar, reduceMotion }) {
         {estado.completed && <span className="quiz-arcade-capsula" aria-hidden="true"><i />SEÑAL</span>}
 
         <div className="quiz-arcade-hud">
-          <span><small>Oleada</small><b>{estado.score}/{ARCADE_TARGET_SCORE}</b></span>
+          <span><small>Flota</small><b>{estado.enemies.length}/{ARCADE_ENEMY_COUNT}</b></span>
           <span><small>Escudo</small><b>{'◆'.repeat(estado.shield)}</b></span>
-          <span><small>Impactos</small><b>{estado.hits}</b></span>
+          <span><small>Derribadas</small><b>{estado.score}</b></span>
         </div>
         <div
           className="quiz-arcade-progreso"
@@ -689,15 +698,15 @@ function ArcadePreguntas({ questionIndex, fase, onCompletar, reduceMotion }) {
         <button type="button" className="derecha" onClick={() => mover('right')} aria-label="Mover nave a la derecha">→</button>
         <button
           type="button"
-          className="pulso"
-          onClick={activarPulso}
-          disabled={estado.pulseCooldown > 0 || estado.completed}
+          className="disparar"
+          onClick={disparar}
+          disabled={estado.shotCooldown > 0 || estado.completed}
         >
-          <span aria-hidden="true">✦</span>{estado.pulseCooldown > 0 ? `Pulso ${estado.pulseCooldown}` : 'Pulso'}
+          <span aria-hidden="true">✦</span>{estado.shotCooldown > 0 ? `Recarga ${estado.shotCooldown}` : 'Disparar'}
         </button>
       </div>
       <p className="quiz-arcade-estado" role="status" aria-live="polite">{estadoTexto}</p>
-      <p className="quiz-arcade-teclas">Teclado: <kbd>←</kbd><kbd>↑</kbd><kbd>↓</kbd><kbd>→</kbd> o <kbd>WASD</kbd> · <kbd>Espacio</kbd> pulso</p>
+      <p className="quiz-arcade-teclas">Teclado: <kbd>←</kbd><kbd>↑</kbd><kbd>↓</kbd><kbd>→</kbd> o <kbd>WASD</kbd> · <kbd>Espacio</kbd> dispara</p>
     </MotionDiv>
   )
 }

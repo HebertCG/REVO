@@ -430,7 +430,7 @@
 
 .quiz-pregunta {
   max-width: 34ch;
-  margin: 0 0 clamp(34px, 4.6vw, 52px);
+  margin: 0 0 clamp(54px, 6vw, 76px);
   color: #f7f3ea;
   font-family: var(--f-titulo);
   font-size: clamp(1.55rem, 3.2vw, 2.55rem);
@@ -831,7 +831,7 @@
   align-items: center;
   justify-content: flex-end;
   gap: 5px;
-  margin-top: 18px;
+  margin-top: 28px;
   color: #657493;
   font-size: .68rem;
 }
@@ -1003,7 +1003,7 @@
   .quiz-carta::after { display: none; }
   .quiz-carta-borde { inset: 6px; border-radius: 12px; }
   .quiz-instruccion { display: none; }
-  .quiz-pregunta { font-size: clamp(1.45rem, 7vw, 2rem); }
+  .quiz-pregunta { margin-bottom: 38px; font-size: clamp(1.45rem, 7vw, 2rem); }
   .quiz-escala { grid-template-columns: 1fr; gap: 10px; padding: 5px 2px; }
   .quiz-op-esc {
     display: grid;

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useEffectEvent } from 'react'
+import { useState, useEffect, useRef, useEffectEvent, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { useAuth } from '../context/AuthContext'
@@ -13,10 +13,20 @@ import cartaRevoConecta from '../assets/carta-revo-conecta.png'
 import cartaRevoAnaliza from '../assets/carta-revo-analiza.png'
 import cartaRevoConstruye from '../assets/carta-revo-construye.png'
 import cartaRevoVision from '../assets/carta-revo-vision.png'
+import personaSelectorMinijuego from '../assets/persona-selector-minijuego.png'
+import personaRutaGaming from '../assets/persona-ruta-gaming.png'
+import carritoRevo from '../assets/carrito-revo.png'
 import {
   getRemainingPhaseTransitionMs,
   shouldStartQuestionShuffle,
 } from './questionnaireAnimation'
+import {
+  MINI_GAMES,
+  advanceRoadState,
+  chooseQuestionnaireMiniGame,
+  createRoadState,
+  getRoadTargetLane,
+} from './questionnaireMiniGames'
 import '../theme/app.css'
 import './Questionnaire.css'
 
@@ -117,14 +127,15 @@ function Ambiente() {
   )
 }
 
-function FaseHud({ fase, actual, total }) {
+function FaseHud({ fase, actual, total, miniGame }) {
+  const esRuta = miniGame === MINI_GAMES.ROAD
   return (
     <header className="quiz-hud">
       <div className="quiz-partida">
         <span className="quiz-partida-marca" aria-hidden="true">R</span>
         <span>
           <strong>Partida de afinidad</strong>
-          <small>Tu perfil se construye carta a carta</small>
+          <small>{esRuta ? 'Tu perfil avanza parada a parada' : 'Tu perfil se construye carta a carta'}</small>
         </span>
       </div>
 
@@ -141,8 +152,8 @@ function FaseHud({ fase, actual, total }) {
         ))}
       </ol>
 
-      <div className="quiz-marcador" aria-label={`Carta ${actual} de ${total}`}>
-        <small>Carta</small>
+      <div className="quiz-marcador" aria-label={`${esRuta ? 'Parada' : 'Carta'} ${actual} de ${total}`}>
+        <small>{esRuta ? 'Parada' : 'Carta'}</small>
         <strong>{String(actual).padStart(2, '0')}</strong>
         <span>/ {String(total).padStart(2, '0')}</span>
       </div>
@@ -150,7 +161,7 @@ function FaseHud({ fase, actual, total }) {
   )
 }
 
-function PanelMazo({ fase, items, respuestas, actual }) {
+function PanelMazo({ fase, items, respuestas, actual, miniGame }) {
   const total = items.length
   const resueltas = items.filter((item) => respuestas[item.id] !== undefined).length
   const jugadas = items.filter((item, i) => respuestas[item.id] !== undefined && i !== actual)
@@ -161,19 +172,21 @@ function PanelMazo({ fase, items, respuestas, actual }) {
     3: 'Tus elecciones finales revelan cómo trabajas cuando toca decidir.',
   }
 
+  const esRuta = miniGame === MINI_GAMES.ROAD
+
   return (
-    <aside className="quiz-panel">
+    <aside className={`quiz-panel ${esRuta ? 'quiz-panel-ruta' : ''}`}>
       <figure className="quiz-panel-visual">
-        <img src={personaDiferenciaGaming} alt="" decoding="async" />
+        <img src={esRuta ? personaRutaGaming : personaDiferenciaGaming} alt="" decoding="async" />
       </figure>
       <span className="quiz-ronda">Ronda {fase}</span>
       <h2>{FASES[fase - 1].nombre}</h2>
-      <p>{textos[fase]}</p>
+      <p>{esRuta ? 'Conduce hasta cada parada. Cada meta abre una nueva señal.' : textos[fase]}</p>
 
       <div
         className="quiz-mini-mazo"
         role="progressbar"
-        aria-label="Cartas resueltas"
+        aria-label={esRuta ? 'Paradas superadas' : 'Cartas resueltas'}
         aria-valuemin="0"
         aria-valuemax={total}
         aria-valuenow={resueltas}
@@ -188,8 +201,8 @@ function PanelMazo({ fase, items, respuestas, actual }) {
             />
           ))}
         </div>
-        <span className="quiz-mini-etiqueta">Cartas jugadas</span>
-        <strong>{jugadas.length} en el mazo</strong>
+        <span className="quiz-mini-etiqueta">{esRuta ? 'Paradas superadas' : 'Cartas jugadas'}</span>
+        <strong>{jugadas.length} {esRuta ? 'en la ruta' : 'en el mazo'}</strong>
       </div>
 
       <div className="quiz-panel-datos">
@@ -223,6 +236,226 @@ function Pantalla({ titulo, texto, aviso, imagen = personaRepartiendoGaming, eti
   )
 }
 
+const DATOS_MINIJUEGO = {
+  [MINI_GAMES.CARDS]: {
+    numero: '01',
+    etiqueta: 'Mano de señales',
+    titulo: 'Elige la carta que abrirá cada pregunta',
+    texto: 'Cinco cartas llegan a la mesa. Confía en tu primera elección para revelar la siguiente señal.',
+    instrucciones: ['Elige una carta de la mano', 'Responde la pregunta que guarda', 'Juega la carta para avanzar'],
+    control: 'Teclado 1–5 o toca una carta',
+    accion: 'Repartir cartas',
+    imagen: personaRepartiendoGaming,
+  },
+  [MINI_GAMES.ROAD]: {
+    numero: '02',
+    etiqueta: 'Ruta de afinidad',
+    titulo: 'Conduce hasta la próxima parada',
+    texto: 'Cambia de carril, acelera y cruza la puerta iluminada para desbloquear cada pregunta.',
+    instrucciones: ['Alinea el auto con la parada', 'Acelera hasta cruzar la meta', 'Responde y continúa la ruta'],
+    control: 'Flechas o WASD · controles táctiles en celular',
+    accion: 'Comenzar recorrido',
+    imagen: personaRutaGaming,
+  },
+}
+
+function SelectorMinijuego({ reduceMotion }) {
+  return (
+    <div className="rv quiz-selector">
+      <Ambiente />
+      <div className="quiz-selector-lienzo" role="status" aria-live="polite">
+        <div className="quiz-selector-copy">
+          <span className="quiz-selector-etiq">REVO está eligiendo</span>
+          <h1>¿Qué desafío te toca hoy?</h1>
+          <p>Tu cuestionario conserva las tres fases. Solo cambia la forma de recorrerlas.</p>
+          <div className="quiz-selector-opciones" aria-hidden="true">
+            <span><b>01</b> Mano de señales</span>
+            <span><b>02</b> Ruta de afinidad</span>
+          </div>
+        </div>
+
+        <MotionDiv
+          className="quiz-selector-personaje"
+          initial={{ opacity: 0, y: reduceMotion ? 0 : 24 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: reduceMotion ? .1 : .55, ease: [0.22, 1, 0.36, 1] }}
+        >
+          <span className="quiz-selector-halo" aria-hidden="true" />
+          <img src={personaSelectorMinijuego} alt="Personaje de REVO pensando qué minijuego elegir" />
+          <span className="quiz-selector-pensamiento" aria-hidden="true"><i /><i /><b>?</b></span>
+        </MotionDiv>
+
+        <div className="quiz-selector-ruleta" aria-hidden="true">
+          <span className="cartas">▰</span>
+          <i />
+          <span className="ruta">⚡</span>
+        </div>
+        <p className="quiz-selector-estado">Leyendo la pista…</p>
+      </div>
+    </div>
+  )
+}
+
+function IntroduccionMinijuego({ miniGame, onStart, reduceMotion }) {
+  const datos = DATOS_MINIJUEGO[miniGame]
+
+  return (
+    <div className={`rv quiz-intro quiz-intro-${miniGame}`}>
+      <Ambiente />
+      <MotionDiv
+        className="quiz-intro-tablero"
+        initial={{ opacity: 0, scale: reduceMotion ? 1 : .975 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: reduceMotion ? .1 : .45, ease: [0.22, 1, 0.36, 1] }}
+      >
+        <figure className="quiz-intro-visual">
+          <img src={datos.imagen} alt={`Personaje de REVO presentando ${datos.etiqueta}`} />
+          <figcaption>Minijuego {datos.numero}</figcaption>
+        </figure>
+
+        <section className="quiz-intro-copy">
+          <span className="quiz-intro-etiq">Desafío seleccionado · {datos.etiqueta}</span>
+          <h1>{datos.titulo}</h1>
+          <p>{datos.texto}</p>
+          <ol className="quiz-intro-pasos">
+            {datos.instrucciones.map((paso, indice) => (
+              <li key={paso}><b>0{indice + 1}</b><span>{paso}</span></li>
+            ))}
+          </ol>
+          <p className="quiz-intro-control"><span aria-hidden="true">⌁</span>{datos.control}</p>
+          <button type="button" className="quiz-intro-boton" onClick={onStart}>
+            {datos.accion}<span aria-hidden="true">→</span>
+          </button>
+        </section>
+      </MotionDiv>
+    </div>
+  )
+}
+
+function RutaPreguntas({ questionIndex, fase, onLlegar, reduceMotion }) {
+  const [estado, setEstado] = useState(createRoadState)
+  const driveTimerRef = useRef(null)
+  const targetLane = getRoadTargetLane(questionIndex)
+  const nombresCarril = ['izquierdo', 'central', 'derecho']
+
+  const conducir = useCallback((accion) => {
+    setEstado((actual) => advanceRoadState(actual, accion, targetLane))
+  }, [targetLane])
+  const notificarLlegada = useEffectEvent(() => onLlegar())
+
+  const detenerControl = () => {
+    clearInterval(driveTimerRef.current)
+    driveTimerRef.current = null
+  }
+
+  const iniciarControl = (accion) => {
+    detenerControl()
+    conducir(accion)
+    if (accion === 'accelerate') {
+      driveTimerRef.current = setInterval(() => conducir(accion), 115)
+    }
+  }
+
+  useEffect(() => {
+    const manejarTeclaRuta = (event) => {
+      if (event.target.matches('input, textarea, select, button')) return
+      const teclas = {
+        ArrowLeft: 'left', a: 'left', A: 'left',
+        ArrowRight: 'right', d: 'right', D: 'right',
+        ArrowUp: 'accelerate', w: 'accelerate', W: 'accelerate', ' ': 'accelerate',
+      }
+      const accion = teclas[event.key]
+      if (!accion) return
+      event.preventDefault()
+      conducir(accion)
+    }
+    window.addEventListener('keydown', manejarTeclaRuta)
+    return () => window.removeEventListener('keydown', manejarTeclaRuta)
+  }, [conducir])
+
+  useEffect(() => {
+    if (!estado.completed) return undefined
+    detenerControl()
+    const timer = setTimeout(notificarLlegada, reduceMotion ? 100 : 700)
+    return () => clearTimeout(timer)
+  }, [estado.completed, reduceMotion])
+
+  useEffect(() => () => detenerControl(), [])
+
+  const desplazamiento = `${(estado.lane - 1) * 148}%`
+  const avance = `${estado.progress * -2.28}px`
+  const meta = `${(targetLane - 1) * 126}%`
+  const estadoTexto = estado.completed
+    ? 'Parada alcanzada. Abriendo pregunta…'
+    : estado.blocked
+      ? `La parada está en el carril ${nombresCarril[targetLane]}. Cambia de carril.`
+      : `Parada en el carril ${nombresCarril[targetLane]}. Acelera para llegar.`
+
+  return (
+    <MotionDiv
+      key="ruta-preguntas"
+      className="quiz-ruta"
+      initial={{ opacity: 0, y: reduceMotion ? 0 : 18 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, scale: reduceMotion ? 1 : .985 }}
+      transition={{ duration: reduceMotion ? .1 : .38, ease: [0.22, 1, 0.36, 1] }}
+    >
+      <div className="quiz-ruta-cab">
+        <span>Minijuego 02 · Ronda {fase}</span>
+        <strong>Parada {String(questionIndex + 1).padStart(2, '0')}</strong>
+      </div>
+      <h1>Conduce hasta tu próxima pregunta</h1>
+      <p>Alinea el auto con la puerta iluminada y acelera para desbloquearla.</p>
+
+      <div className={`quiz-pista ${estado.blocked ? 'bloqueada' : ''} ${estado.completed ? 'completada' : ''}`}>
+        <div className="quiz-pista-cielo" aria-hidden="true"><i /><i /><i /></div>
+        <div className="quiz-carretera" aria-hidden="true">
+          <span className="quiz-carril quiz-carril-1" />
+          <span className="quiz-carril quiz-carril-2" />
+          <span className="quiz-meta-ruta" style={{ '--meta-x': meta }}><i /><b>PARADA</b></span>
+          <span
+            className="quiz-auto-ruta"
+            style={{ '--auto-x': desplazamiento, '--auto-y': avance }}
+          >
+            <i className="quiz-auto-estela" />
+            <img src={carritoRevo} alt="Auto REVO" />
+          </span>
+        </div>
+        <div
+          className="quiz-ruta-progreso"
+          role="progressbar"
+          aria-label="Avance de la ruta"
+          aria-valuemin="0"
+          aria-valuemax="100"
+          aria-valuenow={estado.progress}
+        >
+          <span><i style={{ height: `${estado.progress}%` }} /></span>
+          <b>{estado.progress}%</b>
+        </div>
+      </div>
+
+      <div className="quiz-controles-ruta" role="group" aria-label="Controles del auto">
+        <button type="button" onClick={() => conducir('left')} aria-label="Mover al carril izquierdo">←<small>Izquierda</small></button>
+        <button
+          type="button"
+          className="acelerar"
+          onPointerDown={() => iniciarControl('accelerate')}
+          onPointerUp={detenerControl}
+          onPointerCancel={detenerControl}
+          onPointerLeave={detenerControl}
+          onClick={() => conducir('accelerate')}
+          aria-label="Acelerar"
+        >
+          ↑<small>Acelerar</small>
+        </button>
+        <button type="button" onClick={() => conducir('right')} aria-label="Mover al carril derecho">→<small>Derecha</small></button>
+      </div>
+      <p className="quiz-ruta-estado" role="status" aria-live="polite">{estadoTexto}</p>
+      <p className="quiz-ruta-teclas">Teclado: <kbd>←</kbd><kbd>↑</kbd><kbd>→</kbd> o <kbd>WASD</kbd></p>
+    </MotionDiv>
+  )
+}
+
 const CARTAS_DE_LA_MANO = [
   { arte: cartaRevoExplora, nombre: 'Explora' },
   { arte: cartaRevoConecta, nombre: 'Conecta' },
@@ -233,6 +466,9 @@ const CARTAS_DE_LA_MANO = [
 const RECURSOS_MINIJUEGO = [
   manoRepartiendoRevo,
   manoSueltaRevo,
+  personaSelectorMinijuego,
+  personaRutaGaming,
+  carritoRevo,
   ...CARTAS_DE_LA_MANO.map((carta) => carta.arte),
 ]
 
@@ -317,10 +553,14 @@ export default function Questionnaire() {
   const [manoEstado, setManoEstado] = useState('barajando')
   const [manoElegida, setManoElegida] = useState(null)
   const [manoPreguntaId, setManoPreguntaId] = useState(null)
+  const [miniGame, setMiniGame] = useState(null)
+  const [miniGameStage, setMiniGameStage] = useState('selecting')
+  const [rutaPreguntaId, setRutaPreguntaId] = useState(null)
   const cardRef = useRef(null)
   const questionHeadingRef = useRef(null)
   const shuffleTimerRef = useRef(null)
   const revealTimerRef = useRef(null)
+  const miniGameTimerRef = useRef(null)
   const reduceMotion = useReducedMotion()
 
   useEffect(() => {
@@ -358,6 +598,18 @@ export default function Questionnaire() {
     iniciarPartida()
     return () => { active = false }
   }, [user])
+
+  useEffect(() => {
+    clearTimeout(miniGameTimerRef.current)
+    if (loading || miniGameStage !== 'selecting') return undefined
+
+    miniGameTimerRef.current = setTimeout(() => {
+      setMiniGame(chooseQuestionnaireMiniGame())
+      setMiniGameStage('intro')
+    }, reduceMotion ? 250 : 2600)
+
+    return () => clearTimeout(miniGameTimerRef.current)
+  }, [loading, miniGameStage, reduceMotion])
 
   const loadPhase2 = async (sid) => {
     const transitionStartedAt = Date.now()
@@ -419,11 +671,15 @@ export default function Questionnaire() {
     ? manoEstado
     : preguntaActivaRespondida ? 'pregunta' : 'barajando'
   const manoElegidaActiva = manoPreguntaId === preguntaActivaId ? manoElegida : null
-  const preguntaVisible = estadoActivoMano === 'pregunta'
+  const rutaActivaCompletada = rutaPreguntaId === preguntaActivaId || preguntaActivaRespondida
+  const preguntaVisible = miniGame === MINI_GAMES.ROAD
+    ? rutaActivaCompletada
+    : estadoActivoMano === 'pregunta'
 
   useEffect(() => {
     clearTimeout(shuffleTimerRef.current)
     clearTimeout(revealTimerRef.current)
+    if (miniGame !== MINI_GAMES.CARDS || miniGameStage !== 'playing') return undefined
     if (!shouldStartQuestionShuffle({
       loading,
       submitting,
@@ -445,9 +701,10 @@ export default function Questionnaire() {
       clearTimeout(shuffleTimerRef.current)
       clearTimeout(revealTimerRef.current)
     }
-  }, [loading, preguntaActivaId, preguntaActivaRespondida, reduceMotion, submitting, transitioning])
+  }, [loading, miniGame, miniGameStage, preguntaActivaId, preguntaActivaRespondida, reduceMotion, submitting, transitioning])
 
   const elegirCartaPregunta = (indice) => {
+    if (miniGame !== MINI_GAMES.CARDS || miniGameStage !== 'playing') return
     if (estadoActivoMano !== 'lista' || !preguntaActivaId) return
     clearTimeout(revealTimerRef.current)
     setManoPreguntaId(preguntaActivaId)
@@ -457,6 +714,12 @@ export default function Questionnaire() {
       setManoEstado('pregunta')
       requestAnimationFrame(() => questionHeadingRef.current?.focus())
     }, reduceMotion ? 100 : 720)
+  }
+
+  const completarRutaPregunta = (questionId) => {
+    if (!questionId) return
+    setRutaPreguntaId(questionId)
+    requestAnimationFrame(() => questionHeadingRef.current?.focus())
   }
 
   const setAnswer = (val) => setAnswers((a) => ({ ...a, [q.id]: val }))
@@ -542,11 +805,11 @@ export default function Questionnaire() {
   // frente a apuntar y hacer clic en cada una.
   const enFase12 = !loading && !submitting && !transitioning && phase !== 3 && !!q
   const manejarTecla = useEffectEvent((e) => {
-    if (loading || submitting || transitioning || !preguntaActivaId) return
+    if (loading || submitting || transitioning || miniGameStage !== 'playing' || !preguntaActivaId) return
     if (e.target.matches('input, textarea, select')) return
 
     if (!preguntaVisible) {
-      if (estadoActivoMano === 'lista' && e.key >= '1' && e.key <= '5') {
+      if (miniGame === MINI_GAMES.CARDS && estadoActivoMano === 'lista' && e.key >= '1' && e.key <= '5') {
         e.preventDefault()
         elegirCartaPregunta(Number(e.key) - 1)
       }
@@ -573,7 +836,7 @@ export default function Questionnaire() {
 
   // ── Pantallas de espera ──────────────────────────────────
   if (loading) {
-    return <Pantalla titulo="Barajando tus primeras cartas"
+    return <Pantalla titulo="Preparando tus desafíos"
       texto="Estamos eligiendo diez preguntas para descubrir dónde aparece tu primera señal." />
   }
 
@@ -585,13 +848,17 @@ export default function Questionnaire() {
     }
     const [t, s] = textos[phase] || textos[2]
     return <Pantalla titulo={t} texto={s} aviso={error}
-      imagen={personaDiferenciaGaming} etiqueta="Leyendo tu jugada" />
+      imagen={miniGame === MINI_GAMES.ROAD ? personaRutaGaming : personaDiferenciaGaming}
+      etiqueta={miniGame === MINI_GAMES.ROAD ? 'Leyendo tu recorrido' : 'Leyendo tu jugada'} />
   }
 
   if (transitioning) {
     return <Pantalla titulo="Nueva ronda desbloqueada"
-      texto="Ya encontramos señal. Ahora el mazo se concentra en tus tres ramas más prometedoras."
-      imagen={personaCelularGaming} etiqueta="Fase 2: Afina" />
+      texto={miniGame === MINI_GAMES.ROAD
+        ? 'Ya encontramos señal. La siguiente etapa abre una ruta hacia tus tres ramas más prometedoras.'
+        : 'Ya encontramos señal. Ahora el mazo se concentra en tus tres ramas más prometedoras.'}
+      imagen={miniGame === MINI_GAMES.ROAD ? personaRutaGaming : personaCelularGaming}
+      etiqueta="Fase 2: Afina" />
   }
 
   if (phase !== 3 && !q) {
@@ -599,6 +866,20 @@ export default function Questionnaire() {
       texto="Revisa tu conexión y vuelve a cargar la página para intentarlo otra vez."
       aviso={error || 'El cuestionario no recibió preguntas.'}
       imagen={personaDiferenciaGaming} etiqueta="Partida interrumpida" />
+  }
+
+  if (!miniGame || miniGameStage === 'selecting') {
+    return <SelectorMinijuego reduceMotion={reduceMotion} />
+  }
+
+  if (miniGameStage === 'intro') {
+    return (
+      <IntroduccionMinijuego
+        miniGame={miniGame}
+        reduceMotion={reduceMotion}
+        onStart={() => setMiniGameStage('playing')}
+      />
+    )
   }
 
   // ── FASE 3: perfil profesional ───────────────────────────
@@ -627,24 +908,34 @@ export default function Questionnaire() {
       <div className="rv quiz" style={{ '--cat': '#D9B35B' }}>
         <Ambiente />
         <div className="quiz-lienzo">
-          <FaseHud fase={3} actual={phase3Current + 1} total={p3Total} />
+          <FaseHud fase={3} actual={phase3Current + 1} total={p3Total} miniGame={miniGame} />
 
           <main className="quiz-mesa">
-            <PanelMazo fase={3} items={phase3Questions} respuestas={phase3Answers} actual={phase3Current} />
+            <PanelMazo fase={3} items={phase3Questions} respuestas={phase3Answers} actual={phase3Current} miniGame={miniGame} />
 
             {p3q && (
               <section key={p3q.id} className="quiz-carta quiz-carta-final rv-entra" style={{ animationDelay: '.05s' }}>
                 <div className="quiz-carta-borde" aria-hidden="true" />
                 <AnimatePresence mode="wait" initial={false}>
                   {!preguntaVisible ? (
-                    <ManoPreguntas
-                      key={`mano-${p3q.id}`}
-                      estado={estadoActivoMano}
-                      elegida={manoElegidaActiva}
-                      onElegir={elegirCartaPregunta}
-                      fase={3}
-                      reduceMotion={reduceMotion}
-                    />
+                    miniGame === MINI_GAMES.ROAD ? (
+                      <RutaPreguntas
+                        key={`ruta-${p3q.id}`}
+                        questionIndex={phase3Current}
+                        fase={3}
+                        reduceMotion={reduceMotion}
+                        onLlegar={() => completarRutaPregunta(p3q.id)}
+                      />
+                    ) : (
+                      <ManoPreguntas
+                        key={`mano-${p3q.id}`}
+                        estado={estadoActivoMano}
+                        elegida={manoElegidaActiva}
+                        onElegir={elegirCartaPregunta}
+                        fase={3}
+                        reduceMotion={reduceMotion}
+                      />
+                    )
                   ) : (
                     <MotionDiv
                       key={`pregunta-${p3q.id}`}
@@ -681,7 +972,7 @@ export default function Questionnaire() {
                           <span aria-hidden="true">←</span> Anterior
                         </button>
                         <button onClick={siguienteP3} disabled={!p3Sel} className="quiz-btn quiz-btn-pri">
-                          {p3Ultima ? 'Revelar mi perfil' : 'Jugar esta carta'} <span aria-hidden="true">→</span>
+                          {p3Ultima ? 'Revelar mi perfil' : miniGame === MINI_GAMES.ROAD ? 'Continuar la ruta' : 'Jugar esta carta'} <span aria-hidden="true">→</span>
                         </button>
                       </nav>
                     </MotionDiv>
@@ -704,24 +995,34 @@ export default function Questionnaire() {
       <Ambiente />
 
       <div className="quiz-lienzo">
-        <FaseHud fase={phase} actual={current + 1} total={total} />
+        <FaseHud fase={phase} actual={current + 1} total={total} miniGame={miniGame} />
 
         <main className="quiz-mesa">
-          <PanelMazo fase={phase} items={questions} respuestas={answers} actual={current} />
+          <PanelMazo fase={phase} items={questions} respuestas={answers} actual={current} miniGame={miniGame} />
 
         {q && (
           <section ref={cardRef} className="quiz-carta" key={q.id}>
             <div className="quiz-carta-borde" aria-hidden="true" />
             <AnimatePresence mode="wait" initial={false}>
               {!preguntaVisible ? (
-                <ManoPreguntas
-                  key={`mano-${q.id}`}
-                  estado={estadoActivoMano}
-                  elegida={manoElegidaActiva}
-                  onElegir={elegirCartaPregunta}
-                  fase={phase}
-                  reduceMotion={reduceMotion}
-                />
+                miniGame === MINI_GAMES.ROAD ? (
+                  <RutaPreguntas
+                    key={`ruta-${q.id}`}
+                    questionIndex={current}
+                    fase={phase}
+                    reduceMotion={reduceMotion}
+                    onLlegar={() => completarRutaPregunta(q.id)}
+                  />
+                ) : (
+                  <ManoPreguntas
+                    key={`mano-${q.id}`}
+                    estado={estadoActivoMano}
+                    elegida={manoElegidaActiva}
+                    onElegir={elegirCartaPregunta}
+                    fase={phase}
+                    reduceMotion={reduceMotion}
+                  />
+                )
               ) : (
                 <MotionDiv
                   key={`pregunta-${q.id}`}
@@ -771,7 +1072,7 @@ export default function Questionnaire() {
                     <button onClick={next} disabled={!isAnswered} className="quiz-btn quiz-btn-pri">
                       {isLast
                         ? (phase === 1 ? 'Desbloquear fase 2' : 'Ir al perfil profesional')
-                        : 'Jugar esta carta'} <span aria-hidden="true">→</span>
+                        : miniGame === MINI_GAMES.ROAD ? 'Continuar la ruta' : 'Jugar esta carta'} <span aria-hidden="true">→</span>
                     </button>
                   </nav>
 

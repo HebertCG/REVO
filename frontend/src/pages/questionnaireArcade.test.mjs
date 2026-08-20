@@ -2,12 +2,11 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 
 import {
-  ARCADE_TARGET_SCORE,
+  ARCADE_ENEMY_COUNT,
   ARCADE_MIN_PLAY_MS,
-  activateArcadePulse,
   advanceArcadeWave,
   createArcadeState,
-  getArcadeThreats,
+  fireArcadeShot,
   getArcadeRemainingPlayMs,
   moveArcadeShip,
 } from './questionnaireArcade.js'
@@ -31,14 +30,34 @@ test('mueve la nave en las cuatro direcciones sin salir de la arena', () => {
   assert.deepEqual({ column: right.column, row: right.row }, { column: 2, row: 3 })
 })
 
-test('crea amenazas deterministas que cambian entre preguntas', () => {
-  assert.notDeepEqual(getArcadeThreats(0, 0), getArcadeThreats(1, 0))
-  assert.equal(getArcadeThreats(0, 0).length, 2)
+test('esperar mueve a los enemigos pero no suma progreso automaticamente', () => {
+  const initial = createArcadeState()
+  const advanced = advanceArcadeWave(initial)
+
+  assert.equal(advanced.score, 0)
+  assert.equal(advanced.enemies.length, ARCADE_ENEMY_COUNT)
+  assert.notDeepEqual(advanced.enemies, initial.enemies)
+  assert.equal(advanced.completed, false)
 })
 
-test('un impacto reduce escudo pero nunca provoca game over', () => {
-  const initial = { ...createArcadeState(), shield: 1 }
-  const hit = advanceArcadeWave(initial, [{ column: initial.column, row: initial.row }])
+test('disparar alineado destruye una nave y activa la recarga', () => {
+  const initial = createArcadeState()
+  const fired = fireArcadeShot(initial)
+  const repeated = fireArcadeShot(fired)
+
+  assert.equal(fired.enemies.length, ARCADE_ENEMY_COUNT - 1)
+  assert.equal(fired.score, 1)
+  assert.equal(fired.shotsFired, 1)
+  assert.equal(repeated.shotsFired, 1)
+})
+
+test('los enemigos disparan y un impacto reduce el escudo sin provocar game over', () => {
+  const initial = {
+    ...createArcadeState(),
+    shield: 1,
+    enemyShots: [{ id: 'impacto', column: 2, row: 2 }],
+  }
+  const hit = advanceArcadeWave(initial)
 
   assert.equal(hit.hits, 1)
   assert.equal(hit.shield, 1)
@@ -46,20 +65,15 @@ test('un impacto reduce escudo pero nunca provoca game over', () => {
   assert.equal(hit.completed, false)
 })
 
-test('el pulso evita una amenaza y entra en enfriamiento', () => {
-  const initial = createArcadeState()
-  const pulsed = activateArcadePulse(initial)
-  const advanced = advanceArcadeWave(pulsed, [{ column: initial.column, row: initial.row }])
-
-  assert.equal(pulsed.pulseCooldown > 0, true)
-  assert.equal(advanced.hits, 0)
-})
-
-test('la oleada termina por puntuacion y no altera ninguna respuesta', () => {
+test('solo derrotar toda la flota completa la oleada y no altera respuestas', () => {
   let state = createArcadeState()
-  while (!state.completed) state = advanceArcadeWave(state, [])
+  while (!state.completed) {
+    state = { ...state, column: state.enemies[0].column, shotCooldown: 0 }
+    state = fireArcadeShot(state)
+  }
 
-  assert.equal(state.score, ARCADE_TARGET_SCORE)
+  assert.equal(state.score, ARCADE_ENEMY_COUNT)
+  assert.equal(state.enemies.length, 0)
   assert.equal(state.completed, true)
   assert.equal('answer' in state, false)
 })

@@ -1,10 +1,18 @@
 import { useState, useEffect, useRef, useEffectEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { useAuth } from '../context/AuthContext'
 import { surveyApi } from '../services/api'
 import personaCelularGaming from '../assets/persona-celular-gaming.png'
 import personaDiferenciaGaming from '../assets/persona-diferencia-gaming.png'
 import personaRepartiendoGaming from '../assets/persona-repartiendo-gaming.png'
+import manoRepartiendoRevo from '../assets/mano-repartiendo-revo.png'
+import manoSueltaRevo from '../assets/mano-suelta-revo.png'
+import cartaRevoExplora from '../assets/carta-revo-explora.png'
+import cartaRevoConecta from '../assets/carta-revo-conecta.png'
+import cartaRevoAnaliza from '../assets/carta-revo-analiza.png'
+import cartaRevoConstruye from '../assets/carta-revo-construye.png'
+import cartaRevoVision from '../assets/carta-revo-vision.png'
 import '../theme/app.css'
 import './Questionnaire.css'
 
@@ -19,6 +27,7 @@ const CATEGORIAS = {
 }
 const COLOR_BASE = '#5BB8FF'
 const CARGA_INICIAL_MIN_MS = 3200
+const MotionDiv = motion.div
 
 const FASES = [
   { n: 1, nombre: 'Explora', detalle: 'Calibración' },
@@ -140,6 +149,7 @@ function FaseHud({ fase, actual, total }) {
 function PanelMazo({ fase, items, respuestas, actual }) {
   const total = items.length
   const resueltas = items.filter((item) => respuestas[item.id] !== undefined).length
+  const jugadas = items.filter((item, i) => respuestas[item.id] !== undefined && i !== actual)
   const porcentaje = total ? Math.round((resueltas / total) * 100) : 0
   const textos = {
     1: 'Prueba distintos territorios. No hay respuestas correctas, solo señales.',
@@ -164,12 +174,18 @@ function PanelMazo({ fase, items, respuestas, actual }) {
         aria-valuemax={total}
         aria-valuenow={resueltas}
       >
-        {items.map((item, i) => (
-          <span
-            key={item.id}
-            className={(respuestas[item.id] !== undefined ? 'resuelta ' : '') + (i === actual ? 'en-mesa' : '')}
-          />
-        ))}
+        <div className="quiz-mini-pila" aria-hidden="true">
+          {jugadas.length === 0 && <i className="vacia" />}
+          {jugadas.slice(-8).map((item, i, cartas) => (
+            <i
+              key={item.id}
+              className={i === cartas.length - 1 ? 'nueva' : ''}
+              style={{ '--pila': i, '--giro-pila': `${(i % 3 - 1) * 2.2}deg` }}
+            />
+          ))}
+        </div>
+        <span className="quiz-mini-etiqueta">Cartas jugadas</span>
+        <strong>{jugadas.length} en el mazo</strong>
       </div>
 
       <div className="quiz-panel-datos">
@@ -188,7 +204,6 @@ function Pantalla({ titulo, texto, aviso, imagen = personaRepartiendoGaming, eti
       <div className="quiz-espera-tablero">
         <figure className="quiz-espera-visual">
           <img src={imagen} alt="Personaje de REVO preparando las cartas del cuestionario" decoding="async" />
-          <div className="quiz-baraja" aria-hidden="true"><span /><span /><span /></div>
         </figure>
         <div className="quiz-espera-caja" role="status" aria-live="polite">
           <span className="quiz-espera-etiq">{etiqueta}</span>
@@ -201,6 +216,80 @@ function Pantalla({ titulo, texto, aviso, imagen = personaRepartiendoGaming, eti
         </div>
       </div>
     </div>
+  )
+}
+
+const CARTAS_DE_LA_MANO = [
+  { arte: cartaRevoExplora, nombre: 'Explora' },
+  { arte: cartaRevoConecta, nombre: 'Conecta' },
+  { arte: cartaRevoAnaliza, nombre: 'Analiza' },
+  { arte: cartaRevoConstruye, nombre: 'Construye' },
+  { arte: cartaRevoVision, nombre: 'Imagina' },
+]
+const RECURSOS_MINIJUEGO = [
+  manoRepartiendoRevo,
+  manoSueltaRevo,
+  ...CARTAS_DE_LA_MANO.map((carta) => carta.arte),
+]
+
+function ManoPreguntas({ estado, elegida, onElegir, fase, reduceMotion }) {
+  const lista = estado === 'barajando'
+    ? 'Barajando las próximas señales'
+    : estado === 'revelando'
+      ? `Revelando la carta ${elegida + 1}`
+      : 'La mano está lista. Elige una carta'
+
+  return (
+    <MotionDiv
+      key="mano-preguntas"
+      className="quiz-robo"
+      initial={{ opacity: 0, y: reduceMotion ? 0 : 18 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: reduceMotion ? 0 : -14, scale: reduceMotion ? 1 : .98 }}
+      transition={{ duration: reduceMotion ? .1 : .35, ease: [0.22, 1, 0.36, 1] }}
+    >
+      <span className="quiz-robo-ronda">Minijuego 01 · Ronda {fase}</span>
+      <h1>Elige tu próxima pregunta</h1>
+      <p>Cada carta guarda una señal diferente. Confía en tu primera elección.</p>
+
+      <div
+        className={`quiz-mano ${estado}`}
+        role="group"
+        aria-label="Mano de cinco cartas de preguntas"
+      >
+        <span className="quiz-mano-real" aria-hidden="true">
+          <img className="quiz-mano-con-cartas" src={manoRepartiendoRevo} alt="" decoding="async" />
+          <img className="quiz-mano-suelta" src={manoSueltaRevo} alt="" decoding="async" />
+        </span>
+
+        {CARTAS_DE_LA_MANO.map((carta, i) => (
+          <button
+            key={carta.nombre}
+            type="button"
+            className={`quiz-carta-pregunta ${elegida === i ? 'elegida' : ''}`}
+            style={{
+              '--i': i,
+              '--abanico': `${(i - 2) * 5.5}deg`,
+              '--alto-mano': `${Math.abs(i - 2) * 8}px`,
+              '--apila-x': `${(2 - i) * 94}%`,
+              '--apila-giro': `${(i - 2) * .8}deg`,
+            }}
+            disabled={estado !== 'lista'}
+            onClick={() => onElegir(i)}
+            aria-label={`Elegir carta ${i + 1}, ${carta.nombre}`}
+          >
+            <span className="quiz-reverso-carta" aria-hidden="true">
+              <img src={carta.arte} alt="" decoding="async" />
+              <i />
+              <b>R</b>
+              <small>{carta.nombre}</small>
+            </span>
+          </button>
+        ))}
+      </div>
+
+      <p className="quiz-robo-estado" role="status" aria-live="polite">{lista}</p>
+    </MotionDiv>
   )
 }
 
@@ -221,7 +310,23 @@ export default function Questionnaire() {
   const [submitting, setSubmitting] = useState(false)
   const [transitioning, setTransitioning] = useState(false)
   const [error, setError] = useState('')
+  const [manoEstado, setManoEstado] = useState('barajando')
+  const [manoElegida, setManoElegida] = useState(null)
+  const [manoPreguntaId, setManoPreguntaId] = useState(null)
   const cardRef = useRef(null)
+  const questionHeadingRef = useRef(null)
+  const shuffleTimerRef = useRef(null)
+  const revealTimerRef = useRef(null)
+  const reduceMotion = useReducedMotion()
+
+  useEffect(() => {
+    const precargas = RECURSOS_MINIJUEGO.map((src) => {
+      const imagen = new Image()
+      imagen.src = src
+      return imagen
+    })
+    return () => precargas.forEach((imagen) => { imagen.src = '' })
+  }, [])
 
   useEffect(() => {
     if (!user) return
@@ -296,6 +401,49 @@ export default function Questionnaire() {
   const total = questions.length
   const isAnswered = q && answers[q.id] !== undefined
   const isLast = current === total - 1
+  const preguntaFase3 = phase3Questions[phase3Current]
+  const preguntaActivaId = phase === 3 ? preguntaFase3?.id : q?.id
+  const preguntaActivaRespondida = phase === 3
+    ? preguntaFase3 && phase3Answers[preguntaFase3.id] !== undefined
+    : q && answers[q.id] !== undefined
+  const estadoActivoMano = manoPreguntaId === preguntaActivaId
+    ? manoEstado
+    : preguntaActivaRespondida ? 'pregunta' : 'barajando'
+  const manoElegidaActiva = manoPreguntaId === preguntaActivaId ? manoElegida : null
+  const preguntaVisible = estadoActivoMano === 'pregunta'
+
+  useEffect(() => {
+    clearTimeout(shuffleTimerRef.current)
+    clearTimeout(revealTimerRef.current)
+    if (!preguntaActivaId) return
+    if (preguntaActivaRespondida) return
+
+    shuffleTimerRef.current = setTimeout(
+      () => {
+        setManoPreguntaId(preguntaActivaId)
+        setManoElegida(null)
+        setManoEstado('lista')
+      },
+      reduceMotion ? 80 : 1350,
+    )
+
+    return () => {
+      clearTimeout(shuffleTimerRef.current)
+      clearTimeout(revealTimerRef.current)
+    }
+  }, [preguntaActivaId, preguntaActivaRespondida, reduceMotion])
+
+  const elegirCartaPregunta = (indice) => {
+    if (estadoActivoMano !== 'lista' || !preguntaActivaId) return
+    clearTimeout(revealTimerRef.current)
+    setManoPreguntaId(preguntaActivaId)
+    setManoElegida(indice)
+    setManoEstado('revelando')
+    revealTimerRef.current = setTimeout(() => {
+      setManoEstado('pregunta')
+      requestAnimationFrame(() => questionHeadingRef.current?.focus())
+    }, reduceMotion ? 100 : 720)
+  }
 
   const setAnswer = (val) => setAnswers((a) => ({ ...a, [q.id]: val }))
 
@@ -380,8 +528,18 @@ export default function Questionnaire() {
   // frente a apuntar y hacer clic en cada una.
   const enFase12 = !loading && !submitting && !transitioning && phase !== 3 && !!q
   const manejarTecla = useEffectEvent((e) => {
-    if (!enFase12) return
+    if (loading || submitting || transitioning || !preguntaActivaId) return
     if (e.target.matches('input, textarea, select')) return
+
+    if (!preguntaVisible) {
+      if (estadoActivoMano === 'lista' && e.key >= '1' && e.key <= '5') {
+        e.preventDefault()
+        elegirCartaPregunta(Number(e.key) - 1)
+      }
+      return
+    }
+
+    if (!enFase12) return
 
     if (e.key >= '1' && e.key <= '5') {
       e.preventDefault()
@@ -431,7 +589,7 @@ export default function Questionnaire() {
 
   // ── FASE 3: perfil profesional ───────────────────────────
   if (phase === 3) {
-    const p3q = phase3Questions[phase3Current]
+    const p3q = preguntaFase3
     const p3Sel = phase3Answers[p3q?.id]
     const p3Total = phase3Questions.length
     const p3Ultima = phase3Current === p3Total - 1
@@ -463,36 +621,58 @@ export default function Questionnaire() {
             {p3q && (
               <section key={p3q.id} className="quiz-carta quiz-carta-final rv-entra" style={{ animationDelay: '.05s' }}>
                 <div className="quiz-carta-borde" aria-hidden="true" />
-                <div className="quiz-carta-cab">
-                  <span className="quiz-sello"><b>PR</b> Perfil profesional</span>
-                  <span className="quiz-instruccion">Elige una carta</span>
-                </div>
+                <AnimatePresence mode="wait" initial={false}>
+                  {!preguntaVisible ? (
+                    <ManoPreguntas
+                      key={`mano-${p3q.id}`}
+                      estado={estadoActivoMano}
+                      elegida={manoElegidaActiva}
+                      onElegir={elegirCartaPregunta}
+                      fase={3}
+                      reduceMotion={reduceMotion}
+                    />
+                  ) : (
+                    <MotionDiv
+                      key={`pregunta-${p3q.id}`}
+                      className="quiz-contenido-pregunta"
+                      initial={{ opacity: 0, y: reduceMotion ? 0 : 18, scale: reduceMotion ? 1 : .985 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: reduceMotion ? .1 : .38, ease: [0.22, 1, 0.36, 1] }}
+                    >
+                      <div className="quiz-carta-cab">
+                        <span className="quiz-sello"><b>PR</b> Perfil profesional</span>
+                        <span className="quiz-instruccion">Elige una carta</span>
+                      </div>
 
-                <h1 className="quiz-pregunta">{p3q.question}</h1>
+                      <h1 ref={questionHeadingRef} tabIndex="-1" className="quiz-pregunta">{p3q.question}</h1>
 
-                <div className="quiz-ops" role="radiogroup" aria-label="Opciones de perfil profesional">
-                  {p3q.options.map((opt, i) => (
-                    <button key={opt.key} type="button" role="radio"
-                      aria-checked={p3Sel === opt.key}
-                      onClick={() => elegir(opt.key)}
-                      style={{ '--i': i }}
-                      className={`quiz-op ${p3Sel === opt.key ? 'sel' : ''}`}>
-                      <span className="quiz-op-letra" aria-hidden="true">{opt.key}</span>
-                      <span className="quiz-op-txt">{opt.text}</span>
-                      <span className="quiz-op-confirmacion" aria-hidden="true">Elegida</span>
-                    </button>
-                  ))}
-                </div>
+                      <div className="quiz-ops" role="radiogroup" aria-label="Opciones de perfil profesional">
+                        {p3q.options.map((opt, i) => (
+                          <button key={opt.key} type="button" role="radio"
+                            aria-checked={p3Sel === opt.key}
+                            onClick={() => elegir(opt.key)}
+                            style={{ '--i': i }}
+                            className={`quiz-op ${p3Sel === opt.key ? 'sel' : ''}`}>
+                            <span className="quiz-op-letra" aria-hidden="true">{opt.key}</span>
+                            <span className="quiz-op-txt">{opt.text}</span>
+                            <span className="quiz-op-confirmacion" aria-hidden="true">Elegida</span>
+                          </button>
+                        ))}
+                      </div>
 
-                <nav className="quiz-nav" aria-label="Navegación del cuestionario">
-                  <button onClick={() => phase3Current > 0 && setPhase3Current((c) => c - 1)}
-                    disabled={phase3Current === 0} className="quiz-btn quiz-btn-sec">
-                    <span aria-hidden="true">←</span> Anterior
-                  </button>
-                  <button onClick={siguienteP3} disabled={!p3Sel} className="quiz-btn quiz-btn-pri">
-                    {p3Ultima ? 'Revelar mi perfil' : 'Jugar esta carta'} <span aria-hidden="true">→</span>
-                  </button>
-                </nav>
+                      <nav className="quiz-nav" aria-label="Navegación del cuestionario">
+                        <button onClick={() => phase3Current > 0 && setPhase3Current((c) => c - 1)}
+                          disabled={phase3Current === 0} className="quiz-btn quiz-btn-sec">
+                          <span aria-hidden="true">←</span> Anterior
+                        </button>
+                        <button onClick={siguienteP3} disabled={!p3Sel} className="quiz-btn quiz-btn-pri">
+                          {p3Ultima ? 'Revelar mi perfil' : 'Jugar esta carta'} <span aria-hidden="true">→</span>
+                        </button>
+                      </nav>
+                    </MotionDiv>
+                  )}
+                </AnimatePresence>
               </section>
             )}
           </main>
@@ -518,53 +698,75 @@ export default function Questionnaire() {
         {q && (
           <section ref={cardRef} className="quiz-carta" key={q.id}>
             <div className="quiz-carta-borde" aria-hidden="true" />
-            <div className="quiz-carta-cab">
-            {cat.label && (
-              <span className="quiz-sello">
-                <b aria-hidden="true">{cat.icon}</b> {cat.label}
-              </span>
-            )}
-              <span className="quiz-instruccion">Elige tu nivel</span>
-            </div>
+            <AnimatePresence mode="wait" initial={false}>
+              {!preguntaVisible ? (
+                <ManoPreguntas
+                  key={`mano-${q.id}`}
+                  estado={estadoActivoMano}
+                  elegida={manoElegidaActiva}
+                  onElegir={elegirCartaPregunta}
+                  fase={phase}
+                  reduceMotion={reduceMotion}
+                />
+              ) : (
+                <MotionDiv
+                  key={`pregunta-${q.id}`}
+                  className="quiz-contenido-pregunta"
+                  initial={{ opacity: 0, y: reduceMotion ? 0 : 18, scale: reduceMotion ? 1 : .985 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: reduceMotion ? .1 : .38, ease: [0.22, 1, 0.36, 1] }}
+                >
+                  <div className="quiz-carta-cab">
+                  {cat.label && (
+                    <span className="quiz-sello">
+                      <b aria-hidden="true">{cat.icon}</b> {cat.label}
+                    </span>
+                  )}
+                    <span className="quiz-instruccion">Elige tu nivel</span>
+                  </div>
 
-            <h1 className="quiz-pregunta">{q.text}</h1>
+                  <h1 ref={questionHeadingRef} tabIndex="-1" className="quiz-pregunta">{q.text}</h1>
 
-            {error && <p className="quiz-error" role="alert">{error}</p>}
+                  {error && <p className="quiz-error" role="alert">{error}</p>}
 
-            <div className="quiz-escala" role="radiogroup" aria-label="Qué tanto te representa">
-              {ESCALA.map(({ v, corta, larga }, i) => (
-                <button key={v} type="button" role="radio" data-v={v}
-                  aria-checked={answers[q.id] === v}
-                  aria-label={`${v} de 5: ${larga}`}
-                  onClick={() => setAnswer(v)}
-                  style={{
-                    '--i': i,
-                    '--spread': `${Math.abs(2 - i) * 4}px`,
-                    '--rotation': `${(i - 2) * 1.6}deg`,
-                  }}
-                  className={`quiz-op-esc ${answers[q.id] === v ? 'sel' : ''}`}>
-                  <span className="quiz-esc-num" aria-hidden="true">0{v}</span>
-                  <span className="quiz-arte" aria-hidden="true"><i /><i /><i /></span>
-                  <span className="quiz-esc-txt"><strong>{corta}</strong><small>{larga}</small></span>
-                  <span className="quiz-op-confirmacion" aria-hidden="true">Elegida</span>
-                </button>
-              ))}
-            </div>
+                  <div className="quiz-escala" role="radiogroup" aria-label="Qué tanto te representa">
+                    {ESCALA.map(({ v, corta, larga }, i) => (
+                      <button key={v} type="button" role="radio" data-v={v}
+                        aria-checked={answers[q.id] === v}
+                        aria-label={`${v} de 5: ${larga}`}
+                        onClick={() => setAnswer(v)}
+                        style={{
+                          '--i': i,
+                          '--spread': `${Math.abs(2 - i) * 4}px`,
+                          '--rotation': `${(i - 2) * 1.6}deg`,
+                        }}
+                        className={`quiz-op-esc ${answers[q.id] === v ? 'sel' : ''}`}>
+                        <span className="quiz-esc-num" aria-hidden="true">0{v}</span>
+                        <span className="quiz-arte" aria-hidden="true"><i /><i /><i /></span>
+                        <span className="quiz-esc-txt"><strong>{corta}</strong><small>{larga}</small></span>
+                        <span className="quiz-op-confirmacion" aria-hidden="true">Elegida</span>
+                      </button>
+                    ))}
+                  </div>
 
-            <nav className="quiz-nav" aria-label="Navegación del cuestionario">
-              <button onClick={prev} disabled={current === 0} className="quiz-btn quiz-btn-sec">
-                <span aria-hidden="true">←</span> Anterior
-              </button>
-              <button onClick={next} disabled={!isAnswered} className="quiz-btn quiz-btn-pri">
-                {isLast
-                  ? (phase === 1 ? 'Desbloquear fase 2' : 'Ir al perfil profesional')
-                  : 'Jugar esta carta'} <span aria-hidden="true">→</span>
-              </button>
-            </nav>
+                  <nav className="quiz-nav" aria-label="Navegación del cuestionario">
+                    <button onClick={prev} disabled={current === 0} className="quiz-btn quiz-btn-sec">
+                      <span aria-hidden="true">←</span> Anterior
+                    </button>
+                    <button onClick={next} disabled={!isAnswered} className="quiz-btn quiz-btn-pri">
+                      {isLast
+                        ? (phase === 1 ? 'Desbloquear fase 2' : 'Ir al perfil profesional')
+                        : 'Jugar esta carta'} <span aria-hidden="true">→</span>
+                    </button>
+                  </nav>
 
-            <p className="quiz-atajos">
-              Teclado: <kbd>1</kbd><span>-</span><kbd>5</kbd> para elegir, <kbd>Enter</kbd> para jugar
-            </p>
+                  <p className="quiz-atajos">
+                    Teclado: <kbd>1</kbd><span>-</span><kbd>5</kbd> para elegir, <kbd>Enter</kbd> para jugar
+                  </p>
+                </MotionDiv>
+              )}
+            </AnimatePresence>
           </section>
         )}
         </main>

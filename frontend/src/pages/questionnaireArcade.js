@@ -2,8 +2,13 @@ export const ARCADE_COLUMNS = 5
 export const ARCADE_ROWS = 4
 export const ARCADE_TARGET_SCORE = 12
 export const ARCADE_PULSE_COOLDOWN = 5
+export const ARCADE_MIN_PLAY_MS = 12000
 
 const clamp = (value, minimum, maximum) => Math.min(maximum, Math.max(minimum, value))
+
+export function getArcadeRemainingPlayMs(elapsedMs) {
+  return Math.max(0, ARCADE_MIN_PLAY_MS - Math.max(0, elapsedMs))
+}
 
 export function createArcadeState() {
   return {

@@ -37,6 +37,7 @@ import {
   activateArcadePulse,
   advanceArcadeWave,
   createArcadeState,
+  getArcadeRemainingPlayMs,
   getArcadeThreats,
   moveArcadeShip,
 } from './questionnaireArcade'
@@ -558,6 +559,7 @@ function ArcadePreguntas({ questionIndex, fase, onCompletar, reduceMotion }) {
   const amenazasIniciales = useMemo(() => getArcadeThreats(questionIndex, 0), [questionIndex])
   const [amenazas, setAmenazas] = useState(amenazasIniciales)
   const [tick, setTick] = useState(0)
+  const [inicioOleada] = useState(Date.now)
   const tickRef = useRef(0)
   const amenazasRef = useRef(amenazasIniciales)
   const notificarCompletado = useEffectEvent(() => onCompletar())
@@ -608,9 +610,10 @@ function ArcadePreguntas({ questionIndex, fase, onCompletar, reduceMotion }) {
 
   useEffect(() => {
     if (!estado.completed) return undefined
-    const timer = setTimeout(notificarCompletado, reduceMotion ? 100 : 900)
+    const tiempoRestante = getArcadeRemainingPlayMs(Date.now() - inicioOleada)
+    const timer = setTimeout(notificarCompletado, tiempoRestante + (reduceMotion ? 100 : 900))
     return () => clearTimeout(timer)
-  }, [estado.completed, reduceMotion])
+  }, [estado.completed, inicioOleada, reduceMotion])
 
   const estadoTexto = estado.completed
     ? 'Señal protegida. Abriendo pregunta…'

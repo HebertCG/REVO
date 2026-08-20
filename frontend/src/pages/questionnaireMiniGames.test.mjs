@@ -10,14 +10,16 @@ import {
   resolveQuestionnaireEntryView,
 } from './questionnaireMiniGames.js'
 
-test('elige de forma determinista uno de los dos minijuegos', () => {
+test('elige de forma determinista uno de los tres minijuegos', () => {
   assert.equal(chooseQuestionnaireMiniGame(0.12), 'cards')
-  assert.equal(chooseQuestionnaireMiniGame(0.72), 'road')
+  assert.equal(chooseQuestionnaireMiniGame(0.45), 'road')
+  assert.equal(chooseQuestionnaireMiniGame(0.85), 'arcade')
 })
 
 test('evita repetir el mismo minijuego dos entradas seguidas', () => {
   assert.equal(chooseQuestionnaireMiniGame(0.12, 'cards'), 'road')
-  assert.equal(chooseQuestionnaireMiniGame(0.72, 'road'), 'cards')
+  assert.equal(chooseQuestionnaireMiniGame(0.45, 'road'), 'arcade')
+  assert.equal(chooseQuestionnaireMiniGame(0.85, 'arcade'), 'cards')
 })
 
 test('muestra primero el selector aunque las preguntas sigan cargando', () => {

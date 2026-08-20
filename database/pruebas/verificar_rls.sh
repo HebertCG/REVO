@@ -42,7 +42,8 @@ echo "==> Cargando esquema y politicas"
 # Solo lo necesario para las politicas: los seeds pesados (04, con 1000 filas
 # de entrenamiento) no aportan nada a esta verificacion y la alargan.
 for archivo in 01_init 01b_schema_sync 02_seed_specializations 03_seed_questions \
-               07_seed_courses 08_seed_jobs 09_psychometric_questions 10_rls; do
+               07_seed_courses 08_seed_jobs 09_psychometric_questions \
+               10_rls 12_consentimiento; do
     docker exec -i "$CONTENEDOR" psql -v ON_ERROR_STOP=1 -U revo_user -d revo_db -q \
         < "$RAIZ/database/$archivo.sql" > /dev/null
     echo "    cargado $archivo"

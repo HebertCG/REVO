@@ -40,6 +40,15 @@ SELECT set_config('revo.role', '', false);
 INSERT INTO ml_training_data (aff_1, specialization_id, source)
 VALUES (0.9, 1, 'synthetic');
 
+-- Ana rechaza el entrenamiento; Beto lo autoriza. Es el caso que decide si
+-- el consentimiento opcional sirve de algo.
+INSERT INTO user_consents (user_id, doc_type, doc_version, granted, ip_address)
+VALUES (1, 'terms', '1.0', true, '200.60.1.1'),
+       (1, 'ai_training', '1.0', false, '200.60.1.1'),
+       (2, 'terms', '1.0', true, '200.60.1.2'),
+       (2, 'ai_training', '1.0', true, '200.60.1.2')
+ON CONFLICT DO NOTHING;
+
 -- ============================================================
 SET ROLE revo_app;
 -- ============================================================
@@ -184,6 +193,46 @@ BEGIN
     EXCEPTION WHEN insufficient_privilege THEN
         RAISE NOTICE 'OK 16 - un alumno no modifica el catalogo';
     END;
+
+    -- ---- 17. Los consentimientos son privados ----
+    PERFORM set_config('revo.user_id', '1', true);
+    PERFORM set_config('revo.role', 'student', true);
+    SELECT count(*) INTO visto FROM user_consents WHERE user_id = 2;
+    IF visto <> 0 THEN
+        RAISE EXCEPTION 'FALLO 17: Ana alcanza los consentimientos de Beto';
+    END IF;
+    RAISE NOTICE 'OK 17 - los consentimientos ajenos son invisibles';
+
+    -- ---- 18. Nadie consiente en nombre de otro ----
+    BEGIN
+        INSERT INTO user_consents (user_id, doc_type, doc_version, granted)
+        VALUES (2, 'data_commercial', '1.0', true);
+        RAISE EXCEPTION 'FALLO 18: Ana consintio en nombre de Beto';
+    EXCEPTION WHEN insufficient_privilege THEN
+        RAISE NOTICE 'OK 18 - nadie puede consentir en nombre de otro';
+    END;
+
+    -- ---- 19. Los documentos legales se leen sin cuenta ----
+    -- Hay que poder leerlos ANTES de registrarse: se aceptan en el alta.
+    PERFORM set_config('revo.user_id', '', true);
+    PERFORM set_config('revo.role', '', true);
+    SELECT count(*) INTO visto FROM legal_documents WHERE is_current;
+    IF visto <> 4 THEN
+        RAISE EXCEPTION 'FALLO 19: se ven % documentos vigentes (debian ser 4)', visto;
+    END IF;
+    RAISE NOTICE 'OK 19 - los 4 documentos legales se leen sin tener cuenta';
+
+    -- ---- 20. El entrenamiento solo alcanza a quien lo autorizo ----
+    -- Es la comprobacion que hace real al consentimiento opcional: si el
+    -- servicio viera a Ana, la casilla no serviria de nada.
+    PERFORM set_config('revo.user_id', '0', true);
+    PERFORM set_config('revo.role', 'service', true);
+    SELECT count(*) INTO visto
+    FROM user_consent_state WHERE doc_type = 'ai_training' AND vigente;
+    IF visto <> 1 THEN
+        RAISE EXCEPTION 'FALLO 20: el servicio ve % autorizaciones de entrenamiento (debia ser 1)', visto;
+    END IF;
+    RAISE NOTICE 'OK 20 - el entrenamiento solo alcanza a quien lo autorizo';
 
     RAISE NOTICE '--- TODAS LAS COMPROBACIONES DE RLS PASARON ---';
 END

@@ -13,6 +13,7 @@ import cartaRevoConecta from '../assets/carta-revo-conecta.png'
 import cartaRevoAnaliza from '../assets/carta-revo-analiza.png'
 import cartaRevoConstruye from '../assets/carta-revo-construye.png'
 import cartaRevoVision from '../assets/carta-revo-vision.png'
+import { shouldStartQuestionShuffle } from './questionnaireAnimation'
 import '../theme/app.css'
 import './Questionnaire.css'
 
@@ -415,8 +416,13 @@ export default function Questionnaire() {
   useEffect(() => {
     clearTimeout(shuffleTimerRef.current)
     clearTimeout(revealTimerRef.current)
-    if (!preguntaActivaId) return
-    if (preguntaActivaRespondida) return
+    if (!shouldStartQuestionShuffle({
+      loading,
+      submitting,
+      transitioning,
+      questionId: preguntaActivaId,
+      answered: preguntaActivaRespondida,
+    })) return
 
     shuffleTimerRef.current = setTimeout(
       () => {
@@ -431,7 +437,7 @@ export default function Questionnaire() {
       clearTimeout(shuffleTimerRef.current)
       clearTimeout(revealTimerRef.current)
     }
-  }, [preguntaActivaId, preguntaActivaRespondida, reduceMotion])
+  }, [loading, preguntaActivaId, preguntaActivaRespondida, reduceMotion, submitting, transitioning])
 
   const elegirCartaPregunta = (indice) => {
     if (estadoActivoMano !== 'lista' || !preguntaActivaId) return

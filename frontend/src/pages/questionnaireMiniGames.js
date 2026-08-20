@@ -6,8 +6,18 @@ export const MINI_GAMES = {
 export const ROAD_CHECKPOINT_PROGRESS = 84
 export const ROAD_ACCELERATION_STEP = 14
 
-export function chooseQuestionnaireMiniGame(randomValue = Math.random()) {
-  return randomValue < .5 ? MINI_GAMES.CARDS : MINI_GAMES.ROAD
+export function chooseQuestionnaireMiniGame(randomValue = Math.random(), previousGame = null) {
+  const selected = randomValue < .5 ? MINI_GAMES.CARDS : MINI_GAMES.ROAD
+  if (selected !== previousGame) return selected
+  return selected === MINI_GAMES.CARDS ? MINI_GAMES.ROAD : MINI_GAMES.CARDS
+}
+
+export function resolveQuestionnaireEntryView({ stage, miniGame, loading, hasQuestion }) {
+  if (stage === 'selecting' || !miniGame) return 'selector'
+  if (stage === 'selected' || loading) return 'selected'
+  if (!hasQuestion) return 'error'
+  if (stage === 'intro') return 'intro'
+  return 'game'
 }
 
 export function getRoadTargetLane(questionIndex) {

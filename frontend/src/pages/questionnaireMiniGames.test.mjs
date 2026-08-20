@@ -41,6 +41,12 @@ test('espera el boton Jugar antes de abrir el banner del minijuego', () => {
     loading: false,
     hasQuestion: true,
   }), 'intro')
+  assert.equal(resolveQuestionnaireEntryView({
+    stage: 'playing',
+    miniGame: 'road',
+    loading: false,
+    hasQuestion: true,
+  }), 'game')
 })
 
 test('distribuye las paradas entre los tres carriles', () => {

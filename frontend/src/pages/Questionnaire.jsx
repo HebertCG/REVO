@@ -26,6 +26,7 @@ import {
   chooseQuestionnaireMiniGame,
   createRoadState,
   getRoadTargetLane,
+  resolveQuestionnaireEntryView,
 } from './questionnaireMiniGames'
 import '../theme/app.css'
 import './Questionnaire.css'
@@ -259,19 +260,44 @@ const DATOS_MINIJUEGO = {
   },
 }
 
-function SelectorMinijuego({ reduceMotion }) {
+function SelectorMinijuego({ reduceMotion, miniGame, loading, ready, error, onPlay }) {
+  const seleccionado = miniGame ? DATOS_MINIJUEGO[miniGame] : null
+  const puedeJugar = !!miniGame && !loading && ready && !error
+
   return (
-    <div className="rv quiz-selector">
+    <div className={`rv quiz-selector ${miniGame ? `quiz-selector-elegido quiz-selector-elegido-${miniGame}` : 'quiz-selector-sorteando'}`}>
       <Ambiente />
       <div className="quiz-selector-lienzo" role="status" aria-live="polite">
         <div className="quiz-selector-copy">
-          <span className="quiz-selector-etiq">REVO está eligiendo</span>
-          <h1>¿Qué desafío te toca hoy?</h1>
-          <p>Tu cuestionario conserva las tres fases. Solo cambia la forma de recorrerlas.</p>
+          <span className="quiz-selector-etiq">{seleccionado ? 'Desafío seleccionado' : 'REVO está eligiendo'}</span>
+          <h1>{seleccionado ? seleccionado.etiqueta : '¿Qué desafío te toca hoy?'}</h1>
+          <p>{seleccionado
+            ? `¡Listo! REVO eligió ${seleccionado.etiqueta}. Presiona Jugar para conocer la dinámica.`
+            : 'Observa el sorteo: las cartas compiten contra el carrito por ser tu desafío de hoy.'}</p>
           <div className="quiz-selector-opciones" aria-hidden="true">
-            <span><b>01</b> Mano de señales</span>
-            <span><b>02</b> Ruta de afinidad</span>
+            <span className={`quiz-selector-opcion cartas ${miniGame === MINI_GAMES.CARDS ? 'ganadora' : ''}`}>
+              <b>01</b>
+              <i><img src={cartaRevoExplora} alt="" /></i>
+              <em>Mano de señales</em>
+            </span>
+            <span className={`quiz-selector-opcion ruta ${miniGame === MINI_GAMES.ROAD ? 'ganadora' : ''}`}>
+              <b>02</b>
+              <i><img src={carritoRevo} alt="" /></i>
+              <em>Ruta de afinidad</em>
+            </span>
           </div>
+
+          {seleccionado && (
+            <button
+              type="button"
+              className="quiz-selector-jugar"
+              onClick={onPlay}
+              disabled={!puedeJugar}
+            >
+              {error ? 'No se pudo preparar' : loading || !ready ? 'Preparando preguntas…' : 'Jugar'}
+              {!loading && ready && !error && <span aria-hidden="true">→</span>}
+            </button>
+          )}
         </div>
 
         <MotionDiv
@@ -286,11 +312,11 @@ function SelectorMinijuego({ reduceMotion }) {
         </MotionDiv>
 
         <div className="quiz-selector-ruleta" aria-hidden="true">
-          <span className="cartas">▰</span>
-          <i />
-          <span className="ruta">⚡</span>
+          <span className="cartas"><img src={cartaRevoExplora} alt="" /></span>
+          <i>VS</i>
+          <span className="ruta"><img src={carritoRevo} alt="" /></span>
         </div>
-        <p className="quiz-selector-estado">Leyendo la pista…</p>
+        <p className="quiz-selector-estado">{seleccionado ? `${seleccionado.etiqueta} elegido` : 'Sorteando desafío…'}</p>
       </div>
     </div>
   )
@@ -601,15 +627,18 @@ export default function Questionnaire() {
 
   useEffect(() => {
     clearTimeout(miniGameTimerRef.current)
-    if (loading || miniGameStage !== 'selecting') return undefined
+    if (miniGameStage !== 'selecting') return undefined
 
     miniGameTimerRef.current = setTimeout(() => {
-      setMiniGame(chooseQuestionnaireMiniGame())
-      setMiniGameStage('intro')
-    }, reduceMotion ? 250 : 2600)
+      const previousGame = sessionStorage.getItem('revo_last_minigame')
+      const selectedGame = chooseQuestionnaireMiniGame(Math.random(), previousGame)
+      sessionStorage.setItem('revo_last_minigame', selectedGame)
+      setMiniGame(selectedGame)
+      setMiniGameStage('selected')
+    }, reduceMotion ? 350 : 3200)
 
     return () => clearTimeout(miniGameTimerRef.current)
-  }, [loading, miniGameStage, reduceMotion])
+  }, [miniGameStage, reduceMotion])
 
   const loadPhase2 = async (sid) => {
     const transitionStartedAt = Date.now()
@@ -834,10 +863,35 @@ export default function Questionnaire() {
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [])
 
+  const entryView = resolveQuestionnaireEntryView({
+    stage: miniGameStage,
+    miniGame,
+    loading,
+    hasQuestion: phase === 3 ? !!preguntaFase3 : !!q,
+  })
+
   // ── Pantallas de espera ──────────────────────────────────
-  if (loading) {
-    return <Pantalla titulo="Preparando tus desafíos"
-      texto="Estamos eligiendo diez preguntas para descubrir dónde aparece tu primera señal." />
+  if (entryView === 'selector' || entryView === 'selected') {
+    return (
+      <SelectorMinijuego
+        reduceMotion={reduceMotion}
+        miniGame={miniGame}
+        loading={loading}
+        ready={phase === 3 ? !!preguntaFase3 : !!q}
+        error={error}
+        onPlay={() => setMiniGameStage('intro')}
+      />
+    )
+  }
+
+  if (entryView === 'intro') {
+    return (
+      <IntroduccionMinijuego
+        miniGame={miniGame}
+        reduceMotion={reduceMotion}
+        onStart={() => setMiniGameStage('playing')}
+      />
+    )
   }
 
   if (submitting) {
@@ -861,25 +915,11 @@ export default function Questionnaire() {
       etiqueta="Fase 2: Afina" />
   }
 
-  if (phase !== 3 && !q) {
+  if (entryView === 'error' || (phase !== 3 && !q)) {
     return <Pantalla titulo="No pudimos repartir las cartas"
       texto="Revisa tu conexión y vuelve a cargar la página para intentarlo otra vez."
       aviso={error || 'El cuestionario no recibió preguntas.'}
       imagen={personaDiferenciaGaming} etiqueta="Partida interrumpida" />
-  }
-
-  if (!miniGame || miniGameStage === 'selecting') {
-    return <SelectorMinijuego reduceMotion={reduceMotion} />
-  }
-
-  if (miniGameStage === 'intro') {
-    return (
-      <IntroduccionMinijuego
-        miniGame={miniGame}
-        reduceMotion={reduceMotion}
-        onStart={() => setMiniGameStage('playing')}
-      />
-    )
   }
 
   // ── FASE 3: perfil profesional ───────────────────────────

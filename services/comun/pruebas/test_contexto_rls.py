@@ -94,3 +94,30 @@ class TestValoresLimite:
     def test_rechaza_el_cero(self):
         with pytest.raises(ValueError):
             ContextoSeguridad(user_id=0, role="student")
+
+
+class TestContextoDeServicio:
+    def test_las_tareas_de_fondo_tienen_su_propia_identidad(self):
+        # El reentrenamiento del modelo corre sin ningun alumno detras. Sin
+        # una identidad propia tendria que correr como admin, y entonces
+        # cualquier fallo en esa ruta abriria todas las tablas.
+        ctx = ContextoSeguridad.de_servicio()
+
+        assert ctx.role == "service"
+
+    def test_el_rol_de_servicio_no_puede_venir_en_un_token(self):
+        # Es la frontera que hace util al rol: existe para RLS, jamas se
+        # emite ni se acepta dentro de un JWT.
+        from revo_comun.seguridad.tokens import VALID_ROLES
+
+        assert "service" not in VALID_ROLES
+
+    def test_un_alumno_no_puede_declararse_servicio(self):
+        with pytest.raises(ValueError):
+            ContextoSeguridad(user_id=42, role="service")
+
+    def test_el_rol_de_servicio_no_admite_un_alumno_asociado(self):
+        parametros = parametros_contexto(ContextoSeguridad.de_servicio())
+
+        assert parametros["user_id"] == "0"
+        assert parametros["role"] == "service"

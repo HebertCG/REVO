@@ -23,9 +23,20 @@ from dataclasses import dataclass
 
 from sqlalchemy import text
 
-#: Roles que las politicas RLS reconocen. Debe coincidir con VALID_ROLES de
-#: revo_comun.seguridad.tokens y con el CHECK de la columna users.role.
-ROLES_VALIDOS = frozenset({"student", "admin"})
+#: Rol de las tareas de fondo (reentrenamiento del modelo). NO existe en
+#: revo_comun.seguridad.tokens: nunca se emite ni se acepta dentro de un JWT.
+#: Vive solo aqui para que un trabajo sin usuario tenga identidad propia en
+#: lugar de correr como admin, que abriria todas las tablas ante cualquier
+#: fallo en esa ruta.
+ROL_SERVICIO = "service"
+
+#: Identificador reservado del contexto de servicio. Ningun usuario real lo
+#: tiene: la secuencia de `users` empieza en 1.
+USUARIO_SERVICIO = 0
+
+#: Roles que las politicas RLS reconocen. Es un superconjunto de VALID_ROLES
+#: de revo_comun.seguridad.tokens, por el rol de servicio.
+ROLES_VALIDOS = frozenset({"student", "admin", ROL_SERVICIO})
 
 SENTENCIA_CONTEXTO = text(
     "SELECT set_config('revo.user_id', :user_id, true), "
@@ -45,6 +56,11 @@ class ContextoSeguridad:
     user_id: int
     role: str
 
+    @classmethod
+    def de_servicio(cls) -> "ContextoSeguridad":
+        """Identidad de las tareas de fondo: sin alumno detras y sin ser admin."""
+        return cls(user_id=USUARIO_SERVICIO, role=ROL_SERVICIO)
+
     def __post_init__(self) -> None:
         if self.role not in ROLES_VALIDOS:
             raise ValueError(f"Rol no reconocido para RLS: {self.role!r}")
@@ -54,7 +70,12 @@ class ContextoSeguridad:
         except (TypeError, ValueError) as exc:
             raise ValueError(f"user_id no es un identificador valido: {self.user_id!r}") from exc
 
-        if numero <= 0:
+        if self.role == ROL_SERVICIO:
+            # El contexto de servicio se construye solo con de_servicio(),
+            # que fija el identificador reservado.
+            if numero != USUARIO_SERVICIO:
+                raise ValueError("El rol de servicio no lleva un alumno asociado")
+        elif numero <= 0:
             raise ValueError(f"user_id debe ser positivo: {numero}")
 
         # Se normaliza a entero para que "42" y 42 produzcan el mismo valor

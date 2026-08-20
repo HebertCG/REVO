@@ -1,4 +1,4 @@
-from revo_common.ratelimit.policy import (
+from revo_comun.limites.politicas import (
     POLICIES,
     RateLimitPolicy,
     RequestContext,

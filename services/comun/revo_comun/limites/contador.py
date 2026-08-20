@@ -20,7 +20,7 @@ from collections import OrderedDict, deque
 from dataclasses import dataclass
 from typing import Callable
 
-from revo_common.ratelimit.policy import RateLimitPolicy, RequestContext, resolve_bucket
+from revo_comun.limites.politicas import RateLimitPolicy, RequestContext, resolve_bucket
 
 logger = logging.getLogger("revo.ratelimit")
 

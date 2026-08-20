@@ -3,7 +3,7 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "revo-common"
+name = "revo-comun"
 version = "1.0.0"
 description = "Preocupaciones transversales compartidas por los microservicios de REVO"
 requires-python = ">=3.11"
@@ -20,7 +20,7 @@ dependencies = [
 test = ["pytest>=8.2.0", "fakeredis>=2.23.0"]
 
 [tool.setuptools.packages.find]
-include = ["revo_common*"]
+include = ["revo_comun*"]
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
+testpaths = ["pruebas"]

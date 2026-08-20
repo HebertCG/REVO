@@ -1,4 +1,4 @@
-# revo-common
+# revo-comun
 
 Preocupaciones transversales compartidas por `auth-service`, `survey-service`
 y `ml-service`.
@@ -18,27 +18,27 @@ acoplamiento bajo aunque el codigo se comparta.
 
 | Modulo | Responsabilidad |
 |---|---|
-| `security.tokens` | Emision y verificacion de JWT (iss, aud, typ, rol, jti) |
-| `security.client_ip` | IP real del cliente respetando los proxies de confianza |
-| `ratelimit.policy` | Que cupo aplica y bajo que llave se cuenta (logica pura) |
-| `ratelimit.backend` | Contador de ventana deslizante sobre Redis + respaldo local |
+| `seguridad.tokens` | Emision y verificacion de JWT (iss, aud, typ, rol, jti) |
+| `seguridad.ip_cliente` | IP real del cliente respetando los proxies de confianza |
+| `limites.politicas` | Que cupo aplica y bajo que llave se cuenta (logica pura) |
+| `limites.contador` | Contador de ventana deslizante sobre Redis + respaldo local |
 
 ## Instalacion
 
-Docker: el `Dockerfile` de cada servicio copia `shared/` e instala el paquete.
+Docker: el `Dockerfile` de cada servicio copia `comun/` e instala el paquete.
 
-Render: `buildCommand: pip install -r requirements.txt && pip install ../shared`
+Render: `buildCommand: pip install -r requirements.txt && pip install ../comun`
 
 Local:
 
 ```bash
-pip install -e services/shared
+pip install -e services/comun
 ```
 
 ## Pruebas
 
 ```bash
-cd services/shared
+cd services/comun
 pip install -e ".[test]"
 pytest
 ```

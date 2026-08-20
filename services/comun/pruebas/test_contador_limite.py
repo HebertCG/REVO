@@ -7,8 +7,8 @@ sleep son lentas y se vuelven intermitentes en CI.
 import fakeredis
 import pytest
 
-from revo_common.ratelimit.backend import RateLimiter
-from revo_common.ratelimit.policy import RateLimitPolicy, RequestContext, Scope
+from revo_comun.limites.contador import RateLimiter
+from revo_comun.limites.politicas import RateLimitPolicy, RequestContext, Scope
 
 
 class RelojFalso:

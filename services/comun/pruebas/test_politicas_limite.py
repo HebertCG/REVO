@@ -5,7 +5,7 @@ recibe HTTP 429 y el examen se cae para toda la clase.
 """
 import pytest
 
-from revo_common.ratelimit.policy import (
+from revo_comun.limites.politicas import (
     POLICIES,
     RateLimitPolicy,
     RequestContext,

@@ -13,7 +13,7 @@ import time
 import pytest
 from jose import jwt
 
-from revo_common.security.tokens import (
+from revo_comun.seguridad.tokens import (
     ACCESS_TOKEN_TYPE,
     TokenError,
     TokenIssuer,

@@ -5,7 +5,7 @@ Si se confia en X-Forwarded-For sin condiciones, cualquiera manda
 "X-Forwarded-For: 1.2.3.4" y estrena un cupo de rate limit en cada peticion,
 lo que anula por completo el limite por IP.
 """
-from revo_common.security.client_ip import extract_client_ip
+from revo_comun.seguridad.ip_cliente import extract_client_ip
 
 
 class PeticionFalsa:

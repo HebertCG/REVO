@@ -2116,10 +2116,201 @@
 .quiz-ruta-teclas { margin-top: 6px; color: #697992; font-family: var(--f-dato); font-size: .56rem; }
 .quiz-ruta-teclas kbd { margin: 0 2px; padding: 3px 5px; border: 1px solid #3b4d69; border-radius: 4px; color: #c5cfdd; background: #10192c; }
 
+/* Circuito horizontal: las cuatro direcciones tienen una función distinta. */
+.quiz-pista-horizontal {
+  height: 286px;
+  background:
+    radial-gradient(circle at 78% 20%, rgba(91,184,255,.14), transparent 25%),
+    linear-gradient(180deg, #101f38, #081326);
+}
+.quiz-pista-horizontal .quiz-pista-cielo i {
+  width: 42px;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, rgba(91,184,255,.7));
+  animation-name: quizVelocidadHorizontal;
+}
+.quiz-pista-horizontal .quiz-carretera {
+  container-type: inline-size;
+  top: 18px;
+  right: 34px;
+  bottom: 34px;
+  left: 34px;
+  width: auto;
+  transform: none;
+  overflow: hidden;
+  border: 2px solid #344765;
+  border-radius: 18px;
+  background:
+    repeating-linear-gradient(90deg, transparent 0 38px, rgba(255,255,255,.025) 38px 76px),
+    linear-gradient(180deg, #18243d, #111b30 50%, #18243d);
+  box-shadow:
+    inset 0 12px 0 rgba(255,103,92,.13),
+    inset 0 -12px 0 rgba(33,100,219,.18),
+    inset 0 0 40px rgba(0,0,0,.25);
+}
+.quiz-pista-horizontal .quiz-carretera::before,
+.quiz-pista-horizontal .quiz-carretera::after {
+  top: auto;
+  right: 0;
+  left: 0;
+  width: auto;
+  height: 3px;
+  background: repeating-linear-gradient(90deg, #f5e9c7 0 14px, transparent 14px 25px);
+}
+.quiz-pista-horizontal .quiz-carretera::before { top: 5px; }
+.quiz-pista-horizontal .quiz-carretera::after { bottom: 5px; }
+.quiz-pista-horizontal .quiz-carril {
+  right: 0;
+  bottom: auto;
+  left: 0;
+  width: auto;
+  height: 2px;
+  background: repeating-linear-gradient(90deg, rgba(220,228,239,.55) 0 15px, transparent 15px 31px);
+  animation: quizAsfaltoHorizontal .9s linear infinite;
+}
+.quiz-pista-horizontal .quiz-carril-1 { top: 33.333%; }
+.quiz-pista-horizontal .quiz-carril-2 { top: 66.666%; }
+.quiz-pista-horizontal .quiz-meta-ruta,
+.quiz-pista-horizontal .quiz-obstaculo-ruta {
+  --lane-y: 0px;
+  top: 50%;
+}
+.quiz-pista-horizontal .carril-0 { --lane-y: -72px; }
+.quiz-pista-horizontal .carril-1 { --lane-y: 0px; }
+.quiz-pista-horizontal .carril-2 { --lane-y: 72px; }
+.quiz-pista-horizontal .quiz-meta-ruta {
+  right: 8px;
+  left: auto;
+  width: 42px;
+  height: 58px;
+  border: 4px solid var(--cat);
+  border-left: 0;
+  border-radius: 0 9px 9px 0;
+  background: linear-gradient(180deg, transparent 44%, var(--cat) 45% 55%, transparent 56%);
+  transform: translate3d(0, calc(-50% + var(--lane-y)), 0);
+}
+.quiz-pista-horizontal .quiz-meta-ruta i {
+  inset: 7px auto 7px 5px;
+  width: 4px;
+  height: auto;
+  background: repeating-linear-gradient(180deg, #f7f3e9 0 5px, #10192c 5px 10px);
+}
+.quiz-pista-horizontal .quiz-meta-ruta b { align-self: center; transform: rotate(-90deg); }
+.quiz-obstaculo-ruta {
+  position: absolute;
+  z-index: 4;
+  left: var(--obstaculo-x);
+  display: flex;
+  width: 46px;
+  height: 42px;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  border: 2px solid #ff9b53;
+  border-radius: 7px;
+  color: #fff1cb;
+  background: repeating-linear-gradient(135deg, #e75b41 0 7px, #1b263d 7px 14px);
+  box-shadow: 0 6px 0 rgba(0,0,0,.34), 0 0 17px rgba(255,103,92,.28);
+  transform: translate3d(-50%, calc(-50% + var(--lane-y)), 0);
+}
+.quiz-obstaculo-ruta i {
+  display: block;
+  width: 4px;
+  height: 26px;
+  border-radius: 2px;
+  background: #ffd35c;
+}
+.quiz-obstaculo-ruta b { font-family: var(--f-dato); font-size: .72rem; text-shadow: 0 2px #081124; }
+.quiz-obstaculo-ruta.superado { opacity: .24; filter: grayscale(.7); }
+.quiz-pista-horizontal .quiz-auto-ruta {
+  top: 50%;
+  bottom: auto;
+  left: 4%;
+  width: 58px;
+  transform: translate3d(var(--auto-x), calc(-50% + var(--lane-y)), 0);
+  transition: transform .2s cubic-bezier(.22,1,.36,1);
+}
+.quiz-pista-horizontal .quiz-auto-ruta img { transform: rotate(-90deg); }
+.quiz-pista-horizontal .quiz-auto-estela {
+  top: 50%;
+  left: -32px;
+  width: 56px;
+  height: 18px;
+  transform: translateY(-50%);
+  background: linear-gradient(90deg, transparent, rgba(91,184,255,.65));
+}
+.quiz-pista-horizontal.colision .quiz-auto-ruta { animation: quizChoqueAuto .42s cubic-bezier(.4,0,.2,1) both; }
+.quiz-pista-horizontal.colision .quiz-obstaculo-ruta { filter: saturate(1.45) brightness(1.18); }
+.quiz-pista-horizontal.completada .quiz-meta-ruta { animation: quizMetaHorizontal .7s ease both; }
+.quiz-pista-horizontal .quiz-ruta-progreso {
+  right: 22px;
+  bottom: 10px;
+  left: 22px;
+  top: auto;
+  flex-direction: row;
+  justify-content: flex-end;
+  gap: 9px;
+}
+.quiz-pista-horizontal .quiz-ruta-progreso > span {
+  width: min(360px, 46%);
+  height: 6px;
+}
+.quiz-pista-horizontal .quiz-ruta-progreso i {
+  top: 0;
+  right: auto;
+  bottom: 0;
+  left: 0;
+  height: auto;
+  transition: width .2s ease;
+}
+.quiz-impactos-ruta {
+  position: absolute;
+  z-index: 8;
+  top: 11px;
+  left: 13px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 8px;
+  border: 1px solid #344765;
+  border-radius: 7px;
+  color: #91a0b8;
+  background: rgba(7,16,34,.8);
+  font-family: var(--f-dato);
+  font-size: .48rem;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+.quiz-impactos-ruta b { color: #ff9b53; font-size: .65rem; }
+.quiz-controles-ruta {
+  width: min(390px, 100%);
+  grid-template-columns: repeat(3, minmax(86px, 120px));
+  grid-template-rows: repeat(2, 45px);
+  gap: 7px 10px;
+}
+.quiz-controles-ruta .arriba { grid-column: 2; grid-row: 1; }
+.quiz-controles-ruta .frenar { grid-column: 1; grid-row: 2; }
+.quiz-controles-ruta .abajo { grid-column: 2; grid-row: 2; }
+.quiz-controles-ruta .acelerar { grid-column: 3; grid-row: 2; }
+.quiz-controles-ruta button { min-height: 45px; }
+.quiz-controles-ruta button.frenar { color: #ffcf8a; border-color: #6b4b3e; }
+
 @keyframes quizVelocidad { from { transform: translate3d(0, -45px, 0); opacity: 0; } 25% { opacity: 1; } to { transform: translate3d(0, 300px, 0); opacity: 0; } }
 @keyframes quizAsfalto { to { background-position-y: 48px; } }
 @keyframes quizRutaBloqueada { 30% { transform: translate3d(-4px,0,0); } 65% { transform: translate3d(4px,0,0); } }
 @keyframes quizMetaSuperada { 45% { opacity: 1; transform: translateX(calc(-50% + var(--meta-x))) scale(1.18); } 100% { opacity: 0; transform: translateX(calc(-50% + var(--meta-x))) scale(1.45); } }
+@keyframes quizVelocidadHorizontal { from { transform: translate3d(-80px,0,0); opacity: 0; } 25% { opacity: 1; } to { transform: translate3d(900px,0,0); opacity: 0; } }
+@keyframes quizAsfaltoHorizontal { to { background-position-x: -62px; } }
+@keyframes quizChoqueAuto {
+  0%, 100% { translate: 0 0; filter: none; }
+  25% { translate: -7px -3px; filter: drop-shadow(0 0 10px #ff675c); }
+  50% { translate: 5px 3px; }
+  75% { translate: -3px 2px; }
+}
+@keyframes quizMetaHorizontal {
+  45% { opacity: 1; transform: translate3d(0, calc(-50% + var(--lane-y)), 0) scale(1.16); }
+  100% { opacity: 0; transform: translate3d(8px, calc(-50% + var(--lane-y)), 0) scale(1.36); }
+}
 
 @media (max-width: 900px) {
   .quiz-selector-lienzo { grid-template-columns: minmax(280px, 1fr) minmax(250px, .68fr); gap: 18px; }
@@ -2161,6 +2352,11 @@
   .quiz-controles-ruta { width: 100%; grid-template-columns: repeat(3, 1fr); }
   .quiz-controles-ruta button { min-width: 0; min-height: 52px; }
   .quiz-ruta-teclas { display: none; }
+  .quiz-pista-horizontal .quiz-carretera { right: 16px; left: 16px; width: auto; }
+  .quiz-pista-horizontal .carril-0 { --lane-y: -68px; }
+  .quiz-pista-horizontal .carril-2 { --lane-y: 68px; }
+  .quiz-pista-horizontal .quiz-auto-ruta { width: 52px; }
+  .quiz-obstaculo-ruta { width: 40px; height: 38px; }
 }
 
 @media (max-width: 430px) {
@@ -2174,6 +2370,12 @@
   .quiz-auto-ruta { bottom: 12px; width: 48px; }
   .quiz-controles-ruta button { flex-direction: column; gap: 1px; font-size: 1rem; }
   .quiz-ruta-estado { font-size: .68rem; }
+  .quiz-pista-horizontal .quiz-carretera { right: 10px; left: 10px; width: auto; }
+  .quiz-pista-horizontal .carril-0 { --lane-y: -58px; }
+  .quiz-pista-horizontal .carril-2 { --lane-y: 58px; }
+  .quiz-pista-horizontal .quiz-auto-ruta { bottom: auto; width: 46px; }
+  .quiz-pista-horizontal .quiz-meta-ruta { width: 36px; height: 50px; }
+  .quiz-obstaculo-ruta { width: 34px; height: 34px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -2184,6 +2386,7 @@
   .quiz-pista-cielo i,
   .quiz-carril,
   .quiz-pista.bloqueada,
+  .quiz-pista-horizontal.colision .quiz-auto-ruta,
   .quiz-pista.completada .quiz-meta-ruta { animation: none !important; }
   .quiz-auto-ruta,
   .quiz-meta-ruta,

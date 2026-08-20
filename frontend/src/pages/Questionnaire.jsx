@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useEffectEvent, useCallback } from 'react'
+import { useState, useEffect, useRef, useEffectEvent, useCallback, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { useAuth } from '../context/AuthContext'
@@ -25,6 +25,7 @@ import {
   advanceRoadState,
   chooseQuestionnaireMiniGame,
   createRoadState,
+  getRoadObstacles,
   getRoadTargetLane,
   resolveQuestionnaireEntryView,
 } from './questionnaireMiniGames'
@@ -252,9 +253,9 @@ const DATOS_MINIJUEGO = {
     numero: '02',
     etiqueta: 'Ruta de afinidad',
     titulo: 'Conduce hasta la próxima parada',
-    texto: 'Cambia de carril, acelera y cruza la puerta iluminada para desbloquear cada pregunta.',
-    instrucciones: ['Alinea el auto con la parada', 'Acelera hasta cruzar la meta', 'Responde y continúa la ruta'],
-    control: 'Flechas o WASD · controles táctiles en celular',
+    texto: 'Recorre la pista horizontal, esquiva las barreras y llega por el carril iluminado para desbloquear cada pregunta.',
+    instrucciones: ['Sube y baja para cambiar de carril', 'Derecha acelera; izquierda frena', 'Esquiva las barreras y cruza la meta'],
+    control: 'Cuatro flechas o WASD · cruceta táctil en celular',
     accion: 'Comenzar recorrido',
     imagen: personaRutaGaming,
   },
@@ -362,11 +363,12 @@ function RutaPreguntas({ questionIndex, fase, onLlegar, reduceMotion }) {
   const [estado, setEstado] = useState(createRoadState)
   const driveTimerRef = useRef(null)
   const targetLane = getRoadTargetLane(questionIndex)
+  const obstacles = useMemo(() => getRoadObstacles(questionIndex), [questionIndex])
   const nombresCarril = ['izquierdo', 'central', 'derecho']
 
   const conducir = useCallback((accion) => {
-    setEstado((actual) => advanceRoadState(actual, accion, targetLane))
-  }, [targetLane])
+    setEstado((actual) => advanceRoadState(actual, accion, targetLane, obstacles))
+  }, [obstacles, targetLane])
   const notificarLlegada = useEffectEvent(() => onLlegar())
 
   const detenerControl = () => {
@@ -377,18 +379,19 @@ function RutaPreguntas({ questionIndex, fase, onLlegar, reduceMotion }) {
   const iniciarControl = (accion) => {
     detenerControl()
     conducir(accion)
-    if (accion === 'accelerate') {
-      driveTimerRef.current = setInterval(() => conducir(accion), 115)
+    if (accion === 'right' || accion === 'left') {
+      driveTimerRef.current = setInterval(() => conducir(accion), 145)
     }
   }
 
   useEffect(() => {
     const manejarTeclaRuta = (event) => {
-      if (event.target.matches('input, textarea, select, button')) return
+      if (event.target.matches('input, textarea, select')) return
       const teclas = {
         ArrowLeft: 'left', a: 'left', A: 'left',
         ArrowRight: 'right', d: 'right', D: 'right',
-        ArrowUp: 'accelerate', w: 'accelerate', W: 'accelerate', ' ': 'accelerate',
+        ArrowUp: 'up', w: 'up', W: 'up',
+        ArrowDown: 'down', s: 'down', S: 'down',
       }
       const accion = teclas[event.key]
       if (!accion) return
@@ -408,14 +411,14 @@ function RutaPreguntas({ questionIndex, fase, onLlegar, reduceMotion }) {
 
   useEffect(() => () => detenerControl(), [])
 
-  const desplazamiento = `${(estado.lane - 1) * 148}%`
-  const avance = `${estado.progress * -2.28}px`
-  const meta = `${(targetLane - 1) * 126}%`
+  const avanceHorizontal = `${estado.progress * .86}cqw`
   const estadoTexto = estado.completed
     ? 'Parada alcanzada. Abriendo pregunta…'
+    : estado.collision
+      ? `¡Choque! Esquiva el obstáculo cambiando al carril ${estado.lane === 0 ? 'central o inferior' : estado.lane === 2 ? 'central o superior' : 'superior o inferior'}.`
     : estado.blocked
       ? `La parada está en el carril ${nombresCarril[targetLane]}. Cambia de carril.`
-      : `Parada en el carril ${nombresCarril[targetLane]}. Acelera para llegar.`
+      : `Esquiva los obstáculos y llega al carril ${nombresCarril[targetLane]}.`
 
   return (
     <MotionDiv
@@ -431,17 +434,26 @@ function RutaPreguntas({ questionIndex, fase, onLlegar, reduceMotion }) {
         <strong>Parada {String(questionIndex + 1).padStart(2, '0')}</strong>
       </div>
       <h1>Conduce hasta tu próxima pregunta</h1>
-      <p>Alinea el auto con la puerta iluminada y acelera para desbloquearla.</p>
+      <p>Avanza hacia la derecha, cambia de carril y esquiva cada obstáculo hasta la meta.</p>
 
-      <div className={`quiz-pista ${estado.blocked ? 'bloqueada' : ''} ${estado.completed ? 'completada' : ''}`}>
+      <div className={`quiz-pista quiz-pista-horizontal ${estado.blocked ? 'bloqueada' : ''} ${estado.collision ? 'colision' : ''} ${estado.completed ? 'completada' : ''}`}>
         <div className="quiz-pista-cielo" aria-hidden="true"><i /><i /><i /></div>
         <div className="quiz-carretera" aria-hidden="true">
           <span className="quiz-carril quiz-carril-1" />
           <span className="quiz-carril quiz-carril-2" />
-          <span className="quiz-meta-ruta" style={{ '--meta-x': meta }}><i /><b>PARADA</b></span>
+          {obstacles.map((obstacle, index) => (
+            <span
+              key={obstacle.id}
+              className={`quiz-obstaculo-ruta obstaculo-${index + 1} carril-${obstacle.lane} ${estado.progress > obstacle.progress ? 'superado' : ''}`}
+              style={{ '--obstaculo-x': `${4 + obstacle.progress * .86}%` }}
+            >
+              <i /><b>{index % 2 === 0 ? '⚠' : '×'}</b><i />
+            </span>
+          ))}
+          <span className={`quiz-meta-ruta carril-${targetLane}`}><i /><b>META</b></span>
           <span
-            className="quiz-auto-ruta"
-            style={{ '--auto-x': desplazamiento, '--auto-y': avance }}
+            className={`quiz-auto-ruta carril-${estado.lane}`}
+            style={{ '--auto-x': avanceHorizontal }}
           >
             <i className="quiz-auto-estela" />
             <img src={carritoRevo} alt="Auto REVO" />
@@ -455,29 +467,51 @@ function RutaPreguntas({ questionIndex, fase, onLlegar, reduceMotion }) {
           aria-valuemax="100"
           aria-valuenow={estado.progress}
         >
-          <span><i style={{ height: `${estado.progress}%` }} /></span>
+          <span><i style={{ width: `${estado.progress}%` }} /></span>
           <b>{estado.progress}%</b>
+        </div>
+        <div className="quiz-impactos-ruta" aria-label={`${estado.hits} choques`}>
+          <span>Impactos</span><b>{estado.hits}</b>
         </div>
       </div>
 
       <div className="quiz-controles-ruta" role="group" aria-label="Controles del auto">
-        <button type="button" onClick={() => conducir('left')} aria-label="Mover al carril izquierdo">←<small>Izquierda</small></button>
         <button
           type="button"
-          className="acelerar"
-          onPointerDown={() => iniciarControl('accelerate')}
+          className="arriba"
+          onClick={() => conducir('up')}
+          aria-label="Mover al carril superior"
+        >
+          ↑<small>Subir</small>
+        </button>
+        <button
+          type="button"
+          className="frenar"
+          onPointerDown={() => iniciarControl('left')}
           onPointerUp={detenerControl}
           onPointerCancel={detenerControl}
           onPointerLeave={detenerControl}
-          onClick={() => conducir('accelerate')}
-          aria-label="Acelerar"
+          onClick={(event) => { if (event.detail === 0) conducir('left') }}
+          aria-label="Frenar o retroceder"
         >
-          ↑<small>Acelerar</small>
+          ←<small>Frenar</small>
         </button>
-        <button type="button" onClick={() => conducir('right')} aria-label="Mover al carril derecho">→<small>Derecha</small></button>
+        <button
+          type="button"
+          className="acelerar"
+          onPointerDown={() => iniciarControl('right')}
+          onPointerUp={detenerControl}
+          onPointerCancel={detenerControl}
+          onPointerLeave={detenerControl}
+          onClick={(event) => { if (event.detail === 0) conducir('right') }}
+          aria-label="Acelerar hacia la meta"
+        >
+          →<small>Acelerar</small>
+        </button>
+        <button type="button" className="abajo" onClick={() => conducir('down')} aria-label="Mover al carril inferior">↓<small>Bajar</small></button>
       </div>
       <p className="quiz-ruta-estado" role="status" aria-live="polite">{estadoTexto}</p>
-      <p className="quiz-ruta-teclas">Teclado: <kbd>←</kbd><kbd>↑</kbd><kbd>→</kbd> o <kbd>WASD</kbd></p>
+      <p className="quiz-ruta-teclas">Teclado: <kbd>←</kbd><kbd>↑</kbd><kbd>↓</kbd><kbd>→</kbd> o <kbd>WASD</kbd></p>
     </MotionDiv>
   )
 }

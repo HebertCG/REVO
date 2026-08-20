@@ -1,0 +1,69 @@
+﻿Nombre de tarea;Fecha de inicio;Fecha de fin;Duración;Asignado;Progreso;Predecesora
+1. ANÁLISIS Y PLANIFICACIÓN INICIAL;17/08/2026;04/09/2026;;;0;
+    1.1  Definición del problema y alcance del proyecto;17/08/2026;19/08/2026;3;Hebert Cornejo Garcia;0;
+    1.2  Análisis de sistemas similares y estado del arte;17/08/2026;19/08/2026;3;Wilson Collantes Aponte;0;
+    1.3  Elaboración del documento de propuesta;20/08/2026;24/08/2026;3;Hebert Cornejo Garcia;0;1.1
+    1.4  Captura de requerimientos y Product Backlog;24/08/2026;27/08/2026;4;Hebert Cornejo Garcia;0;1.3
+    1.5  Definición de roles Scrum y herramienta de gestión;20/08/2026;21/08/2026;2;Steven Febre Rivera;0;1.1
+    1.6  Configuración del repositorio Git y flujo de ramas;24/08/2026;25/08/2026;2;Steven Febre Rivera;0;1.5
+    1.7  Diseño del modelo entidad-relación de la BD;26/08/2026;31/08/2026;4;Wilson Collantes Aponte;0;1.4
+    1.8  Definición de la arquitectura de microservicios;31/08/2026;02/09/2026;3;Steven Febre Rivera;0;1.7
+    1.9  Revisión y aprobación de la propuesta;03/09/2026;04/09/2026;2;Hebert Cornejo Garcia;0;1.8
+2. DISEÑO DE PROTOTIPOS Y UX;31/08/2026;18/09/2026;;;0;
+    2.1  Investigación de referentes visuales;31/08/2026;02/09/2026;3;Alexis Morante Herrera;0;
+    2.2  Definición del sistema de diseño y paleta;03/09/2026;07/09/2026;3;Alexis Morante Herrera;0;2.1
+    2.3  Wireframes de baja fidelidad;07/09/2026;10/09/2026;4;Alexis Morante Herrera;0;2.2
+    2.4  Mockups de alta fidelidad: registro e inicio de sesión;07/09/2026;09/09/2026;3;Hebert Cornejo Garcia;0;2.2
+    2.5  Mockups de alta fidelidad: cuestionario adaptativo;10/09/2026;15/09/2026;4;Alexis Morante Herrera;0;2.3
+    2.6  Mockups de alta fidelidad: resultados y panel admin;14/09/2026;17/09/2026;4;Hebert Cornejo Garcia;0;2.5
+    2.7  Adaptación responsiva (móvil, tablet, escritorio);14/09/2026;16/09/2026;3;Alexis Morante Herrera;0;2.5
+    2.8  Validación de accesibilidad y contraste;17/09/2026;18/09/2026;2;Steven Febre Rivera;0;2.7
+    2.9  Maquetación inicial en React del módulo principal;16/09/2026;21/09/2026;4;Wilson Collantes Aponte;0;2.6
+3. DESARROLLO BACK-END Y BASE DE DATOS;21/09/2026;16/10/2026;;;0;
+    3.1  Creación del esquema físico e índices en PostgreSQL;21/09/2026;23/09/2026;3;Wilson Collantes Aponte;0;1.7
+    3.2  Scripts de carga inicial de datos maestros;24/09/2026;25/09/2026;2;Wilson Collantes Aponte;0;3.1
+    3.3  Auth Service: registro, inicio de sesión y JWT;21/09/2026;25/09/2026;5;Steven Febre Rivera;0;3.1
+    3.4  Auth Service: control de acceso por roles;28/09/2026;30/09/2026;3;Steven Febre Rivera;0;3.3
+    3.5  Elaboración del banco de 100 preguntas;23/09/2026;29/09/2026;5;Hebert Cornejo Garcia;0;3.2
+    3.6  Survey Service: motor adaptativo de la fase 1;28/09/2026;01/10/2026;4;Wilson Collantes Aponte;0;3.5
+    3.7  Survey Service: selección adaptativa de la fase 2;02/10/2026;07/10/2026;4;Wilson Collantes Aponte;0;3.6
+    3.8  Survey Service: cálculo del vector de afinidades;05/10/2026;07/10/2026;3;Wilson Collantes Aponte;0;3.7
+    3.9  ML Service: preparación del conjunto de entrenamiento;28/09/2026;01/10/2026;4;Hebert Cornejo Garcia;0;3.5
+    3.10 ML Service: entrenamiento y evaluación del modelo;05/10/2026;09/10/2026;5;Hebert Cornejo Garcia;0;3.9
+    3.11 ML Service: endpoint de predicción;08/10/2026;13/10/2026;4;Hebert Cornejo Garcia;0;3.10
+    3.12 Integración Front-End con las APIs REST;12/10/2026;15/10/2026;4;Alexis Morante Herrera;0;3.11
+    3.13 Pantalla de resultados con visualizaciones;12/10/2026;15/10/2026;4;Alexis Morante Herrera;0;3.11
+    3.14 Panel administrativo con métricas del modelo;14/10/2026;16/10/2026;3;Steven Febre Rivera;0;3.11
+    3.15 Contenerización con Docker y despliegue inicial;15/10/2026;16/10/2026;2;Steven Febre Rivera;0;3.14
+4. GESTIÓN DEL SERVICIO Y CAMBIOS;19/10/2026;13/11/2026;;;0;
+    4.1  Configuración del pipeline de integración continua;19/10/2026;22/10/2026;4;Steven Febre Rivera;0;3.15
+    4.2  Pruebas unitarias del back-end;19/10/2026;23/10/2026;5;Wilson Collantes Aponte;0;3.15
+    4.3  Pruebas unitarias y de componentes del front-end;21/10/2026;26/10/2026;4;Alexis Morante Herrera;0;3.15
+    4.4  Pruebas de integración entre microservicios;26/10/2026;29/10/2026;4;Wilson Collantes Aponte;0;4.2
+    4.5  Auditoría de seguridad y corrección de hallazgos;26/10/2026;30/10/2026;5;Steven Febre Rivera;0;4.1
+    4.6  Optimización de consultas e índices;29/10/2026;02/11/2026;3;Wilson Collantes Aponte;0;4.4
+    4.7  Definición del catálogo de servicios y SLA;02/11/2026;05/11/2026;4;Hebert Cornejo Garcia;0;4.5
+    4.8  Procedimiento de gestión de cambios (RFC);02/11/2026;04/11/2026;3;Steven Febre Rivera;0;4.7
+    4.9  Pruebas de extremo a extremo de los flujos críticos;04/11/2026;09/11/2026;4;Alexis Morante Herrera;0;4.4
+    4.10 Documentación técnica de la API;09/11/2026;11/11/2026;3;Wilson Collantes Aponte;0;4.6
+    4.11 Manual de usuario del sistema;09/11/2026;12/11/2026;4;Hebert Cornejo Garcia;0;4.9
+    4.12 Revisión de la integración continua y cierre APF3;12/11/2026;13/11/2026;2;Steven Febre Rivera;0;4.10
+5. OPERACIÓN, INCIDENTES Y CIERRE;16/11/2026;18/12/2026;;;0;
+    5.1  Implementación de la gestión de incidentes;16/11/2026;19/11/2026;4;Steven Febre Rivera;0;4.12
+    5.2  Monitoreo de disponibilidad y registro de errores;16/11/2026;19/11/2026;4;Wilson Collantes Aponte;0;4.12
+    5.3  Pruebas de usuario con estudiantes reales;19/11/2026;25/11/2026;5;Hebert Cornejo Garcia;0;4.11
+    5.4  Recolección de retroalimentación y análisis;25/11/2026;30/11/2026;4;Hebert Cornejo Garcia;0;5.3
+    5.5  Reentrenamiento del modelo con datos reales;30/11/2026;03/12/2026;4;Hebert Cornejo Garcia;0;5.4
+    5.6  Corrección de incidencias detectadas en pruebas;26/11/2026;02/12/2026;5;Alexis Morante Herrera;0;5.3
+    5.7  Mejoras de experiencia de usuario;30/11/2026;03/12/2026;4;Alexis Morante Herrera;0;5.4
+    5.8  Pruebas de rendimiento y carga;03/12/2026;07/12/2026;3;Wilson Collantes Aponte;0;5.6
+    5.9  Ajustes finales y estabilización;07/12/2026;10/12/2026;4;Wilson Collantes Aponte;0;5.8
+    5.10 Documentación final del proyecto;07/12/2026;10/12/2026;4;Hebert Cornejo Garcia;0;5.5
+    5.11 Grabación del video demostrativo;10/12/2026;11/12/2026;2;Alexis Morante Herrera;0;5.7
+    5.12 Preparación de la sustentación final;14/12/2026;16/12/2026;3;Hebert Cornejo Garcia;0;5.10
+    5.13 Ensayo general y entrega;17/12/2026;18/12/2026;2;Steven Febre Rivera;0;5.12
+★ APF0 — Propuesta y Backlog aprobados;04/09/2026;04/09/2026;0;;0;1.9
+★ APF1 — Mockups y Wireframes entregados;18/09/2026;18/09/2026;0;;0;2.9
+★ APF2 — Primera versión desplegada;16/10/2026;16/10/2026;0;;0;3.15
+★ APF3 — Integración continua y SLA definidos;13/11/2026;13/11/2026;0;;0;4.12
+★ PROY — Proyecto Final funcional;18/12/2026;18/12/2026;0;;0;5.13

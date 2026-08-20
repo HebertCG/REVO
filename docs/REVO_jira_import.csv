@@ -1,0 +1,750 @@
+﻿Issue ID,Parent ID,Issue Type,Summary,Description,Epic Name,Epic Link,Story Points,Priority,Status,Sprint,Assignee,Component,Labels,Labels,Labels
+1,,Epic,Gestión del Proyecto,"Planificación, documentación, ceremonias Scrum y cierre académico.",Gestión del Proyecto,,,Medium,To Do,,,,REVO,,
+2,,Epic,Diseño y Experiencia,"Sistema visual, prototipos, responsive y accesibilidad.",Diseño y Experiencia,,,Medium,To Do,,,,REVO,,
+3,,Epic,Autenticación y Cuentas,"Registro, sesión, JWT, bcrypt y control por roles.",Autenticación y Cuentas,,,Medium,To Do,,,,REVO,,
+4,,Epic,Cuestionario Adaptativo,"Motor de tres fases, banco de preguntas y cálculo de afinidad.",Cuestionario Adaptativo,,,Medium,To Do,,,,REVO,,
+5,,Epic,Motor de Machine Learning,"Dataset, entrenamiento, predicción y métricas honestas.",Motor de Machine Learning,,,Medium,To Do,,,,REVO,,
+6,,Epic,Resultados y Visualización,"Pantalla de resultado, gráficas, historial y estados de error.",Resultados y Visualización,,,Medium,To Do,,,,REVO,,
+7,,Epic,Panel Administrativo,Métricas del modelo y distribución de perfiles del alumnado.,Panel Administrativo,,,Medium,To Do,,,,REVO,,
+8,,Epic,Infraestructura y DevOps,"Contenedores, entornos, despliegue e integración continua.",Infraestructura y DevOps,,,Medium,To Do,,,,REVO,,
+9,,Epic,Gestión del Servicio,"Catálogo de servicios, SLA, incidentes y monitoreo (ITIL).",Gestión del Servicio,,,Medium,To Do,,,,REVO,,
+10,,Epic,Seguridad y Calidad,"Endurecimiento, control de tráfico y suite de pruebas.",Seguridad y Calidad,,,Medium,To Do,,,,REVO,,
+11,,Story,"Como equipo, queremos el documento de propuesta aprobado, para tener el alcance formalmente definido","Documento base del curso integrador. Mientras no esté aprobado no se puede comprometer alcance ni fechas.
+
+CRITERIOS DE ACEPTACIÓN
+1. El documento cubre problema, solución propuesta, alcance, Product Backlog y equipo con roles
+2. El caso de estudio está vinculado a los ODS 4 y 8 con justificación escrita
+3. El asesor registra la aprobación y queda versión 1.0 en el repositorio
+
+Identificador interno: HU-01",,Gestión del Proyecto,5,Highest,To Do,S1 Fundación (17/08-28/08),Hebert Cornejo Garcia,Documentación,REVO,documentacion,apf0
+12,,Story,"Como equipo, queremos el Product Backlog priorizado, para saber qué construir primero","El backlog ordena el trabajo por valor y riesgo, no por comodidad técnica.
+
+CRITERIOS DE ACEPTACIÓN
+1. Todo elemento tiene tipo, estimación en puntos, prioridad y épica
+2. Los elementos del primer sprint cumplen la Definición de Preparado
+3. El backlog está cargado en Jira y es visible para los cuatro integrantes
+
+Identificador interno: HU-02",,Gestión del Proyecto,3,Highest,To Do,S1 Fundación (17/08-28/08),Hebert Cornejo Garcia,Documentación,REVO,planificacion,apf0
+13,,Task,"Configurar el repositorio, el flujo de ramas y la convención de commits","Sin convención acordada el historial se vuelve inservible para auditar y para generar el changelog.
+
+CRITERIOS DE ACEPTACIÓN
+1. Ramas main protegida, develop de integración y feature/* por tarea
+2. Commits en formato convencional (feat, fix, refactor, docs, test, chore)
+3. .gitignore cubre .env, __pycache__, node_modules y artefactos de build
+
+Identificador interno: TK-01",,Infraestructura y DevOps,3,High,To Do,S1 Fundación (17/08-28/08),Steven Febre Rivera,Infraestructura,REVO,infraestructura,
+14,,Task,"Configurar el tablero de Jira con épicas, sprints y flujo de trabajo","El tablero es la fuente única de verdad del avance; el Gantt solo refleja el calendario.
+
+CRITERIOS DE ACEPTACIÓN
+1. Las 10 épicas creadas y los 9 sprints con fechas cargadas
+2. Flujo de estados: To Do, In Progress, In Review, Done
+3. Informe de burndown y de velocidad habilitados
+
+Identificador interno: TK-02",,Gestión del Proyecto,3,High,To Do,S1 Fundación (17/08-28/08),Steven Febre Rivera,Documentación,REVO,planificacion,
+15,,Task,Diseñar el modelo entidad-relación de la base de datos,"El modelo debe soportar sesiones por fases, respuestas por pregunta y trazabilidad de predicciones.
+
+CRITERIOS DE ACEPTACIÓN
+1. Diagrama ER con usuarios, especializaciones, preguntas, sesiones, respuestas y predicciones
+2. Claves foraneas e índices definidos sobre las columnas de consulta frecuente
+3. El modelo está revisado por el equipo antes de escribir DDL
+
+Identificador interno: TK-03",,Cuestionario Adaptativo,5,High,To Do,S1 Fundación (17/08-28/08),Wilson Collantes Aponte,Base de Datos,REVO,backend,base-datos
+16,,Task,Definir la arquitectura de microservicios y los contratos de API,"Tres servicios independientes (auth, survey, ml) obligan a fijar contratos antes de programar.
+
+CRITERIOS DE ACEPTACIÓN
+1. Diagrama de componentes con responsabilidades y puertos de cada servicio
+2. Contrato de cada endpoint: método, ruta, cuerpo, respuesta y códigos de error
+3. Decidido y documentado cómo se propaga la identidad entre servicios
+
+Identificador interno: TK-04",,Infraestructura y DevOps,5,High,To Do,S1 Fundación (17/08-28/08),Wilson Collantes Aponte,Backend,REVO,backend,arquitectura
+17,,Task,"Definir la política de versionado semántico, CHANGELOG y flujo de publicación","Sin política de versiones no se puede decir que se desplego ni volver atrás con criterio.
+
+CRITERIOS DE ACEPTACIÓN
+1. Versionado MAJOR.MINOR.PATCH con criterio escrito para cada incremento
+2. CHANGELOG.md por versión con secciones de añadido, corregido y cambiado
+3. Cada publicación queda con etiqueta anotada en Git
+
+Identificador interno: TK-38",,Gestión del Proyecto,3,Medium,To Do,S1 Fundación (17/08-28/08),Steven Febre Rivera,Infraestructura,REVO,infraestructura,versionado
+18,,Task,Investigar referentes visuales y fijar la dirección de arte,"El público objetivo es joven-adulto universitario. La dirección tiene que decidirse, no salir por defecto.
+
+CRITERIOS DE ACEPTACIÓN
+1. Al menos cinco referentes reales analizados y documentados
+2. Dirección elegida con justificación escrita frente a las descartadas
+3. Paleta preliminar validada en contraste sobre fondo claro y oscuro
+
+Identificador interno: TK-39",,Diseño y Experiencia,3,Medium,To Do,S1 Fundación (17/08-28/08),Alexis Morante Herrera,Frontend,REVO,ux,diseno
+19,,Task,Elaborar la matriz de riesgos del proyecto,"Riesgos conocidos: dataset sintético, disponibilidad del equipo, dependencia de un único despliegue gratuito.
+
+CRITERIOS DE ACEPTACIÓN
+1. Cada riesgo con probabilidad, impacto, responsable y plan de mitigación
+2. Los riesgos de severidad alta tienen tarea asociada en el backlog
+3. La matriz se revisa en cada retrospectiva
+
+Identificador interno: TK-51",,Gestión del Proyecto,3,Medium,To Do,S1 Fundación (17/08-28/08),Hebert Cornejo Garcia,Documentación,REVO,planificacion,riesgos
+20,,Task,Acordar las ceremonias Scrum y el plan de comunicación del equipo,"Cuatro estudiantes con horarios distintos: las ceremonias se agendan o no ocurren.
+
+CRITERIOS DE ACEPTACIÓN
+1. Planificación, revisión y retrospectiva agendadas para los nueve sprints
+2. Daily asíncrona con formato y hora límite acordados
+3. Canal único de decisiones y responsable de registrarlas
+
+Identificador interno: TK-52",,Gestión del Proyecto,2,Medium,To Do,S1 Fundación (17/08-28/08),Steven Febre Rivera,Documentación,REVO,planificacion,
+21,,Task,Definir la arquitectura de componentes y los tokens de diseño del frontend,"Fijar la estructura de carpetas y las variables CSS antes de maquetar evita reescribir estilos después.
+
+CRITERIOS DE ACEPTACIÓN
+1. Estructura por dominio: pages, components, hooks, services, theme
+2. Tokens de color, tipografía y espaciado declarados como variables CSS
+3. Definido el criterio de cuándo un estilo es global y cuando es de componente
+
+Identificador interno: TK-53",,Diseño y Experiencia,5,Medium,To Do,S1 Fundación (17/08-28/08),Alexis Morante Herrera,Frontend,REVO,frontend,ux
+22,,Story,"Como equipo, queremos un sistema visual con paleta y tipografía definidas, para mantener coherencia en toda la aplicación","Diez especializaciones necesitan identidad cromática distinguible sin romper el contraste.
+
+CRITERIOS DE ACEPTACIÓN
+1. Paleta con rol semántico definido para cada color, no solo decorativo
+2. Contraste mínimo AA (4.5:1) verificado en texto y 3:1 en elementos de interfaz
+3. Escala tipográfica y de espaciado publicadas como tokens reutilizables
+
+Identificador interno: HU-03",,Diseño y Experiencia,5,High,To Do,S2 Diseño y sistema visual (31/08-11/09),Alexis Morante Herrera,Frontend,REVO,ux,diseno
+23,,Story,"Como equipo, queremos prototipos de todas las pantallas, para validar el flujo antes de programar","Prototipar es más barato que rehacer. Incluye los estados vacio, cargando y error, que suelen olvidarse.
+
+CRITERIOS DE ACEPTACIÓN
+1. Prototipos de landing, autenticación, dashboard, cuestionario, resultados, historial y panel admin
+2. Cada pantalla resuelta en móvil, tablet y escritorio
+3. Estados vacio, cargando y error contemplados en cada pantalla
+4. El flujo completo recorrido por una persona ajena al equipo sin ayuda
+
+Identificador interno: HU-04",,Diseño y Experiencia,8,High,To Do,S2 Diseño y sistema visual (31/08-11/09),Alexis Morante Herrera,Frontend,REVO,ux,diseno
+24,23,Sub-task,Prototipar el flujo público: landing y autenticación,Sub-tarea de HU-04.,,,,High,To Do,S2 Diseño y sistema visual (31/08-11/09),Alexis Morante Herrera,Frontend,REVO,ux,
+25,23,Sub-task,"Prototipar el flujo del estudiante: dashboard, cuestionario, resultados e historial",Sub-tarea de HU-04.,,,,High,To Do,S2 Diseño y sistema visual (31/08-11/09),Alexis Morante Herrera,Frontend,REVO,ux,
+26,23,Sub-task,Prototipar el panel administrativo y los estados de error,Sub-tarea de HU-04.,,,,High,To Do,S2 Diseño y sistema visual (31/08-11/09),Alexis Morante Herrera,Frontend,REVO,ux,
+27,23,Sub-task,Derivar cada pantalla a las tres anchuras de referencia,Sub-tarea de HU-04.,,,,High,To Do,S2 Diseño y sistema visual (31/08-11/09),Alexis Morante Herrera,Frontend,REVO,ux,
+28,,Story,"Como responsable del servicio, quiero un catálogo de servicios con SLA definidos, para establecer compromisos medibles","Componente ITIL del curso. Un SLA sin métrica asociada no es un compromiso, es una intención.
+
+CRITERIOS DE ACEPTACIÓN
+1. Catálogo con cada servicio, su responsable y su horario de atención
+2. SLA con disponibilidad objetivo, tiempo de respuesta y ventana de mantenimiento
+3. Cada compromiso tiene definida la fuente de datos que lo mide
+
+Identificador interno: HU-20",,Gestión del Servicio,5,High,To Do,S2 Diseño y sistema visual (31/08-11/09),Hebert Cornejo Garcia,Documentación,REVO,itil,documentacion
+29,,Task,Validar contraste y accesibilidad de los prototipos,"Se valida en prototipo porque corregir contraste con la interfaz ya construida cuesta el triple.
+
+CRITERIOS DE ACEPTACIÓN
+1. Todos los pares texto-fondo cumplen WCAG AA
+2. Ningún estado depende solo del color para comunicarse
+3. Orden de foco y navegación por teclado definidos en el prototipo
+
+Identificador interno: TK-07",,Diseño y Experiencia,3,Medium,To Do,S2 Diseño y sistema visual (31/08-11/09),Steven Febre Rivera,Frontend,REVO,accesibilidad,ux
+30,,Task,Inicializar el proyecto React con Vite y la estructura de carpetas,"Base técnica del frontend acordada en TK-53.
+
+CRITERIOS DE ACEPTACIÓN
+1. El proyecto arranca en local con un solo comando
+2. Enrutado, cliente HTTP y contexto de sesión configurados
+3. Linter y formateador activos con la configuración del equipo
+
+Identificador interno: TK-08",,Infraestructura y DevOps,3,High,To Do,S2 Diseño y sistema visual (31/08-11/09),Wilson Collantes Aponte,Frontend,REVO,frontend,infraestructura
+31,,Task,Definir el procedimiento de gestión de cambios,"Todo cambio en producción pasa por solicitud, evaluación de impacto y aprobación.
+
+CRITERIOS DE ACEPTACIÓN
+1. Plantilla de solicitud de cambio con impacto y plan de reversión
+2. Criterio para distinguir cambio estandar, normal y de emergencia
+3. Registro de cambios con responsable y resultado
+
+Identificador interno: TK-26",,Gestión del Servicio,3,Medium,To Do,S2 Diseño y sistema visual (31/08-11/09),Hebert Cornejo Garcia,Documentación,REVO,itil,documentacion
+32,,Task,Dejar el entorno local reproducible con Docker Compose,"Cuatro máquinas distintas: el entorno tiene que levantarse igual en todas.
+
+CRITERIOS DE ACEPTACIÓN
+1. Un solo comando levanta base de datos y los tres servicios
+2. Los datos de la base persisten entre reinicios mediante volumen
+3. Ningún secreto con valor por defecto dentro del compose
+
+Identificador interno: TK-40",,Infraestructura y DevOps,5,High,To Do,S2 Diseño y sistema visual (31/08-11/09),Steven Febre Rivera,Infraestructura,REVO,infraestructura,devops
+33,,Task,Acordar la Definición de Preparado y la Definición de Terminado,"Sin DoD escrita cada integrante cierra tareas con un criterio distinto.
+
+CRITERIOS DE ACEPTACIÓN
+1. DoR: historia con criterios de aceptación, estimada y sin dependencias abiertas
+2. DoD: código revisado por un par, con pruebas, sin secretos y desplegado en el entorno de pruebas
+3. Ambas publicadas en el tablero y aceptadas por los cuatro integrantes
+
+Identificador interno: TK-41",,Gestión del Proyecto,2,Medium,To Do,S2 Diseño y sistema visual (31/08-11/09),Hebert Cornejo Garcia,Documentación,REVO,planificacion,
+34,,Task,Implementar el esqueleto del servicio de autenticación,"Servicio vacio pero desplegable: valida configuración, conecta a la base y responde salud.
+
+CRITERIOS DE ACEPTACIÓN
+1. Endpoint de salud que verifica la conexión a base de datos
+2. La configuración se lee de variables de entorno y falla al arrancar si falta alguna obligatoria
+3. Estructura de routers, esquemas y modelos creada
+
+Identificador interno: TK-54",,Autenticación y Cuentas,5,High,To Do,S2 Diseño y sistema visual (31/08-11/09),Wilson Collantes Aponte,Backend,REVO,backend,
+35,,Story,"Como estudiante, quiero registrarme con mi correo institucional, para crear mi cuenta","El correo institucional es lo que garantiza que quien responde pertenece a la carrera.
+
+CRITERIOS DE ACEPTACIÓN
+1. Se valida formato de correo, dominio institucional y código de estudiante
+2. El correo y el código se normalizan antes de guardar para evitar duplicados por mayusculas
+3. La contraseña se almacena con bcrypt, nunca en claro ni con hash reversible
+4. Un correo ya registrado devuelve error claro sin revelar si la cuenta existe
+
+Identificador interno: HU-05",,Autenticación y Cuentas,5,Highest,To Do,S3 Cuentas y datos (14/09-25/09),Wilson Collantes Aponte,Backend,REVO,backend,autenticacion
+36,,Story,"Como estudiante, quiero iniciar sesión de forma segura, para acceder a mis evaluaciones","El token es la única prueba de identidad que los otros dos servicios reciben.
+
+CRITERIOS DE ACEPTACIÓN
+1. Credenciales validas devuelven un JWT firmado con expiración definida
+2. Credenciales inválidas devuelven el mismo mensaje sin distinguir usuario de contraseña
+3. El secreto de firma se lee de variable de entorno y no tiene valor por defecto
+4. Los tres servicios validan el token con el mismo secreto y algoritmo
+
+Identificador interno: HU-06",,Autenticación y Cuentas,5,Highest,To Do,S3 Cuentas y datos (14/09-25/09),Wilson Collantes Aponte,Backend,REVO,backend,autenticacion
+37,,Story,"Como administrador, quiero que el acceso se restrinja segun mi rol, para proteger la información sensible","Ocultar un botón en el frontend no es control de acceso; la restricción tiene que estar en la API.
+
+CRITERIOS DE ACEPTACIÓN
+1. Cada endpoint sensible exige rol de administrador en el servidor
+2. Un estudiante que llama a un endpoint de administrador recibe 403
+3. El identificador de usuario se toma del token, nunca del cuerpo de la petición
+4. Existe prueba automatizada que verifica el rechazo por rol
+
+Identificador interno: HU-07",,Autenticación y Cuentas,5,High,To Do,S3 Cuentas y datos (14/09-25/09),Steven Febre Rivera,Backend,REVO,seguridad,autenticacion
+38,,Task,Crear el esquema fisico de la base de datos con sus índices,"Materializa el modelo de TK-03 en DDL versionado.
+
+CRITERIOS DE ACEPTACIÓN
+1. Scripts DDL versionados y ejecutables en orden desde cero
+2. Índices sobre las columnas usadas en filtros y uniones
+3. Restricciones de integridad referencial activas
+
+Identificador interno: TK-09",,Cuestionario Adaptativo,5,Highest,To Do,S3 Cuentas y datos (14/09-25/09),Wilson Collantes Aponte,Base de Datos,REVO,base-datos,backend
+39,,Task,Elaborar el banco de 100 preguntas del cuestionario,"Diez preguntas por especialización repartidas en cuatro categorías: académico, habilidades, intereses y personalidad.
+
+CRITERIOS DE ACEPTACIÓN
+1. 100 preguntas cargadas, 10 por especialización
+2. Cada pregunta asociada a su especialización y a su categoría
+3. Redacción revisada por un integrante distinto al que la escribió
+4. Escala Likert de 1 a 5 con anclas verbales definidas
+
+Identificador interno: TK-10",,Cuestionario Adaptativo,8,High,To Do,S3 Cuentas y datos (14/09-25/09),Hebert Cornejo Garcia,Base de Datos,REVO,contenido,cuestionario
+40,39,Sub-task,Redactar los 30 items de intereses,Sub-tarea de TK-10.,,,,High,To Do,S3 Cuentas y datos (14/09-25/09),Hebert Cornejo Garcia,Base de Datos,REVO,contenido,
+41,39,Sub-task,Redactar los 30 items de habilidades,Sub-tarea de TK-10.,,,,High,To Do,S3 Cuentas y datos (14/09-25/09),Hebert Cornejo Garcia,Base de Datos,REVO,contenido,
+42,39,Sub-task,Redactar los 20 items de personalidad,Sub-tarea de TK-10.,,,,High,To Do,S3 Cuentas y datos (14/09-25/09),Hebert Cornejo Garcia,Base de Datos,REVO,contenido,
+43,39,Sub-task,Redactar los 20 items académicos y cargar el seed,Sub-tarea de TK-10.,,,,High,To Do,S3 Cuentas y datos (14/09-25/09),Hebert Cornejo Garcia,Base de Datos,REVO,contenido,
+44,,Task,Construir las pantallas de registro e inicio de sesión con validación de campos,"Primera pantalla que ve el usuario. La validación tiene que ser inmediata y comprensible.
+
+CRITERIOS DE ACEPTACIÓN
+1. Validación en cliente de correo, contraseña y código antes de enviar
+2. Mensajes de error específicos por campo, no un aviso genérico
+3. La pantalla ocupa el alto completo y responde en móvil, tablet y escritorio
+4. El envio se bloquea mientras hay una petición en curso
+
+Identificador interno: TK-42",,Diseño y Experiencia,8,High,To Do,S3 Cuentas y datos (14/09-25/09),Alexis Morante Herrera,Frontend,REVO,frontend,ux
+45,44,Sub-task,Maquetar el formulario de inicio de sesión con sus estados,Sub-tarea de TK-42.,,,,High,To Do,S3 Cuentas y datos (14/09-25/09),Alexis Morante Herrera,Frontend,REVO,frontend,
+46,44,Sub-task,Maquetar el formulario de registro con validación por campo,Sub-tarea de TK-42.,,,,High,To Do,S3 Cuentas y datos (14/09-25/09),Alexis Morante Herrera,Frontend,REVO,frontend,
+47,44,Sub-task,Conectar ambos con el servicio de autenticación y manejar los errores,Sub-tarea de TK-42.,,,,High,To Do,S3 Cuentas y datos (14/09-25/09),Alexis Morante Herrera,Frontend,REVO,frontend,
+48,,Task,Sacar todos los secretos del código y gestionarlos por variables de entorno,"Un secreto con valor por defecto en el código termina siendo el secreto de producción.
+
+CRITERIOS DE ACEPTACIÓN
+1. Ninguna clave, contraseña ni cadena de conexión literal en el repositorio
+2. Las variables obligatorias no tienen valor por defecto: el servicio falla al arrancar si faltan
+3. .env.example documenta cada variable sin exponer valores reales
+
+Identificador interno: TK-43",,Seguridad y Calidad,3,High,To Do,S3 Cuentas y datos (14/09-25/09),Steven Febre Rivera,Backend,REVO,seguridad,
+49,,Task,Evaluar seguridad a nivel de fila y registrar la decisión en un ADR,"Los tres servicios comparten un único usuario de base de datos que además es dueno de las tablas. Hay que decidir con argumentos si RLS aporta o solo da falsa sensación de protección.
+
+CRITERIOS DE ACEPTACIÓN
+1. El ADR expone el contexto, las alternativas evaluadas y la decisión tomada
+2. Si se descarta RLS, queda escrito qué control lo sustituye y cómo se verifica
+3. La decisión está fechada y firmada por el equipo
+
+Identificador interno: TK-45",,Seguridad y Calidad,3,Medium,To Do,S3 Cuentas y datos (14/09-25/09),Steven Febre Rivera,Base de Datos,REVO,seguridad,arquitectura
+50,,Story,"Como estudiante, quiero responder una primera fase que cubra las 10 especializaciones, para que el sistema detecte mis tres areas de mayor afinidad","Diez preguntas, una por rama. Es la calibración que decide qué se pregunta después.
+
+CRITERIOS DE ACEPTACIÓN
+1. La fase 1 sirve exactamente 10 preguntas, una por especialización
+2. Al cerrarla se calculan las afinidades y se identifican las tres mayores
+3. El cálculo se resuelve en una consulta agregada, no una por especialización
+4. El avance se guarda: si el estudiante recarga, retoma donde estaba
+
+Identificador interno: HU-08",,Cuestionario Adaptativo,8,Highest,To Do,S4 Motor adaptativo (28/09-09/10),Wilson Collantes Aponte,Backend,REVO,backend,cuestionario
+51,50,Sub-task,Implementar la selección de preguntas de la fase 1,Sub-tarea de HU-08.,,,,Highest,To Do,S4 Motor adaptativo (28/09-09/10),Wilson Collantes Aponte,Backend,REVO,backend,
+52,50,Sub-task,Implementar el cálculo agregado de afinidad por especialización,Sub-tarea de HU-08.,,,,Highest,To Do,S4 Motor adaptativo (28/09-09/10),Wilson Collantes Aponte,Backend,REVO,backend,
+53,50,Sub-task,Persistir el estado de la sesión y permitir retomarla,Sub-tarea de HU-08.,,,,Highest,To Do,S4 Motor adaptativo (28/09-09/10),Wilson Collantes Aponte,Backend,REVO,backend,
+54,,Story,"Como estudiante, quiero que la segunda fase profundice solo en mis tres areas principales, para no responder preguntas irrelevantes","Aquí está el valor diferencial: el test se adapta en lugar de servir siempre las mismas 100 preguntas.
+
+CRITERIOS DE ACEPTACIÓN
+1. La fase 2 sirve 15 preguntas, 5 de cada una de las tres areas detectadas
+2. Nunca repite una pregunta ya respondida en la fase 1
+3. Si dos afinidades empatan, el criterio de desempate esta definido y es reproducible
+4. Las respuestas de la fase 2 pesan más que las de la fase 1 en el cálculo final
+
+Identificador interno: HU-09",,Cuestionario Adaptativo,8,Highest,To Do,S4 Motor adaptativo (28/09-09/10),Wilson Collantes Aponte,Backend,REVO,backend,cuestionario
+55,54,Sub-task,Implementar la selección condicionada por las tres areas detectadas,Sub-tarea de HU-09.,,,,Highest,To Do,S4 Motor adaptativo (28/09-09/10),Wilson Collantes Aponte,Backend,REVO,backend,
+56,54,Sub-task,Definir y probar el criterio de desempate,Sub-tarea de HU-09.,,,,Highest,To Do,S4 Motor adaptativo (28/09-09/10),Wilson Collantes Aponte,Backend,REVO,backend,
+57,54,Sub-task,Implementar la ponderación de fase 2 sobre fase 1,Sub-tarea de HU-09.,,,,Highest,To Do,S4 Motor adaptativo (28/09-09/10),Wilson Collantes Aponte,Backend,REVO,backend,
+58,,Story,"Como sistema, necesito entrenar un modelo con el conjunto de datos, para poder generar recomendaciones","Regresión logistica multinomial con class_weight balanceado. El modelo se serializa y se carga una sola vez en memoria.
+
+CRITERIOS DE ACEPTACIÓN
+1. El entrenamiento produce un modelo serializado y reproducible con semilla fija
+2. Se reportan exactitud, F1 macro y matriz de confusión sobre un conjunto de prueba separado
+3. Se reporta además la exactitud de una línea base trivial y la diferencia entre ambas
+4. El modelo se carga en memoria una vez, no en cada petición
+
+Identificador interno: HU-10",,Motor de Machine Learning,8,Highest,To Do,S4 Motor adaptativo (28/09-09/10),Hebert Cornejo Garcia,ML,REVO,ml,
+59,58,Sub-task,Preparar el conjunto de datos y la partición de entrenamiento y prueba,Sub-tarea de HU-10.,,,,Highest,To Do,S4 Motor adaptativo (28/09-09/10),Hebert Cornejo Garcia,ML,REVO,ml,
+60,58,Sub-task,"Entrenar, serializar y versionar el modelo",Sub-tarea de HU-10.,,,,Highest,To Do,S4 Motor adaptativo (28/09-09/10),Hebert Cornejo Garcia,ML,REVO,ml,
+61,58,Sub-task,Instrumentar las métricas incluida la línea base,Sub-tarea de HU-10.,,,,Highest,To Do,S4 Motor adaptativo (28/09-09/10),Hebert Cornejo Garcia,ML,REVO,ml,
+62,,Story,"Como estudiante, quiero recibir mi recomendación al terminar el cuestionario, para conocer mi especialización sugerida","Cierre del flujo. La predicción debe atribuirse al usuario del token, no al que venga en el cuerpo.
+
+CRITERIOS DE ACEPTACIÓN
+1. Al cerrar la fase 3 se genera la predicción y se persiste asociada a la sesión
+2. El usuario de la predicción se toma del token: un usuario no puede predecir por otro
+3. La respuesta incluye la especialización sugerida y el nivel de confianza
+4. La predicción responde en menos de 500 ms
+
+Identificador interno: HU-11",,Motor de Machine Learning,5,Highest,To Do,S4 Motor adaptativo (28/09-09/10),Hebert Cornejo Garcia,ML,REVO,ml,backend
+63,,Task,Construir la pantalla del cuestionario con navegación entre fases,"Veinticinco preguntas seguidas cansan. La interfaz tiene que sostener la atención sin distraer.
+
+CRITERIOS DE ACEPTACIÓN
+1. Una pregunta visible a la vez, con avance explícito y sin desplazamiento vertical
+2. El botón de avanzar permanece deshabilitado mientras no haya respuesta
+3. El progreso muestra fase actual y posición dentro de la fase
+4. Las animaciones respetan la preferencia de movimiento reducido del sistema
+
+Identificador interno: TK-11",,Diseño y Experiencia,8,High,To Do,S4 Motor adaptativo (28/09-09/10),Alexis Morante Herrera,Frontend,REVO,frontend,ux
+64,63,Sub-task,Maquetar la carta de pregunta y la escala de respuesta,Sub-tarea de TK-11.,,,,High,To Do,S4 Motor adaptativo (28/09-09/10),Alexis Morante Herrera,Frontend,REVO,frontend,
+65,63,Sub-task,Implementar la navegación entre preguntas y entre fases,Sub-tarea de TK-11.,,,,High,To Do,S4 Motor adaptativo (28/09-09/10),Alexis Morante Herrera,Frontend,REVO,frontend,
+66,63,Sub-task,Implementar el indicador de progreso y los estados de carga,Sub-tarea de TK-11.,,,,High,To Do,S4 Motor adaptativo (28/09-09/10),Alexis Morante Herrera,Frontend,REVO,frontend,
+67,,Task,Contenerizar los servicios y publicar la primera versión en un entorno de pruebas,"Primer despliegue real. Sirve para descubrir lo que solo falla fuera de local.
+
+CRITERIOS DE ACEPTACIÓN
+1. Cada servicio tiene su imagen y arranca con la configuración inyectada por entorno
+2. El frontend consume la API desplegada, no localhost
+3. El entorno de pruebas es accesible por los cuatro integrantes
+
+Identificador interno: TK-14",,Infraestructura y DevOps,5,High,To Do,S4 Motor adaptativo (28/09-09/10),Steven Febre Rivera,Infraestructura,REVO,devops,infraestructura
+68,,Story,"Como estudiante, quiero ver mi resultado con gráficas comparativas, para entender mi perfil de forma visual","El resultado es la pantalla que justifica todo el recorrido. Tiene que leerse en segundos.
+
+CRITERIOS DE ACEPTACIÓN
+1. La especialización recomendada es el elemento dominante de la pantalla
+2. Se muestran las afinidades comparadas de las diez especializaciones
+3. Ninguna gráfica depende solo del color para distinguir series
+4. La pantalla es legible en móvil sin desplazamiento horizontal
+
+Identificador interno: HU-12",,Resultados y Visualización,8,High,To Do,S5 Resultados y despliegue (12/10-23/10),Alexis Morante Herrera,Frontend,REVO,frontend,ux
+69,68,Sub-task,Maquetar el bloque de resultado principal,Sub-tarea de HU-12.,,,,High,To Do,S5 Resultados y despliegue (12/10-23/10),Alexis Morante Herrera,Frontend,REVO,frontend,
+70,68,Sub-task,Integrar las gráficas de afinidad y de comparación,Sub-tarea de HU-12.,,,,High,To Do,S5 Resultados y despliegue (12/10-23/10),Alexis Morante Herrera,Frontend,REVO,frontend,
+71,68,Sub-task,"Resolver los estados de carga, error y resultado ambiguo",Sub-tarea de HU-12.,,,,High,To Do,S5 Resultados y despliegue (12/10-23/10),Alexis Morante Herrera,Frontend,REVO,frontend,
+72,,Story,"Como administrador, quiero ver la distribución de perfiles del alumnado, para orientar la oferta académica","Es el dato que convierte a REVO en información institucional y no solo en un test individual.
+
+CRITERIOS DE ACEPTACIÓN
+1. El panel muestra cuantos estudiantes cayeron en cada especialización
+2. Los datos se obtienen con consultas agregadas, sin traer todas las filas al servicio
+3. El endpoint exige rol de administrador
+
+Identificador interno: HU-14",,Panel Administrativo,5,Medium,To Do,S5 Resultados y despliegue (12/10-23/10),Steven Febre Rivera,Frontend,REVO,frontend,admin
+73,,Story,"Como administrador, quiero ver las métricas de desempeno del modelo, para evaluar su confiabilidad","Mostrar solo la exactitud invita a leer mal el resultado. Hay que mostrarla contra una referencia.
+
+CRITERIOS DE ACEPTACIÓN
+1. Se muestran exactitud, F1 macro y número de muestras de entrenamiento
+2. Se muestra la exactitud de la línea base y la diferencia respecto del modelo
+3. Cada métrica tiene una explicación breve para un lector no técnico
+4. El endpoint exige rol de administrador
+
+Identificador interno: HU-15",,Panel Administrativo,5,Medium,To Do,S5 Resultados y despliegue (12/10-23/10),Hebert Cornejo Garcia,ML,REVO,ml,admin
+74,,Story,"Como estudiante, quiero una tercera fase de situaciones reales, para que el sistema identifique cómo trabajo y no solo qué me interesa","Cuatro escenarios de elección múltiple que derivan en un arquetipo profesional.
+
+CRITERIOS DE ACEPTACIÓN
+1. La fase 3 sirve 4 preguntas de escenario con cuatro opciones cada una
+2. Las respuestas determinan el arquetipo mediante una regla documentada
+3. Si la fuente de preguntas falla, existe un juego de respaldo y el flujo no se rompe
+4. El arquetipo se persiste junto con la sesión
+
+Identificador interno: HU-26",,Cuestionario Adaptativo,5,High,To Do,S5 Resultados y despliegue (12/10-23/10),Wilson Collantes Aponte,Backend,REVO,backend,cuestionario
+75,,Task,Rediseñar la pantalla de resultados con el sistema visual definitivo,"Alinear la pantalla construida con los tokens y la jerarquía acordados.
+
+CRITERIOS DE ACEPTACIÓN
+1. La pantalla usa exclusivamente los tokens del sistema visual
+2. La jerarquía visual coloca el resultado por encima de las métricas secundarias
+3. Verificada en las anchuras de 320, 768, 1024 y 1440 píxeles
+
+Identificador interno: TK-12",,Diseño y Experiencia,5,High,To Do,S5 Resultados y despliegue (12/10-23/10),Alexis Morante Herrera,Frontend,REVO,frontend,ux
+76,,Task,Rediseñar el panel administrativo con el sistema visual definitivo,"El panel es la pantalla que ve el jurado. Hoy no comparte lenguaje visual con el resto.
+
+CRITERIOS DE ACEPTACIÓN
+1. El panel usa los tokens del sistema visual
+2. Las métricas del modelo se presentan agrupadas y jerarquizadas
+3. Verificado en escritorio y tablet
+
+Identificador interno: TK-13",,Diseño y Experiencia,5,Medium,To Do,S5 Resultados y despliegue (12/10-23/10),Steven Febre Rivera,Frontend,REVO,frontend,admin
+77,,Task,Acotar la política de CORS: hoy acepta cualquier subdominio del proveedor con credenciales,"Un patrón abierto permite que un despliegue ajeno del mismo proveedor llame a la API con las cookies del usuario.
+
+CRITERIOS DE ACEPTACIÓN
+1. Solo los origenes propios del proyecto quedan permitidos
+2. Los métodos y cabeceras permitidos se declaran de forma explícita
+3. Verificado que un origen no listado recibe rechazo
+
+Identificador interno: TK-15",,Seguridad y Calidad,2,Highest,To Do,S5 Resultados y despliegue (12/10-23/10),Steven Febre Rivera,Backend,REVO,seguridad,
+78,,Task,Dejar de devolver detalles internos de excepción al cliente,"Los mensajes de excepción filtran nombres de tabla, rutas y versión del motor de base de datos.
+
+CRITERIOS DE ACEPTACIÓN
+1. Las respuestas de error devuelven un mensaje genérico y un identificador de correlación
+2. El detalle completo queda solo en el registro del servidor
+3. Ninguna respuesta expone rutas, nombres de tabla ni trazas
+
+Identificador interno: TK-17",,Seguridad y Calidad,2,High,To Do,S5 Resultados y despliegue (12/10-23/10),Wilson Collantes Aponte,Backend,REVO,seguridad,
+79,,Task,Implementar y probar el respaldo y la restauración de la base de datos,"Un respaldo que nunca se restauró no es un respaldo.
+
+CRITERIOS DE ACEPTACIÓN
+1. Procedimiento de respaldo automatizado y documentado
+2. Restauración probada al menos una vez sobre un entorno limpio
+3. Definida la frecuencia y el período de retención
+
+Identificador interno: TK-46",,Gestión del Servicio,3,Medium,To Do,S5 Resultados y despliegue (12/10-23/10),Steven Febre Rivera,Base de Datos,REVO,itil,base-datos
+80,,Task,Corregir el generador de datos sintéticos para que represente perfiles indecisos,"La distribución actual es bimodal y no tiene zona media: el modelo nunca vio a una persona dudando entre dos ramas, que es el caso más frecuente en la realidad.
+
+CRITERIOS DE ACEPTACIÓN
+1. La distribución generada incluye perfiles con margen estrecho entre las dos primeras opciones
+2. Se documenta la distribución objetivo y por qué se eligió
+3. Se reentrena y se compara el desempeno antes y después del cambio
+
+Identificador interno: TK-48",,Motor de Machine Learning,5,High,To Do,S5 Resultados y despliegue (12/10-23/10),Hebert Cornejo Garcia,ML,REVO,ml,dataset
+81,,Bug,El despliegue no arranca: la configuración declara SECRET_KEY pero el código lee JWT_SECRET,"Además la generación automática daría un valor distinto a cada servicio, con lo que los tokens emitidos por uno no validarían en los otros.
+
+CRITERIOS DE ACEPTACIÓN
+1. El nombre de la variable coincide entre configuración y código
+2. Los tres servicios comparten el mismo valor de secreto
+3. Verificado que un token emitido por auth valida en survey y en ml
+
+Identificador interno: BUG-01",,Infraestructura y DevOps,3,Highest,To Do,S6 Endurecimiento (26/10-06/11),Steven Febre Rivera,Infraestructura,REVO,seguridad,devops
+82,,Bug,Rotar el secreto de firma que quedó expuesto en el historial del repositorio,"El valor está en commits antiguos. Cambiarlo en el archivo actual no lo invalida: sigue siendo recuperable del historial.
+
+CRITERIOS DE ACEPTACIÓN
+1. Nuevo secreto generado con entropía suficiente y cargado solo por variable de entorno
+2. El secreto anterior queda invalidado en todos los entornos
+3. Registrado en el ADR que el valor antiguo debe considerarse comprometido de forma permanente
+4. Los tokens emitidos con el secreto antiguo dejan de validar
+
+Identificador interno: BUG-02",,Seguridad y Calidad,5,Highest,To Do,S6 Endurecimiento (26/10-06/11),Steven Febre Rivera,Backend,REVO,seguridad,incidente
+83,,Story,"Como estudiante, quiero consultar el historial de mis evaluaciones, para ver cómo evoluciona mi perfil","El valor del historial aparece a partir de la tercera evaluación. Con una sola, una gráfica de evolución miente.
+
+CRITERIOS DE ACEPTACIÓN
+1. Se listan las evaluaciones anteriores con fecha y especialización resultante
+2. La forma de presentación se adapta al número de registros disponibles
+3. Con una sola evaluación no se muestra gráfica de evolución
+4. Existe estado vacio explícito cuando no hay evaluaciones
+
+Identificador interno: HU-13",,Resultados y Visualización,5,Medium,To Do,S6 Endurecimiento (26/10-06/11),Alexis Morante Herrera,Frontend,REVO,frontend,ux
+84,,Story,"Como responsable de seguridad, quiero una auditoría del sistema, para corregir vulnerabilidades antes de la puesta en operación","Revisión sistemática sobre inyección, control de acceso, exposición de datos y configuración.
+
+CRITERIOS DE ACEPTACIÓN
+1. Revisados los diez puntos del OWASP Top 10 con evidencia por cada uno
+2. Cada hallazgo queda registrado con severidad y tarea de corrección asociada
+3. Los hallazgos críticos se corrigen dentro del mismo sprint
+
+Identificador interno: HU-16",,Seguridad y Calidad,5,Highest,To Do,S6 Endurecimiento (26/10-06/11),Steven Febre Rivera,Backend,REVO,seguridad,
+85,,Story,"Como equipo, queremos integración continua, para validar cada cambio automáticamente","Sin CI la calidad depende de que alguien se acuerde de ejecutar las pruebas.
+
+CRITERIOS DE ACEPTACIÓN
+1. Cada envio a una rama ejecuta linters y pruebas automáticamente
+2. Una rama con pruebas en rojo no puede fusionarse a main
+3. El resultado del pipeline es visible desde el repositorio
+
+Identificador interno: HU-18",,Infraestructura y DevOps,5,High,To Do,S6 Endurecimiento (26/10-06/11),Steven Febre Rivera,Infraestructura,REVO,devops,calidad
+86,,Story,"Como equipo, queremos neutralizar la redacción del banco de preguntas, para que el instrumento pueda validarse psicométricamente","Los 100 items usan superlativos que empujan la respuesta y comparten plantilla dentro de cada categoría. Medir la consistencia interna antes de corregirlo daría un coeficiente alto por parecido de redacción, no por calidad de medida.
+
+CRITERIOS DE ACEPTACIÓN
+1. Se eliminan los superlativos y los adverbios que inducen la respuesta
+2. Los items de una misma categoría dejan de compartir plantilla literal
+3. Cada categoría declara qué constructo mide realmente
+4. El banco corregido queda versionado y revisado por dos integrantes
+
+Identificador interno: HU-28",,Motor de Machine Learning,5,High,To Do,S6 Endurecimiento (26/10-06/11),Hebert Cornejo Garcia,Base de Datos,REVO,ml,contenido
+87,,Task,Limitar el tamano del lote de respuestas y del cuerpo de las peticiones,"Sin límite, una petición con miles de elementos consume memoria y tiempo de base sin necesidad de un ataque sofisticado.
+
+CRITERIOS DE ACEPTACIÓN
+1. El lote de respuestas tiene un máximo declarado en el esquema de validación
+2. Superar el límite devuelve 422 con mensaje claro
+3. El tamano máximo de cuerpo esta limitado a nivel de aplicación
+
+Identificador interno: TK-16",,Seguridad y Calidad,3,High,To Do,S6 Endurecimiento (26/10-06/11),Wilson Collantes Aponte,Backend,REVO,seguridad,
+88,,Task,Configurar los límites del grupo de conexiones a base de datos,"Con el grupo sin techo, una ráfaga de peticiones agota las conexiones del motor y tumba los tres servicios.
+
+CRITERIOS DE ACEPTACIÓN
+1. Tamano de grupo, desbordamiento máximo y tiempo de espera configurados en cada servicio
+2. Los valores se justifican contra el máximo de conexiones del motor
+3. Verificado bajo carga que el servicio degrada con error controlado en vez de colgarse
+
+Identificador interno: TK-18",,Infraestructura y DevOps,2,High,To Do,S6 Endurecimiento (26/10-06/11),Wilson Collantes Aponte,Backend,REVO,infraestructura,backend
+89,,Task,Añadir análisis estatico de seguridad y detección de secretos al pipeline,"Detectar un secreto antes de que entre al historial es la única forma barata de evitarlo.
+
+CRITERIOS DE ACEPTACIÓN
+1. El pipeline ejecuta análisis estatico sobre el código Python y JavaScript
+2. La detección de secretos bloquea la fusión si encuentra una coincidencia
+3. Las dependencias se revisan contra vulnerabilidades conocidas
+
+Identificador interno: TK-20",,Seguridad y Calidad,3,High,To Do,S6 Endurecimiento (26/10-06/11),Steven Febre Rivera,Infraestructura,REVO,seguridad,devops
+90,,Task,Manejar en el frontend la respuesta de límite de tráfico excedido,"Si el control de tráfico devuelve 429 y la interfaz lo muestra como error genérico, el estudiante cree que el sistema se rompio.
+
+CRITERIOS DE ACEPTACIÓN
+1. La respuesta 429 muestra un mensaje específico con el tiempo de espera
+2. El botón de reintentar se habilita solo cuando el tiempo de espera termina
+3. El progreso del cuestionario no se pierde durante la espera
+
+Identificador interno: TK-24",,Resultados y Visualización,3,High,To Do,S6 Endurecimiento (26/10-06/11),Alexis Morante Herrera,Frontend,REVO,frontend,ux
+91,,Task,Endurecer la política de contraseñas y eliminar el truncado silencioso,"Hoy una contraseña más larga que el límite del algoritmo se recorta sin avisar, lo que reduce la seguridad real sin que el usuario lo sepa.
+
+CRITERIOS DE ACEPTACIÓN
+1. Longitud mínima y máxima declaradas y validadas antes de cifrar
+2. Superar la longitud máxima devuelve error explícito en vez de recortar
+3. Se rechazan las contraseñas de uso común mediante lista de bloqueo
+
+Identificador interno: TK-29",,Seguridad y Calidad,3,Medium,To Do,S6 Endurecimiento (26/10-06/11),Wilson Collantes Aponte,Backend,REVO,seguridad,autenticacion
+92,,Task,Eliminar los scripts sueltos de mantenimiento que manipulan credenciales,"Scripts de un solo uso que quedaron en el repositorio y contienen lógica de contraseñas.
+
+CRITERIOS DE ACEPTACIÓN
+1. Los scripts de un solo uso quedan fuera del repositorio
+2. Lo que siga siendo necesario se convierte en un comando documentado
+3. Verificado que ningún script residual contiene credenciales
+
+Identificador interno: TK-44",,Seguridad y Calidad,2,Medium,To Do,S6 Endurecimiento (26/10-06/11),Wilson Collantes Aponte,Backend,REVO,seguridad,limpieza
+93,,Story,"Como equipo, queremos pruebas automatizadas del back-end, para detectar regresiones antes de desplegar","Cobertura sobre los tres servicios: unitarias de lógica, de integración sobre los endpoints y de aislamiento entre usuarios.
+
+CRITERIOS DE ACEPTACIÓN
+1. Pruebas unitarias sobre el cálculo de afinidad, la selección adaptativa y la predicción
+2. Pruebas de integración sobre los endpoints de autenticación, sesiones y predicción
+3. Prueba explícita de que un usuario no puede leer ni escribir datos de otro
+4. Cobertura mínima del 80 por ciento medida y publicada en el pipeline
+
+Identificador interno: HU-17",,Seguridad y Calidad,8,Highest,To Do,"S7 Carga, pruebas y servicio (09/11-20/11)",Wilson Collantes Aponte,Backend,REVO,calidad,testing
+94,93,Sub-task,Montar el entorno de pruebas con base de datos aislada,Sub-tarea de HU-17.,,,,Highest,To Do,"S7 Carga, pruebas y servicio (09/11-20/11)",Wilson Collantes Aponte,Backend,REVO,calidad,
+95,93,Sub-task,Escribir las pruebas unitarias de la lógica de cuestionario y modelo,Sub-tarea de HU-17.,,,,Highest,To Do,"S7 Carga, pruebas y servicio (09/11-20/11)",Wilson Collantes Aponte,Backend,REVO,calidad,
+96,93,Sub-task,Escribir las pruebas de integración de los endpoints,Sub-tarea de HU-17.,,,,Highest,To Do,"S7 Carga, pruebas y servicio (09/11-20/11)",Wilson Collantes Aponte,Backend,REVO,calidad,
+97,93,Sub-task,Escribir las pruebas de aislamiento entre usuarios y por rol,Sub-tarea de HU-17.,,,,Highest,To Do,"S7 Carga, pruebas y servicio (09/11-20/11)",Wilson Collantes Aponte,Backend,REVO,calidad,
+98,,Story,"Como estudiante en un aula de 40 compañeros, quiero completar el test aunque todos compartamos la misma dirección IP, para que el control de tráfico no me bloquee","Un aula sale a internet por una sola IP. Un límite por IP bloquearía a la clase entera. El límite tiene que ir por identidad, con la IP solo como red de seguridad amplia.
+
+CRITERIOS DE ACEPTACIÓN
+1. Cuarenta estudiantes desde la misma IP completan el test sin bloqueos
+2. El límite de los endpoints autenticados se cuenta por usuario, no por IP
+3. El límite por IP existe pero con un techo diez veces superior al pico esperado del aula
+4. El límite de inicio de sesión se cuenta por cuenta, no por IP, para no bloquear el aula entera
+
+Identificador interno: HU-19",,Seguridad y Calidad,8,Highest,To Do,"S7 Carga, pruebas y servicio (09/11-20/11)",Steven Febre Rivera,Backend,REVO,seguridad,rendimiento
+99,98,Sub-task,Dimensionar el límite a partir del tráfico real de un aula de 40,Sub-tarea de HU-19.,,,,Highest,To Do,"S7 Carga, pruebas y servicio (09/11-20/11)",Steven Febre Rivera,Backend,REVO,seguridad,
+100,98,Sub-task,"Definir la clave de conteo por endpoint: usuario, cuenta o IP",Sub-tarea de HU-19.,,,,Highest,To Do,"S7 Carga, pruebas y servicio (09/11-20/11)",Steven Febre Rivera,Backend,REVO,seguridad,
+101,98,Sub-task,Validar el comportamiento con las 40 sesiones concurrentes,Sub-tarea de HU-19.,,,,Highest,To Do,"S7 Carga, pruebas y servicio (09/11-20/11)",Steven Febre Rivera,Backend,REVO,seguridad,
+102,,Story,"Como equipo, queremos pruebas del frontend, para que un cambio de estilo no rompa un flujo funcional","El frontend concentra la validación de campos y el manejo de estados de error, que es justo lo que se rompe en silencio.
+
+CRITERIOS DE ACEPTACIÓN
+1. Pruebas unitarias de los componentes con lógica de validación
+2. Prueba de extremo a extremo del recorrido completo: registro, cuestionario y resultado
+3. Las pruebas se ejecutan en el pipeline junto con las del back-end
+
+Identificador interno: HU-27",,Seguridad y Calidad,5,High,To Do,"S7 Carga, pruebas y servicio (09/11-20/11)",Alexis Morante Herrera,Frontend,REVO,calidad,testing
+103,,Task,Añadir un almacén compartido de contadores para el control de tráfico,"Con tres servicios y contadores en memoria, cada replica cuenta por separado y el límite real es el triple del configurado.
+
+CRITERIOS DE ACEPTACIÓN
+1. Los contadores viven en un almacén compartido por los tres servicios
+2. Si el almacén no responde, el servicio sigue atendiendo en vez de rechazar todo
+3. El almacén está incluido en el entorno local y en el desplegado
+
+Identificador interno: TK-21",,Infraestructura y DevOps,3,Highest,To Do,"S7 Carga, pruebas y servicio (09/11-20/11)",Wilson Collantes Aponte,Infraestructura,REVO,infraestructura,
+104,,Task,Implementar el control de tráfico por identidad con red de seguridad por IP,"Implementación de la política dimensionada en HU-19.
+
+CRITERIOS DE ACEPTACIÓN
+1. Cada endpoint declara su límite y su clave de conteo
+2. La respuesta 429 incluye la cabecera con el tiempo de espera
+3. Los límites se configuran por entorno y no requieren cambiar código
+4. Existen pruebas que verifican el bloqueo y la liberación al expirar la ventana
+
+Identificador interno: TK-22",,Seguridad y Calidad,8,Highest,To Do,"S7 Carga, pruebas y servicio (09/11-20/11)",Steven Febre Rivera,Backend,REVO,seguridad,
+105,104,Sub-task,Integrar el limitador en los tres servicios,Sub-tarea de TK-22.,,,,Highest,To Do,"S7 Carga, pruebas y servicio (09/11-20/11)",Steven Febre Rivera,Backend,REVO,seguridad,
+106,104,Sub-task,Declarar límite y clave de conteo por endpoint,Sub-tarea de TK-22.,,,,Highest,To Do,"S7 Carga, pruebas y servicio (09/11-20/11)",Steven Febre Rivera,Backend,REVO,seguridad,
+107,104,Sub-task,Escribir las pruebas de bloqueo y de expiración de ventana,Sub-tarea de TK-22.,,,,Highest,To Do,"S7 Carga, pruebas y servicio (09/11-20/11)",Steven Febre Rivera,Backend,REVO,seguridad,
+108,,Task,"Aplicar retardo progresivo por cuenta en el inicio de sesión, sin bloqueo duro","Bloquear una cuenta tras N intentos convierte el control en una forma de negación de servicio: basta con fallar adrede contra la cuenta de otro para dejarlo fuera.
+
+CRITERIOS DE ACEPTACIÓN
+1. Cada intento fallido incrementa el retardo de la respuesta
+2. La cuenta nunca queda bloqueada de forma permanente por intentos fallidos
+3. Un inicio de sesión correcto reinicia el contador
+4. El retardo no revela si la cuenta existe
+
+Identificador interno: TK-23",,Seguridad y Calidad,3,High,To Do,"S7 Carga, pruebas y servicio (09/11-20/11)",Steven Febre Rivera,Backend,REVO,seguridad,autenticacion
+109,,Task,Eliminar la doble escritura de respuestas del cuestionario,"Cada respuesta se envia dos veces. Reducirlo baja las peticiones por estudiante de 36 a 11, un 69 por ciento menos de carga.
+
+CRITERIOS DE ACEPTACIÓN
+1. Cada respuesta se persiste con una sola petición
+2. El lote de la fase se guarda en una única transacción
+3. Medido y documentado el número de peticiones por estudiante antes y después
+
+Identificador interno: TK-25",,Cuestionario Adaptativo,3,High,To Do,"S7 Carga, pruebas y servicio (09/11-20/11)",Wilson Collantes Aponte,Backend,REVO,rendimiento,backend
+110,,Task,Ejecutar una prueba de carga simulando un aula de 40 estudiantes concurrentes,"Es el escenario real de uso: una clase entera respondiendo a la vez.
+
+CRITERIOS DE ACEPTACIÓN
+1. Escenario que reproduce 40 sesiones concurrentes recorriendo las tres fases
+2. Se registran tiempo de respuesta percentil 95, errores y uso de conexiones
+3. El resultado se compara contra el SLA comprometido
+4. Los cuellos de botella detectados quedan como tareas del backlog
+
+Identificador interno: TK-27",,Seguridad y Calidad,5,High,To Do,"S7 Carga, pruebas y servicio (09/11-20/11)",Wilson Collantes Aponte,Backend,REVO,rendimiento,calidad
+111,,Task,Reclutar y coordinar el grupo piloto de estudiantes para la validación,"La validación del sprint 8 depende de tener personas reales agendadas con antelación.
+
+CRITERIOS DE ACEPTACIÓN
+1. Al menos 30 estudiantes confirmados con fecha y modalidad de participación
+2. Consentimiento informado redactado y aceptado por cada participante
+3. Definido qué datos se recogen y cómo se anonimizan
+
+Identificador interno: TK-58",,Gestión del Proyecto,3,High,To Do,"S7 Carga, pruebas y servicio (09/11-20/11)",Hebert Cornejo Garcia,Documentación,REVO,planificacion,validacion
+112,,Story,"Como equipo, queremos validar el sistema con estudiantes reales, para detectar problemas de usabilidad no previstos","Hasta aquí todo se probó contra datos generados. Esta es la primera evidencia real.
+
+CRITERIOS DE ACEPTACIÓN
+1. Al menos 30 estudiantes completan el recorrido de principio a fin
+2. Se registra tasa de finalización, tiempo por fase y puntos de abandono
+3. Cada incidencia observada queda en el backlog con severidad
+4. Se recoge si el estudiante considera acertada la recomendación recibida
+
+Identificador interno: HU-22",,Gestión del Proyecto,8,Highest,To Do,S8 Validación con usuarios reales (23/11-04/12),Alexis Morante Herrera,Documentación,REVO,validacion,ux
+113,112,Sub-task,Preparar el guion de la sesión y el instrumento de observación,Sub-tarea de HU-22.,,,,Highest,To Do,S8 Validación con usuarios reales (23/11-04/12),Alexis Morante Herrera,Documentación,REVO,validacion,
+114,112,Sub-task,Ejecutar las sesiones y registrar las incidencias,Sub-tarea de HU-22.,,,,Highest,To Do,S8 Validación con usuarios reales (23/11-04/12),Alexis Morante Herrera,Documentación,REVO,validacion,
+115,112,Sub-task,Consolidar los resultados y priorizar las correcciones,Sub-tarea de HU-22.,,,,Highest,To Do,S8 Validación con usuarios reales (23/11-04/12),Alexis Morante Herrera,Documentación,REVO,validacion,
+116,,Story,"Como equipo, queremos medir la consistencia interna del banco de preguntas, para demostrar que el instrumento mide lo que dice medir","Depende de HU-28: medir antes de neutralizar la redacción daría un coeficiente alto por parecido de redacción y no probaría nada.
+
+CRITERIOS DE ACEPTACIÓN
+1. Se calcula el alfa de Cronbach por especialización sobre respuestas reales
+2. Se declara el umbral aceptado y su fuente antes de ver el resultado
+3. Los items que bajan la consistencia se identifican y se marcan para revisión
+4. El resultado se reporta tal cual, incluso si queda por debajo del umbral
+
+Identificador interno: HU-23",,Motor de Machine Learning,5,Highest,To Do,S8 Validación con usuarios reales (23/11-04/12),Hebert Cornejo Garcia,ML,REVO,ml,validacion
+117,,Story,"Como sistema, quiero entrenar sobre la validación real de los estudiantes, para que la métrica de acierto signifique algo","Con la etiqueta derivada de las propias respuestas, el modelo aprende a reproducir una fórmula. Solo la validación humana rompe esa circularidad.
+
+CRITERIOS DE ACEPTACIÓN
+1. La etiqueta de entrenamiento proviene de la confirmación del estudiante, no del cálculo de afinidad
+2. Se reentrena y se reporta el desempeno contra la línea base trivial
+3. Se documenta explícitamente la diferencia entre la métrica anterior y la nueva
+4. Si el modelo no supera la línea base, se reporta así y se explica
+
+Identificador interno: HU-24",,Motor de Machine Learning,8,Highest,To Do,S8 Validación con usuarios reales (23/11-04/12),Hebert Cornejo Garcia,ML,REVO,ml,dataset
+118,117,Sub-task,Recoger y consolidar la confirmación de los estudiantes del piloto,Sub-tarea de HU-24.,,,,Highest,To Do,S8 Validación con usuarios reales (23/11-04/12),Hebert Cornejo Garcia,ML,REVO,ml,
+119,117,Sub-task,Reconstruir el conjunto de entrenamiento con la etiqueta real,Sub-tarea de HU-24.,,,,Highest,To Do,S8 Validación con usuarios reales (23/11-04/12),Hebert Cornejo Garcia,ML,REVO,ml,
+120,117,Sub-task,"Reentrenar, comparar contra la línea base y documentar el resultado",Sub-tarea de HU-24.,,,,Highest,To Do,S8 Validación con usuarios reales (23/11-04/12),Hebert Cornejo Garcia,ML,REVO,ml,
+121,,Story,"Como estudiante con un perfil ambiguo, quiero que el sistema reconozca la duda en vez de darme un ganador con falsa confianza","Cerca de la mitad de las personas reales tienen dos ramas casi empatadas. Forzar un único ganador ahí es un error de producto, no del modelo.
+
+CRITERIOS DE ACEPTACIÓN
+1. Se define un umbral de margen por debajo del cual el resultado se declara ambiguo
+2. El resultado ambiguo presenta las dos o tres opciones cercanas en lugar de una
+3. El texto explica que la ambigüedad es un resultado valido y qué hacer con él
+4. El caso ambiguo está cubierto por prueba automatizada
+
+Identificador interno: HU-25",,Resultados y Visualización,5,High,To Do,S8 Validación con usuarios reales (23/11-04/12),Wilson Collantes Aponte,ML,REVO,ml,ux
+122,,Task,Convertir en pruebas automatizadas las comprobaciones de seguridad verificadas a mano,"Una comprobación manual se hace una vez; una automatizada se hace en cada cambio.
+
+CRITERIOS DE ACEPTACIÓN
+1. Prueba de que un usuario no accede a datos de otro
+2. Prueba de que un estudiante recibe 403 en los endpoints de administrador
+3. Prueba de que un origen no permitido es rechazado por CORS
+4. Prueba de que las respuestas de error no exponen detalle interno
+
+Identificador interno: TK-19",,Seguridad y Calidad,5,Highest,To Do,S8 Validación con usuarios reales (23/11-04/12),Steven Febre Rivera,Backend,REVO,seguridad,testing
+123,,Task,"Incorporar al modelo las respuestas de la fase 3, hoy descartadas","La fase 3 se responde, se guarda y no entra al modelo. Es información recogida y desaprovechada.
+
+CRITERIOS DE ACEPTACIÓN
+1. Las respuestas de la fase 3 se transforman en variables de entrada del modelo
+2. Se mide si su incorporación mejora el desempeno contra la línea base
+3. Si no aporta, se documenta y se decide si mantener la fase
+
+Identificador interno: TK-28",,Motor de Machine Learning,5,Medium,To Do,S8 Validación con usuarios reales (23/11-04/12),Hebert Cornejo Garcia,ML,REVO,ml,
+124,,Task,"Reportar en el panel la diferencia contra la línea base, no solo la exactitud","Una exactitud del 99 por ciento es engañosa si una regla de una línea alcanza el mismo número. Lo informativo es la diferencia.
+
+CRITERIOS DE ACEPTACIÓN
+1. El panel muestra exactitud del modelo, exactitud de la línea base y la diferencia
+2. La diferencia negativa se muestra como tal, sin ocultarse
+3. El texto explica qué significa la línea base para un lector no técnico
+
+Identificador interno: TK-47",,Panel Administrativo,3,High,To Do,S8 Validación con usuarios reales (23/11-04/12),Hebert Cornejo Garcia,ML,REVO,ml,admin
+125,,Story,"Como equipo, queremos monitorear disponibilidad y errores, para detectar problemas antes que los usuarios","Compromiso derivado del SLA definido en HU-20.
+
+CRITERIOS DE ACEPTACIÓN
+1. Cada servicio expone un endpoint de salud que verifica sus dependencias
+2. Existe registro estructurado de errores con nivel y correlación
+3. Se define el umbral de alerta y a quien notifica
+4. La disponibilidad medida se contrasta con el SLA comprometido
+
+Identificador interno: HU-21",,Gestión del Servicio,5,High,To Do,S9 Estabilización y cierre (07/12-18/12),Wilson Collantes Aponte,Infraestructura,REVO,itil,devops
+126,,Task,Redactar el manual de usuario del sistema,"Dirigido al estudiante y al administrador, con capturas de la versión final.
+
+CRITERIOS DE ACEPTACIÓN
+1. Recorrido completo documentado con capturas actualizadas
+2. Sección de preguntas frecuentes y de errores comunes
+3. Revisado por alguien que no participo en el desarrollo
+
+Identificador interno: TK-30",,Gestión del Proyecto,3,Medium,To Do,S9 Estabilización y cierre (07/12-18/12),Alexis Morante Herrera,Documentación,REVO,documentacion,
+127,,Task,Corregir las incidencias detectadas en la validación con usuarios,"Trabajo derivado de HU-22. Se dimensiona al cerrar el sprint 8.
+
+CRITERIOS DE ACEPTACIÓN
+1. Todas las incidencias de severidad alta quedan corregidas
+2. Las de severidad media se corrigen o se documentan como limitación conocida
+3. Cada corrección tiene prueba que evita la regresión
+
+Identificador interno: TK-31",,Infraestructura y DevOps,8,Highest,To Do,S9 Estabilización y cierre (07/12-18/12),Wilson Collantes Aponte,Backend,REVO,calidad,
+128,127,Sub-task,Priorizar las incidencias por severidad y frecuencia,Sub-tarea de TK-31.,,,,Highest,To Do,S9 Estabilización y cierre (07/12-18/12),Wilson Collantes Aponte,Backend,REVO,calidad,
+129,127,Sub-task,Corregir las de severidad alta,Sub-tarea de TK-31.,,,,Highest,To Do,S9 Estabilización y cierre (07/12-18/12),Wilson Collantes Aponte,Backend,REVO,calidad,
+130,127,Sub-task,Verificar cada corrección con prueba automatizada,Sub-tarea de TK-31.,,,,Highest,To Do,S9 Estabilización y cierre (07/12-18/12),Wilson Collantes Aponte,Backend,REVO,calidad,
+131,,Task,Actualizar el documento de requerimientos para que describa el sistema real,"El PRD declara un motor de base de datos y un algoritmo distintos de los que el sistema usa. Es la clase de discrepancia que un jurado detecta de inmediato.
+
+CRITERIOS DE ACEPTACIÓN
+1. El PRD refleja el motor de base de datos, el algoritmo y la arquitectura reales
+2. Las métricas citadas coinciden con las que el sistema reporta
+3. Revisado contra el código, no contra la memoria del equipo
+
+Identificador interno: TK-32",,Gestión del Proyecto,3,High,To Do,S9 Estabilización y cierre (07/12-18/12),Hebert Cornejo Garcia,Documentación,REVO,documentacion,
+132,,Task,Completar la documentación final del proyecto,"Entregable académico: memoria, manual técnico y evidencias de todas las fases.
+
+CRITERIOS DE ACEPTACIÓN
+1. Memoria con problema, solución, arquitectura, resultados y conclusiones
+2. Manual técnico de instalación y despliegue verificado por un tercero
+3. Evidencias de las ceremonias, los sprints y las métricas del proyecto
+
+Identificador interno: TK-33",,Gestión del Proyecto,5,Highest,To Do,S9 Estabilización y cierre (07/12-18/12),Hebert Cornejo Garcia,Documentación,REVO,documentacion,cierre
+133,,Task,Grabar el video demostrativo del sistema,"Respaldo por si falla la conexión o el despliegue durante la sustentación.
+
+CRITERIOS DE ACEPTACIÓN
+1. Recorrido completo grabado sobre el entorno desplegado
+2. Duración ajustada al límite del curso
+3. Narración que explica qué hace el sistema y por qué
+
+Identificador interno: TK-34",,Gestión del Proyecto,3,High,To Do,S9 Estabilización y cierre (07/12-18/12),Alexis Morante Herrera,Documentación,REVO,documentacion,cierre
+134,,Task,Preparar la presentación de sustentación,"Tiene que anticipar las preguntas dificiles en lugar de esquivarlas.
+
+CRITERIOS DE ACEPTACIÓN
+1. Presentación con problema, solución, arquitectura, resultados y limitaciones
+2. Las limitaciones conocidas se presentan de forma explícita
+3. Preparada la respuesta a las preguntas previsibles sobre el modelo y el instrumento
+
+Identificador interno: TK-35",,Gestión del Proyecto,5,Highest,To Do,S9 Estabilización y cierre (07/12-18/12),Hebert Cornejo Garcia,Documentación,REVO,cierre,
+135,,Task,Desplegar la versión final y verificar el entorno productivo,"Último despliegue antes de la sustentación. Se verifica, no se asume.
+
+CRITERIOS DE ACEPTACIÓN
+1. Versión etiquetada segun la política de versionado definida
+2. Recorrido completo verificado sobre el entorno desplegado
+3. Plan de reversión documentado y probado
+
+Identificador interno: TK-36",,Infraestructura y DevOps,3,Highest,To Do,S9 Estabilización y cierre (07/12-18/12),Steven Febre Rivera,Infraestructura,REVO,devops,cierre
+136,,Task,Ensayo general de la sustentación,"Ensayo cronometrado con el entorno real y reparto de intervenciones.
+
+CRITERIOS DE ACEPTACIÓN
+1. Ensayo completo cronometrado dentro del tiempo asignado
+2. Cada integrante conoce su parte y puede responder por ella
+3. Verificado el plan de contingencia si falla la conexión
+
+Identificador interno: TK-37",,Gestión del Proyecto,2,High,To Do,S9 Estabilización y cierre (07/12-18/12),Steven Febre Rivera,Documentación,REVO,cierre,
+137,,Task,Auditar la accesibilidad de la interfaz final,"Se valido en prototipo. Hay que verificar que la implementación lo respeto.
+
+CRITERIOS DE ACEPTACIÓN
+1. Recorrido completo navegable solo con teclado
+2. Contraste verificado sobre la interfaz construida, no sobre el prototipo
+3. Las animaciones respetan la preferencia de movimiento reducido
+4. Los formularios tienen etiquetas asociadas y anuncian sus errores
+
+Identificador interno: TK-49",,Diseño y Experiencia,3,High,To Do,S9 Estabilización y cierre (07/12-18/12),Alexis Morante Herrera,Frontend,REVO,accesibilidad,frontend
+138,,Task,Validar el comportamiento responsive en dispositivos reales,"El emulador del navegador no reproduce teclado virtual, barra del navegador móvil ni gestos táctiles.
+
+CRITERIOS DE ACEPTACIÓN
+1. Verificado en al menos tres dispositivos fisicos distintos
+2. Sin desbordamiento horizontal en ninguna pantalla
+3. Las areas táctiles cumplen el tamano mínimo recomendado
+4. El cuestionario es usable con el teclado virtual abierto
+
+Identificador interno: TK-50",,Diseño y Experiencia,3,High,To Do,S9 Estabilización y cierre (07/12-18/12),Alexis Morante Herrera,Frontend,REVO,frontend,ux

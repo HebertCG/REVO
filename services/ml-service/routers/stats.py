@@ -1,63 +1,71 @@
-from fastapi import APIRouter, Depends, HTTPException, Header
-from fastapi.responses import StreamingResponse
-from sqlalchemy.orm import Session
-from sqlalchemy import func, text
-from jose import JWTError, jwt
+"""
+stats.py — Panel de administracion del modelo.
+
+Todo lo de aqui es de administrador. La comprobacion de rol ya no se hace
+con un decode suelto del token: la hace servicio.admin, que verifica ademas
+emisor, audiencia y proposito, y ese mismo rol viaja a la base de datos como
+contexto RLS.
+
+Nota sobre el cupo: la politica "admin" tiene fail_open en False. Si Redis
+cae, estas rutas se cierran en vez de quedarse sin control. Son pocas
+peticiones y de mucho valor: es el intercambio correcto.
+"""
+import csv
 import io
 
-from database import get_db, Prediction, ModelTrainingLog, MLTrainingData, PredictionFeedback
+from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import StreamingResponse
+from sqlalchemy import func, select, text
+from sqlalchemy.orm import Session
+
+from database import MLTrainingData, ModelTrainingLog, Prediction, PredictionFeedback
 from model.trainer import train_model
+from revo_comun.seguridad.tokens import Principal
 from schemas import TrainRequest, TrainResponse
-from config import settings
+from servicio_revo import servicio
 
-router = APIRouter(prefix="/stats", tags=["Estadísticas & Admin"])
-
-
-def require_admin(authorization: str = Header(None)) -> int:
-    if not authorization or not authorization.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Token requerido")
-    try:
-        payload = jwt.decode(authorization.split(" ")[1], settings.JWT_SECRET,
-                             algorithms=[settings.JWT_ALGORITHM])
-        if payload.get("role") != "admin":
-            raise HTTPException(status_code=403, detail="Solo administradores")
-        return int(payload.get("sub"))
-    except JWTError:
-        raise HTTPException(status_code=401, detail="Token inválido")
+router = APIRouter(prefix="/stats", tags=["Estadisticas y Admin"])
 
 
 # ── POST /stats/train ────────────────────────────────────────
 @router.post("/train", response_model=TrainResponse)
 def retrain_model(
     body: TrainRequest = TrainRequest(),
-    db: Session = Depends(get_db),
-    admin_id: int = Depends(require_admin)
+    quien: Principal = Depends(servicio.admin),
+    db: Session = Depends(servicio.sesion),
+    _: None = Depends(servicio.limitar("admin")),
 ):
-    """Re-entrena el modelo con todos los datos actuales."""
-    try:
-        metrics = train_model(db, trained_by_id=admin_id)
-        return TrainResponse(
-            model_version    = metrics["model_version"],
-            accuracy         = metrics["accuracy"],
-            precision        = metrics["precision"],
-            recall           = metrics["recall"],
-            f1               = metrics["f1"],
-            baseline_accuracy  = metrics["baseline_accuracy"],
-            lift_over_baseline = metrics["lift_over_baseline"],
-            training_samples = metrics["training_samples"],
-            test_samples     = metrics["test_samples"],
-            tree_depth       = metrics["tree_depth"],
-            n_leaves         = metrics["n_leaves"],
-        )
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    """
+    Re-entrena el modelo con todos los datos actuales.
+
+    No se envuelve en try/except: si falla, el manejador de errores comun lo
+    convierte en un 500 generico con identificador de rastreo y deja la traza
+    completa en el log del servidor. El `except Exception: detail=str(e)` que
+    habia antes devolvia el mensaje de la excepcion al cliente, y ahi caben
+    rutas del servidor y estructura de la base de datos.
+    """
+    metrics = train_model(db, trained_by_id=quien.user_id)
+    return TrainResponse(
+        model_version      = metrics["model_version"],
+        accuracy           = metrics["accuracy"],
+        precision          = metrics["precision"],
+        recall             = metrics["recall"],
+        f1                 = metrics["f1"],
+        baseline_accuracy  = metrics["baseline_accuracy"],
+        lift_over_baseline = metrics["lift_over_baseline"],
+        training_samples   = metrics["training_samples"],
+        test_samples       = metrics["test_samples"],
+        tree_depth         = metrics["tree_depth"],
+        n_leaves           = metrics["n_leaves"],
+    )
 
 
 # ── GET /stats/overview ──────────────────────────────────────
 @router.get("/overview")
 def get_overview(
-    db: Session = Depends(get_db),
-    admin_id: int = Depends(require_admin),
+    quien: Principal = Depends(servicio.admin),
+    db: Session = Depends(servicio.sesion),
+    _: None = Depends(servicio.limitar("admin")),
 ):
     """Estadísticas globales para el dashboard admin (solo admins)."""
     total_preds = db.query(Prediction).count()
@@ -140,8 +148,9 @@ def get_overview(
 # ── GET /stats/training-history ─────────────────────────────
 @router.get("/training-history")
 def get_training_history(
-    db: Session = Depends(get_db),
-    admin_id: int = Depends(require_admin),
+    quien: Principal = Depends(servicio.admin),
+    db: Session = Depends(servicio.sesion),
+    _: None = Depends(servicio.limitar("admin")),
 ):
     """Historial de entrenamientos del modelo (solo admins)."""
     logs = db.query(ModelTrainingLog).order_by(
@@ -163,8 +172,9 @@ def get_training_history(
 # ── GET /stats/export-csv ────────────────────────────────────
 @router.get("/export-csv")
 def export_dataset_csv(
-    db: Session = Depends(get_db),
-    admin_id: int = Depends(require_admin)
+    quien: Principal = Depends(servicio.admin),
+    db: Session = Depends(servicio.sesion),
+    _: None = Depends(servicio.limitar("admin")),
 ):
     """Exporta el dataset completo de entrenamiento como archivo CSV."""
     rows = db.query(MLTrainingData).all()

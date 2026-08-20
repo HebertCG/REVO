@@ -220,3 +220,26 @@ class TestExtraccionDeCabecera:
     def test_rechaza_una_cabecera_ausente(self, issuer):
         with pytest.raises(TokenError):
             issuer.verify_header(None)
+
+
+class TestTokenInterno:
+    def test_se_puede_emitir_con_caducidad_propia(self, issuer):
+        # Las llamadas entre servicios no necesitan un token de 24 horas.
+        token = issuer.issue(user_id=5, role="student", expire_seconds=60)
+
+        assert issuer.verify(token).user_id == 5
+
+    def test_el_token_interno_caduca_mucho_antes_que_el_de_sesion(self, issuer):
+        interno = jwt.get_unverified_claims(
+            issuer.issue(user_id=5, role="student", expire_seconds=60)
+        )
+        sesion = jwt.get_unverified_claims(issuer.issue(user_id=5, role="student"))
+
+        assert interno["exp"] < sesion["exp"]
+
+    def test_una_caducidad_absurda_es_un_error_de_programacion(self, issuer):
+        with pytest.raises(ValueError):
+            issuer.issue(user_id=5, role="student", expire_seconds=0)
+
+        with pytest.raises(ValueError):
+            issuer.issue(user_id=5, role="student", expire_seconds=-10)

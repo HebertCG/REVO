@@ -98,10 +98,28 @@ class TokenIssuer:
         self._expire = timedelta(hours=expire_hours)
 
     # ── Emision ──────────────────────────────────────────────
-    def issue(self, user_id: int, role: str) -> str:
+    def issue(self, user_id: int, role: str, expire_seconds: int | None = None) -> str:
+        """
+        Emite un token de acceso.
+
+        Args:
+            user_id: identificador del alumno.
+            role: "student" o "admin".
+            expire_seconds: caducidad propia en segundos. Se usa para las
+                llamadas entre servicios, donde el token solo tiene que vivir
+                lo que dura una peticion: un token interno con la caducidad
+                de sesion (24 h) que acabe en un log es reutilizable durante
+                un dia entero.
+        """
         if role not in VALID_ROLES:
             raise ValueError(f"Rol no reconocido: {role!r}")
 
+        if expire_seconds is not None and expire_seconds <= 0:
+            raise ValueError("La caducidad debe ser positiva")
+
+        vigencia = (
+            timedelta(seconds=expire_seconds) if expire_seconds is not None else self._expire
+        )
         ahora = datetime.now(timezone.utc)
         claims = {
             "sub": str(int(user_id)),
@@ -110,7 +128,7 @@ class TokenIssuer:
             "aud": self._audience,
             "typ": ACCESS_TOKEN_TYPE,
             "iat": int(ahora.timestamp()),
-            "exp": int((ahora + self._expire).timestamp()),
+            "exp": int((ahora + vigencia).timestamp()),
             "jti": uuid.uuid4().hex,
         }
         return jwt.encode(claims, self._secret, algorithm=ALGORITHM)

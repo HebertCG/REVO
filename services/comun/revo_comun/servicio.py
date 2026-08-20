@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import logging
 from contextlib import asynccontextmanager
+from typing import Callable
 
 from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -116,7 +117,20 @@ class ServicioREVO:
             logger.error("No se pudo conectar a Redis (%s). Rate limit degradado.", exc)
             return None
 
-    def crear_app(self, titulo: str, descripcion: str = "", version: str = "1.0.0") -> FastAPI:
+    def crear_app(
+        self,
+        titulo: str,
+        descripcion: str = "",
+        version: str = "1.0.0",
+        al_arrancar: Callable[[], None] | None = None,
+    ) -> FastAPI:
+        """
+        Args:
+            al_arrancar: tarea que se ejecuta una vez al levantar el servicio
+                (por ejemplo, entrenar el modelo si no hay ninguno). Se pasa
+                aqui en vez de con @app.on_event("startup"), que esta
+                obsoleto y no garantiza el orden respecto al lifespan.
+        """
         ajustes = self.ajustes
 
         problemas = ajustes.validar_para_produccion()
@@ -136,6 +150,14 @@ class ServicioREVO:
                 ajustes.ENVIRONMENT,
                 "publicos" if ajustes.publicar_documentacion else "cerrados",
             )
+            if al_arrancar is not None:
+                try:
+                    al_arrancar()
+                except Exception as exc:  # noqa: BLE001
+                    # Una tarea de arranque que falla no debe dejar el
+                    # servicio sin levantar: es preferible responder 503 en
+                    # la ruta afectada que caerse entero y reiniciar en bucle.
+                    logger.error("La tarea de arranque fallo: %s", exc, exc_info=True)
             yield
             self.motor.dispose()
 

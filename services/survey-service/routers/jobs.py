@@ -1,9 +1,20 @@
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
-from database import get_db, Job
-from pydantic import BaseModel
+"""
+jobs.py — Ofertas de empleo por especializacion.
 
-router = APIRouter(prefix="/jobs", tags=["Jobs"])
+Catalogo publico, con las mismas protecciones que el resto de rutas.
+"""
+from fastapi import APIRouter, Depends, HTTPException, Path
+from pydantic import BaseModel
+from sqlalchemy import select
+from sqlalchemy.orm import Session
+
+from database import Job
+from servicio_revo import servicio
+
+router = APIRouter(prefix="/jobs", tags=["Empleos"])
+
+NUM_ESPECIALIZACIONES = 10
+
 
 class JobOut(BaseModel):
     id: int
@@ -15,12 +26,16 @@ class JobOut(BaseModel):
     url: str
     posted_days_ago: int
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
+
 
 @router.get("/specialization/{spec_id}", response_model=list[JobOut])
-def get_jobs_by_specialization(spec_id: int, db: Session = Depends(get_db)):
-    jobs = db.query(Job).filter(Job.specialization_id == spec_id).all()
-    if not jobs:
+def empleos_por_especializacion(
+    spec_id: int = Path(ge=1, le=NUM_ESPECIALIZACIONES),
+    db: Session = Depends(servicio.sesion),
+    _: None = Depends(servicio.limitar("read")),
+):
+    empleos = list(db.scalars(select(Job).where(Job.specialization_id == spec_id)))
+    if not empleos:
         raise HTTPException(status_code=404, detail="No hay ofertas para esta rama")
-    return jobs
+    return empleos

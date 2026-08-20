@@ -1,30 +1,42 @@
-from fastapi import APIRouter, Depends, HTTPException, Header, BackgroundTasks
+"""
+predict.py — Inferencia del modelo y retroalimentacion del alumno.
+
+La logica de ML (model/predictor.py y model/trainer.py) no se toca. Lo que
+cambia aqui es infraestructura:
+  - La identidad sale del token verificado (emisor, audiencia, proposito) y
+    se propaga a la base de datos como contexto RLS.
+  - Cada ruta declara su cupo de peticiones.
+  - El reentrenamiento en segundo plano corre con el rol 'service', que puede
+    leer el dataset completo sin hacerse pasar por administrador.
+"""
+import logging
+
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Path
+from sqlalchemy import select
 from sqlalchemy.orm import Session
-from jose import JWTError, jwt
 
-from database import get_db, Prediction, ModelTrainingLog, PredictionFeedback, MLTrainingData
-from model.predictor import predict, get_feature_importances
-from model.trainer import load_model, train_model
-from schemas import PredictRequest, PredictResponse, FeatureImportance, FeedbackRequest
 from config import settings
+from database import MLTrainingData, ModelTrainingLog, Prediction, PredictionFeedback
+from model.predictor import get_feature_importances, predict
+from model.trainer import train_model
+from revo_comun.seguridad.tokens import Principal
+from schemas import FeatureImportance, FeedbackRequest, PredictRequest, PredictResponse
+from servicio_revo import servicio
 
-router = APIRouter(prefix="/predict", tags=["Predicción"])
+logger = logging.getLogger("revo.ml.predict")
 
-
-def extract_user_id(authorization: str = Header(None)) -> int:
-    if not authorization or not authorization.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Token requerido")
-    try:
-        payload = jwt.decode(authorization.split(" ")[1], settings.JWT_SECRET,
-                             algorithms=[settings.JWT_ALGORITHM])
-        return int(payload.get("sub"))
-    except JWTError:
-        raise HTTPException(status_code=401, detail="Token inválido")
+router = APIRouter(prefix="/predict", tags=["Prediccion"])
 
 
 def check_and_retrain():
-    from database import SessionLocal
-    db = SessionLocal()
+    """
+    Reentrena si han llegado suficientes muestras nuevas.
+
+    Corre fuera del ciclo de la peticion, con identidad de servicio: necesita
+    contar TODAS las predicciones y leer el dataset completo, cosa que el
+    contexto de un alumno no permite.
+    """
+    db = servicio.sesion_de_servicio()
     try:
         last_log = db.query(ModelTrainingLog).order_by(ModelTrainingLog.trained_at.desc()).first()
         new_preds = 0
@@ -33,11 +45,13 @@ def check_and_retrain():
         else:
             new_preds = db.query(Prediction).count()
         
-        if new_preds >= 50:
-            print(f"🚀 [AUTO-RETRAIN] Muestras nuevas llegaron a 50. Entrenando el modelo en background...")
+        if new_preds >= settings.UMBRAL_REENTRENAMIENTO:
+            logger.info(
+                "Llegaron %s muestras nuevas: reentrenando en segundo plano", new_preds
+            )
             train_model(db, trained_by_id=None)
-    except Exception as e:
-        print(f"❌ [AUTO-RETRAIN FAIL] {e}")
+    except Exception as exc:  # noqa: BLE001
+        logger.error("El reentrenamiento automatico fallo: %s", exc, exc_info=True)
     finally:
         db.close()
 
@@ -47,12 +61,13 @@ def check_and_retrain():
 def make_prediction(
     body: PredictRequest,
     background_tasks: BackgroundTasks,
-    db: Session = Depends(get_db),
-    user_id: int = Depends(extract_user_id)
+    quien: Principal = Depends(servicio.principal),
+    db: Session = Depends(servicio.sesion),
+    _: None = Depends(servicio.limitar("predict")),
 ):
     """
     Recibe el feature_vector del survey-service y devuelve la
-    especialización recomendada con el árbol de decisión.
+    especializacion recomendada.
     """
     try:
         result = predict(body.feature_vector)
@@ -65,7 +80,7 @@ def make_prediction(
     pred_record = Prediction(
         session_id                = body.session_id,
         # Identidad tomada del token, no del body (ver PredictRequest).
-        user_id                   = user_id,
+        user_id                   = quien.user_id,
         primary_specialization_id = primary["specialization_id"],
         confidence_score          = primary["confidence"],
         secondary_specializations = result["top3"][1:],  # posiciones 2 y 3
@@ -97,13 +112,18 @@ def make_prediction(
 @router.get("/{prediction_id}", response_model=PredictResponse)
 def get_prediction(
     prediction_id: int,
-    db: Session = Depends(get_db),
-    user_id: int = Depends(extract_user_id)
+    quien: Principal = Depends(servicio.principal),
+    db: Session = Depends(servicio.sesion),
+    _: None = Depends(servicio.limitar("read")),
 ):
-    pred = db.query(Prediction).filter(
-        Prediction.id == prediction_id,
-        Prediction.user_id == user_id
-    ).first()
+    # El filtro por user_id se mantiene, pero RLS ya impide que esta consulta
+    # alcance la prediccion de otro alumno aunque el filtro desapareciera.
+    pred = db.scalar(
+        select(Prediction).where(
+            Prediction.id == prediction_id,
+            Prediction.user_id == quien.user_id,
+        )
+    )
     if not pred:
         raise HTTPException(status_code=404, detail="Predicción no encontrada")
 
@@ -133,14 +153,21 @@ def get_prediction(
 @router.get("/user/{uid}/history")
 def get_user_history(
     uid: int,
-    db: Session = Depends(get_db),
-    user_id: int = Depends(extract_user_id)
+    quien: Principal = Depends(servicio.principal),
+    db: Session = Depends(servicio.sesion),
+    _: None = Depends(servicio.limitar("read")),
 ):
-    if uid != user_id:
+    if uid != quien.user_id:
         raise HTTPException(status_code=403, detail="Acceso denegado")
-    preds = db.query(Prediction).filter(
-        Prediction.user_id == uid
-    ).order_by(Prediction.created_at.desc()).limit(10).all()
+
+    preds = list(
+        db.scalars(
+            select(Prediction)
+            .where(Prediction.user_id == quien.user_id)
+            .order_by(Prediction.created_at.desc())
+            .limit(10)
+        )
+    )
 
     from model.predictor import SPECIALIZATION_MAP
     results = []
@@ -160,8 +187,17 @@ def get_user_history(
 
 # ── GET /predict/importances ─────────────────────────────────
 @router.get("/model/importances", response_model=list[FeatureImportance])
-def feature_importances():
-    """Retorna qué preguntas son más determinantes en el árbol."""
+def feature_importances(
+    quien: Principal = Depends(servicio.admin),
+    _: None = Depends(servicio.limitar("admin")),
+):
+    """
+    Peso de cada feature en el modelo. Solo administradores.
+
+    Antes era publica. Los pesos del modelo son la receta del producto: con
+    ellos se deduce que responder para obtener la especializacion que se
+    quiera, y se replica el sistema sin el dataset.
+    """
     try:
         return get_feature_importances()
     except FileNotFoundError as e:
@@ -170,8 +206,11 @@ def feature_importances():
 
 # ── GET /predict/model/tree ──────────────────────────────────
 @router.get("/model/tree")
-def get_tree_visualization():
-    """Exporta el árbol de decisión en texto para mostrar en el frontend."""
+def get_tree_visualization(
+    quien: Principal = Depends(servicio.admin),
+    _: None = Depends(servicio.limitar("admin")),
+):
+    """Descripcion legible del modelo, para el panel admin. Solo administradores."""
     from model.trainer import get_tree_text
     QUESTION_LABELS = [
         "Afinidad Dev Software", "Afinidad Data/IA",
@@ -197,24 +236,25 @@ def get_tree_visualization():
 def save_feedback(
     prediction_id: int,
     body: FeedbackRequest,
-    db: Session = Depends(get_db),
-    user_id: int = Depends(extract_user_id)
+    quien: Principal = Depends(servicio.principal),
+    db: Session = Depends(servicio.sesion),
+    _: None = Depends(servicio.limitar("read")),
 ):
     """
     Guarda la retroalimentación del alumno sobre la predicción.
     Si el alumno confirmó afinidad, inyecta el vector como dato 'human' en ml_training_data.
     """
-    pred = db.query(Prediction).filter(Prediction.id == prediction_id).first()
+    pred = db.scalar(select(Prediction).where(Prediction.id == prediction_id))
     if not pred:
-        raise HTTPException(status_code=404, detail="Predicción no encontrada")
-    if pred.user_id != user_id:
+        raise HTTPException(status_code=404, detail="Prediccion no encontrada")
+    if pred.user_id != quien.user_id:
         raise HTTPException(status_code=403, detail="Acceso denegado")
 
     # Guardar feedback (upsert simple con try/except)
     try:
         fb = PredictionFeedback(
             prediction_id=prediction_id,
-            user_id=user_id,
+            user_id=quien.user_id,
             session_id=pred.session_id,
             diagnostic_affinity=body.diagnostic_affinity,
             discovery_level=body.discovery_level,

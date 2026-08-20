@@ -1,14 +1,17 @@
-from sqlalchemy import (
-    create_engine, Column, Integer, SmallInteger, Numeric,
-    String, Boolean, Text, DateTime, DECIMAL, ForeignKey, JSON
-)
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker, relationship
-from sqlalchemy.sql import func
-from config import settings
+"""
+database.py — Modelos del survey-service.
 
-engine = create_engine(settings.DATABASE_URL, pool_pre_ping=True, pool_size=10)
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+El motor y la fabrica de sesiones los construye ServicioREVO, con los limites
+de pool, los timeouts de sentencia y el contexto RLS ya cableados. Aqui solo
+quedan las tablas.
+"""
+from sqlalchemy import (
+    Column, DateTime, DECIMAL, ForeignKey, Integer, JSON,
+    Numeric, SmallInteger, String, Boolean, Text
+)
+from sqlalchemy.orm import declarative_base, relationship
+from sqlalchemy.sql import func
+
 Base = declarative_base()
 
 
@@ -98,10 +101,5 @@ class PsychometricQuestion(Base):
     is_active         = Column(Boolean, default=True)
     created_at        = Column(DateTime(timezone=True), server_default=func.now())
 
-
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+# get_db() ya no vive aqui. La dependencia de sesion es servicio.sesion, que
+# ademas fija el contexto RLS del solicitante antes de tocar ninguna tabla.

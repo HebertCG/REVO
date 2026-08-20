@@ -1,67 +1,55 @@
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-from contextlib import asynccontextmanager
+"""
+main.py — Punto de entrada del ml-service.
+
+Lo transversal lo monta ServicioREVO. Aqui queda solo el arranque propio del
+servicio: asegurarse de que hay un modelo entrenado en disco.
+"""
+import logging
 import os
 
 from config import settings
-from database import SessionLocal
-from model.trainer import train_model, load_model
-from routers.predict import router as predict_router
-from routers.stats   import router as stats_router
+from model.trainer import load_model, train_model
+from routers.predict import router as router_prediccion
+from routers.stats import router as router_estadisticas
+from servicio_revo import servicio
+
+logger = logging.getLogger("revo.ml")
+
+def preparar_modelo() -> None:
+    """
+    Entrena el modelo la primera vez, si no hay uno guardado.
+
+    Corre con el contexto RLS del rol 'service': necesita leer el dataset
+    completo de ml_training_data, que ningun alumno puede ver.
+    """
+    if os.path.exists(settings.MODEL_PATH):
+        load_model()
+        logger.info("Modelo cargado desde disco")
+        return
+
+    logger.info("No hay modelo guardado. Entrenando por primera vez.")
+    db = servicio.sesion_de_servicio()
+    try:
+        metricas = train_model(db)
+        logger.info(
+            "Modelo entrenado: version=%s accuracy=%.4f lift sobre argmax=%+.4f",
+            metricas["model_version"],
+            metricas["accuracy"],
+            metricas["lift_over_baseline"],
+        )
+    except Exception as exc:  # noqa: BLE001
+        # Que no haya modelo no debe impedir arrancar: /predict responde 503
+        # y el resto del sistema sigue en pie.
+        logger.error("No se pudo entrenar el modelo al arrancar: %s", exc)
+    finally:
+        db.close()
 
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    """Al arrancar: entrenar el modelo si no existe."""
-    if not os.path.exists(settings.MODEL_PATH):
-        print("[REVO] Modelo no encontrado. Entrenando el Arbol de Decision...")
-        db = SessionLocal()
-        try:
-            metrics = train_model(db)
-            print(f"[REVO] Modelo entrenado OK: version={metrics['model_version']} "
-                  f"acc={metrics['accuracy']*100:.1f}% "
-                  f"depth={metrics['tree_depth']} leaves={metrics['n_leaves']}")
-        except Exception as e:
-            print(f"[REVO] Error al entrenar: {e}")
-        finally:
-            db.close()
-    else:
-        clf = load_model()
-        print(f"[REVO] Modelo cargado desde disco (LogisticRegression)")
-    yield
-
-
-app = FastAPI(
-    title="REVO — ML Service",
-    description="Microservicio de Machine Learning: Árbol de Decisión para recomendación de especialización.",
-    version="1.0.0",
-    lifespan=lifespan,
+app = servicio.crear_app(
+    titulo="REVO - ML Service",
+    descripcion="Prediccion de especializacion y estadisticas del modelo.",
+    al_arrancar=preparar_modelo,
 )
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173", "https://revo-ilbm.vercel.app"],
-    allow_origin_regex="https://.*\.vercel\.app",
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-app.include_router(predict_router)
-app.include_router(stats_router)
-
-
-@app.get("/", tags=["Health"])
-def root():
-    return {
-        "service": "ml-service",
-        "algorithm": "DecisionTreeClassifier",
-        "status": "running",
-        "model_path": settings.MODEL_PATH,
-        "docs": "/docs"
-    }
-
-@app.get("/health", tags=["Health"])
-def health():
-    model_ready = os.path.exists(settings.MODEL_PATH)
-    return {"status": "ok", "model_ready": model_ready}
+app.include_router(router_prediccion)
+app.include_router(router_estadisticas)

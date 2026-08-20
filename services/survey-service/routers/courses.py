@@ -1,9 +1,23 @@
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
-from database import get_db, Course
-from pydantic import BaseModel
+"""
+courses.py — Cursos recomendados por especializacion.
 
-router = APIRouter(prefix="/courses", tags=["Courses"])
+Catalogo publico. Lleva cupo de peticiones igual que el resto: sin el, un
+bucle sobre esta ruta agota el pool de conexiones para toda el aula.
+"""
+from fastapi import APIRouter, Depends, HTTPException, Path
+from pydantic import BaseModel
+from sqlalchemy import select
+from sqlalchemy.orm import Session
+
+from database import Course
+from servicio_revo import servicio
+
+router = APIRouter(prefix="/courses", tags=["Cursos"])
+
+#: Hay 10 especializaciones. Acotar el rango en la propia ruta evita que un
+#: id absurdo llegue siquiera a la base de datos.
+NUM_ESPECIALIZACIONES = 10
+
 
 class CourseOut(BaseModel):
     id: int
@@ -15,12 +29,16 @@ class CourseOut(BaseModel):
     price_model: str
     thumbnail_url: str | None = None
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
+
 
 @router.get("/specialization/{spec_id}", response_model=list[CourseOut])
-def get_courses_by_specialization(spec_id: int, db: Session = Depends(get_db)):
-    courses = db.query(Course).filter(Course.specialization_id == spec_id).all()
-    if not courses:
+def cursos_por_especializacion(
+    spec_id: int = Path(ge=1, le=NUM_ESPECIALIZACIONES),
+    db: Session = Depends(servicio.sesion),
+    _: None = Depends(servicio.limitar("read")),
+):
+    cursos = list(db.scalars(select(Course).where(Course.specialization_id == spec_id)))
+    if not cursos:
         raise HTTPException(status_code=404, detail="No hay cursos para esta rama")
-    return courses
+    return cursos

@@ -1,11 +1,17 @@
-from sqlalchemy import create_engine, Column, Integer, Numeric, String, DateTime, Text, JSON, ForeignKey, Boolean
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.sql import func
-from config import settings
+"""
+database.py — Modelos del ml-service.
 
-engine = create_engine(settings.DATABASE_URL, pool_pre_ping=True, pool_size=10)
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+El motor y la fabrica de sesiones los construye ServicioREVO. Las tareas de
+fondo (reentrenamiento) usan servicio.sesion_de_servicio(), que abre la
+sesion con el contexto RLS del rol 'service': lee el dataset completo sin
+tener que hacerse pasar por administrador.
+"""
+from sqlalchemy import (
+    Boolean, Column, DateTime, ForeignKey, Integer, JSON, Numeric, String, Text
+)
+from sqlalchemy.orm import declarative_base
+from sqlalchemy.sql import func
+
 Base = declarative_base()
 
 
@@ -73,9 +79,5 @@ class PredictionFeedback(Base):
     created_at          = Column(DateTime(timezone=True), server_default=func.now())
 
 
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+# get_db() ya no vive aqui. Para peticiones se usa servicio.sesion (fija el
+# contexto RLS del alumno) y para tareas de fondo servicio.sesion_de_servicio().

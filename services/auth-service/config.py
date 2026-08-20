@@ -1,29 +1,23 @@
-from pydantic_settings import BaseSettings
+"""Configuracion del auth-service."""
 from functools import lru_cache
 
+from revo_comun.ajustes import AjustesBase
 
-class Settings(BaseSettings):
-    # Base de datos. Sin default: si falta, el arranque falla en vez de
-    # conectarse silenciosamente a una BD equivocada.
-    DATABASE_URL: str
 
-    # JWT. SIN valor por defecto a proposito: un default hardcodeado aqui
-    # permite firmar tokens de admin a cualquiera que lea el repositorio.
-    # Debe venir de la variable de entorno JWT_SECRET (ver .env.example).
-    JWT_SECRET: str
-    JWT_ALGORITHM: str = "HS256"
-    JWT_EXPIRE_HOURS: int = 24
-
-    # Servicio
+class Ajustes(AjustesBase):
+    SERVICE_NAME: str = "revo-auth"
     SERVICE_PORT: int = 8001
-    SERVICE_NAME: str = "auth-service"
-    DEBUG: bool = True
 
-    model_config = {"env_file": ".env", "extra": "ignore"}
+    #: Longitud minima de contrasena. 6 caracteres (el valor anterior) se
+    #: rompen en segundos con un diccionario; 10 con las comprobaciones de
+    #: schemas.py deja fuera lo mas evidente sin volverse hostil para un
+    #: estudiante que se registra desde el movil.
+    PASSWORD_MIN_LENGTH: int = 10
 
 
-@lru_cache()
-def get_settings() -> Settings:
-    return Settings()
+@lru_cache
+def obtener_ajustes() -> Ajustes:
+    return Ajustes()
 
-settings = get_settings()
+
+settings = obtener_ajustes()

@@ -67,3 +67,18 @@ def extract_client_ip(request, trusted_proxy_count: int = 0) -> str:
     candidato = saltos[indice]
 
     return candidato if _is_valid_ip(candidato) else socket_ip
+
+
+def ip_para_almacenar(valor: str | None) -> str | None:
+    """
+    Devuelve la IP solo si es una IP de verdad; si no, None.
+
+    Existe porque la columna que guarda la IP es de tipo INET y Postgres
+    rechaza cualquier cosa que no lo sea. La IP del socket no siempre es una
+    IP: con un socket unix, detras de segun que servidor ASGI, o en las
+    pruebas, llega un nombre. Sin este filtro, guardar la evidencia del
+    consentimiento revienta el registro entero.
+    """
+    if not valor or valor == UNKNOWN_IP:
+        return None
+    return valor if _is_valid_ip(valor) else None

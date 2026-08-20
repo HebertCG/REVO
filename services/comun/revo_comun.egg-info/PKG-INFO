@@ -1,0 +1,14 @@
+Metadata-Version: 2.4
+Name: revo-comun
+Version: 1.0.0
+Summary: Preocupaciones transversales compartidas por los microservicios de REVO
+Requires-Python: >=3.11
+Requires-Dist: fastapi>=0.111.0
+Requires-Dist: pydantic>=2.7.1
+Requires-Dist: pydantic-settings>=2.2.1
+Requires-Dist: python-jose[cryptography]>=3.3.0
+Requires-Dist: sqlalchemy>=2.0.30
+Requires-Dist: redis>=5.0.4
+Provides-Extra: test
+Requires-Dist: pytest>=8.2.0; extra == "test"
+Requires-Dist: fakeredis>=2.23.0; extra == "test"

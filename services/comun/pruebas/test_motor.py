@@ -109,3 +109,47 @@ class TestConfiguracionDelPool:
 
         with pytest.raises(ValueError):
             crear_motor("mysql://usuario:clave@host/base")
+
+
+class TestReentradaEnElEvento:
+    """
+    El contexto se aplica sobre la CONEXION que entrega `after_begin`, nunca
+    sobre la sesion. Usar la sesion ahi la hace pedir una conexion mientras
+    esta provisionandola y SQLAlchemy aborta con "This session is
+    provisioning a new connection". Ese fallo no aparece en pruebas con la
+    base de datos simulada: solo sale contra Postgres de verdad.
+    """
+
+    def test_el_evento_escribe_en_la_conexion_no_en_la_sesion(self):
+        from revo_comun.basedatos.motor import aplicar_contexto
+
+        class ConexionFalsa:
+            def __init__(self):
+                self.ejecutadas = []
+
+            def execute(self, sentencia, parametros=None):
+                self.ejecutadas.append((str(sentencia), parametros))
+
+        conexion = ConexionFalsa()
+        sesion = SesionFalsa({CLAVE_CONTEXTO: ContextoSeguridad(user_id=42, role="student")})
+
+        aplicar_contexto(conexion, sesion.info[CLAVE_CONTEXTO])
+
+        assert len(conexion.ejecutadas) == 1
+        assert sesion.ejecutadas == []
+
+    def test_sin_contexto_no_toca_la_conexion(self):
+        from revo_comun.basedatos.motor import aplicar_contexto
+
+        class ConexionFalsa:
+            def __init__(self):
+                self.ejecutadas = []
+
+            def execute(self, sentencia, parametros=None):
+                self.ejecutadas.append(sentencia)
+
+        conexion = ConexionFalsa()
+
+        aplicar_contexto(conexion, None)
+
+        assert conexion.ejecutadas == []

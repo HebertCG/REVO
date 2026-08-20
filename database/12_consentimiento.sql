@@ -127,6 +127,13 @@ GRANT SELECT ON user_consents TO revo_service;
 
 GRANT SELECT ON user_consent_state TO revo_app, revo_service;
 
+-- Las secuencias de estas dos tablas nacen despues del GRANT masivo de la
+-- migracion 10, asi que se conceden aqui de forma explicita. (La migracion 10
+-- deja ademas un ALTER DEFAULT PRIVILEGES para que esto no vuelva a hacer
+-- falta en migraciones futuras, pero no retroactivamente sobre estas.)
+GRANT USAGE, SELECT ON SEQUENCE legal_documents_id_seq TO revo_app;
+GRANT USAGE, SELECT ON SEQUENCE user_consents_id_seq TO revo_app;
+
 DROP POLICY IF EXISTS consentimientos_propios ON user_consents;
 CREATE POLICY consentimientos_propios ON user_consents FOR ALL
     USING (revo_es_alumno(user_id) OR revo_es_admin() OR revo_es_servicio())

@@ -105,20 +105,28 @@ def crear_motor(
     )
 
 
-def aplicar_contexto_en_sesion(sesion) -> None:
+def aplicar_contexto(ejecutor, contexto: ContextoSeguridad | None) -> None:
     """
-    Escribe el contexto de seguridad en la transaccion abierta.
+    Escribe el contexto de seguridad usando el ejecutor que se le pase.
 
-    Se invoca desde el evento `after_begin`, asi que corre una vez por
-    transaccion sin que el codigo de negocio tenga que acordarse.
+    El ejecutor puede ser una Session o una Connection. La distincion importa:
+    dentro del evento `after_begin` hay que usar la CONEXION que el evento
+    entrega, nunca la sesion. Llamar a `sesion.execute()` ahi hace que la
+    sesion pida una conexion mientras esta provisionandola, y SQLAlchemy
+    aborta con "This session is provisioning a new connection". Lo detectaron
+    las pruebas de integracion del registro.
     """
-    contexto: ContextoSeguridad | None = sesion.info.get(CLAVE_CONTEXTO)
     if contexto is None:
         # Sesiones sin usuario (arranque, tareas de fondo). Se quedan sin
         # identidad a proposito: RLS les niega las tablas de alumnos.
         return
 
-    sesion.execute(SENTENCIA_CONTEXTO, parametros_contexto(contexto))
+    ejecutor.execute(SENTENCIA_CONTEXTO, parametros_contexto(contexto))
+
+
+def aplicar_contexto_en_sesion(sesion) -> None:
+    """Aplica a una sesion el contexto que lleva guardado."""
+    aplicar_contexto(sesion, sesion.info.get(CLAVE_CONTEXTO))
 
 
 def crear_fabrica_sesiones(motor: Engine) -> sessionmaker:
@@ -127,7 +135,8 @@ def crear_fabrica_sesiones(motor: Engine) -> sessionmaker:
 
     @event.listens_for(fabrica, "after_begin")
     def _al_empezar_transaccion(sesion, transaccion, conexion):  # noqa: ARG001
-        aplicar_contexto_en_sesion(sesion)
+        # Sobre la conexion, no sobre la sesion: ver aplicar_contexto().
+        aplicar_contexto(conexion, sesion.info.get(CLAVE_CONTEXTO))
 
     return fabrica
 
@@ -146,4 +155,8 @@ def fijar_contexto(sesion, contexto: ContextoSeguridad | None) -> None:
     sesion.info[CLAVE_CONTEXTO] = contexto
 
     if sesion.in_transaction():
-        aplicar_contexto_en_sesion(sesion)
+        # Ya hay transaccion abierta: `after_begin` no volvera a dispararse
+        # hasta el proximo commit, asi que se aplica ahora sobre la conexion
+        # viva. Sin esto, un cambio de identidad a mitad de peticion (el
+        # login, que empieza sin identidad y la adquiere) no llegaria a RLS.
+        aplicar_contexto(sesion.connection(), contexto)

@@ -91,6 +91,14 @@ REVOKE CREATE ON SCHEMA public FROM revo_app, revo_service;
 
 GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO revo_app, revo_service;
 
+-- Lo anterior solo cubre las secuencias que existen AHORA. Sin esto, la
+-- primera tabla que anada una migracion posterior tendra su secuencia sin
+-- permisos y el INSERT fallara con "permission denied for sequence", que es
+-- un error que no apunta a la causa real. Lo detectaron las pruebas de
+-- integracion del registro tras anadir user_consents en la migracion 12.
+ALTER DEFAULT PRIVILEGES FOR ROLE revo_user IN SCHEMA public
+    GRANT USAGE, SELECT ON SEQUENCES TO revo_app, revo_service;
+
 -- ------------------------------------------------------------
 -- 4. users
 -- ------------------------------------------------------------

@@ -84,3 +84,34 @@ class TestEntradaHostil:
         req = PeticionFalsa("10.0.0.5", {"x-forwarded-for": ""})
 
         assert extract_client_ip(req, trusted_proxy_count=1) == "10.0.0.5"
+
+
+class TestGuardarLaIp:
+    def test_una_ip_valida_se_guarda(self):
+        from revo_comun.seguridad.ip_cliente import ip_para_almacenar
+
+        assert ip_para_almacenar("200.60.1.1") == "200.60.1.1"
+
+    def test_una_ipv6_valida_se_guarda(self):
+        from revo_comun.seguridad.ip_cliente import ip_para_almacenar
+
+        assert ip_para_almacenar("2001:db8::1") == "2001:db8::1"
+
+    def test_un_nombre_de_host_no_se_guarda(self):
+        # La columna es INET: Postgres rechaza "testclient" o "localhost" y
+        # el INSERT del consentimiento se lleva por delante el registro.
+        from revo_comun.seguridad.ip_cliente import ip_para_almacenar
+
+        assert ip_para_almacenar("testclient") is None
+        assert ip_para_almacenar("localhost") is None
+
+    def test_desconocida_no_se_guarda(self):
+        from revo_comun.seguridad.ip_cliente import ip_para_almacenar
+
+        assert ip_para_almacenar("unknown") is None
+
+    def test_vacio_no_se_guarda(self):
+        from revo_comun.seguridad.ip_cliente import ip_para_almacenar
+
+        assert ip_para_almacenar("") is None
+        assert ip_para_almacenar(None) is None

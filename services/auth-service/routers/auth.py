@@ -68,7 +68,10 @@ def registrar(
     body: RegisterRequest,
     request: Request,
     db: Session = Depends(servicio.sesion),
-    _: None = Depends(servicio.limitar("register")),
+    # Dos cupos a la vez: la rafaga deja entrar a un aula completa, el
+    # sostenido corta a un bot que registre cuentas todo el dia.
+    _rafaga: None = Depends(servicio.limitar("register")),
+    _sostenido: None = Depends(servicio.limitar("register_diario")),
 ):
     ip, navegador = _datos_de_origen(request)
 
@@ -139,7 +142,9 @@ def registrar(
 def login(
     body: LoginRequest,
     db: Session = Depends(servicio.sesion),
-    _: None = Depends(servicio.limitar("login", por_credencial=True)),
+    # Por cuenta atacada (fuerza bruta) y por IP (rociado de credenciales).
+    _por_cuenta: None = Depends(servicio.limitar("login", por_credencial=True)),
+    _por_ip: None = Depends(servicio.limitar("login_por_ip")),
 ):
     # La sesion todavia no tiene contexto RLS (nadie esta autenticado), asi
     # que la tabla users esta cerrada. Se usa la funcion acotada que definen
@@ -186,7 +191,7 @@ def login_form(
     db: Session = Depends(servicio.sesion),
     _: None = Depends(servicio.limitar("login")),
 ):
-    return login(LoginRequest(email=form.username, password=form.password), db, None)
+    return login(LoginRequest(email=form.username, password=form.password), db, None, None)
 
 
 # ── GET /auth/me ─────────────────────────────────────────────

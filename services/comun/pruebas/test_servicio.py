@@ -267,3 +267,67 @@ class TestSalud:
         cuerpo = cliente.get("/health").json()
 
         assert set(cuerpo.keys()) == {"status"}
+
+
+class TestPresupuestoDeConexiones:
+    """
+    El pool es por proceso, asi que el total contra Postgres es
+    servicios x workers x (pool + overflow). Pasarse de max_connections
+    no da un error al arrancar sino "too many clients already" bajo carga,
+    que es cuando peor viene y cuando menos dice.
+    """
+
+    def test_la_cuenta_multiplica_servicios_workers_y_pool(self):
+        ajustes = crear_ajustes(
+            WORKERS=2, DB_POOL_SIZE=5, DB_MAX_OVERFLOW=5, DB_SERVICIOS_COMPARTIDOS=3
+        )
+
+        assert ajustes.conexiones_maximas_estimadas == 60
+
+    def test_el_valor_por_defecto_cabe_en_un_postgres_estandar(self):
+        # 100 es el max_connections por defecto de PostgreSQL.
+        ajustes = crear_ajustes(WORKERS=2)
+
+        assert ajustes.conexiones_maximas_estimadas <= 100 - 15
+
+    def test_cuatro_workers_con_pool_grande_desbordan(self):
+        ajustes = crear_ajustes(WORKERS=4, DB_POOL_SIZE=10, DB_MAX_OVERFLOW=10)
+
+        assert ajustes.conexiones_maximas_estimadas > 100
+
+    def test_cero_workers_cuenta_como_uno(self):
+        # Un 0 en la configuracion no debe hacer creer que no gasta conexiones.
+        ajustes = crear_ajustes(WORKERS=0, DB_POOL_SIZE=5, DB_MAX_OVERFLOW=5)
+
+        assert ajustes.conexiones_maximas_estimadas == 30
+
+
+class TestCuposDeAcceso:
+    """El aula comparte una sola IP publica: es el caso que decide el diseno."""
+
+    def test_el_registro_admite_un_aula_completa_de_golpe(self):
+        from revo_comun.limites.politicas import POLICIES
+
+        assert POLICIES["register"].limit >= 50
+        assert POLICIES["register"].window_seconds <= 600
+
+    def test_el_registro_tiene_ademas_un_techo_sostenido(self):
+        # Sin el, la rafaga ancha deja a un bot crear cuentas todo el dia.
+        from revo_comun.limites.politicas import POLICIES
+
+        assert POLICIES["register_diario"].window_seconds >= 86_400
+        assert POLICIES["register_diario"].limit < POLICIES["register"].limit * 24
+
+    def test_el_login_se_limita_por_cuenta_y_tambien_por_ip(self):
+        # Solo por cuenta, un atacante rocia tres claves contra mil cuentas
+        # y ningun cupo se entera.
+        from revo_comun.limites.politicas import POLICIES, Scope
+
+        assert POLICIES["login"].scope is Scope.CREDENTIAL
+        assert POLICIES["login_por_ip"].scope is Scope.IP
+
+    def test_el_cupo_de_login_por_ip_deja_pasar_a_un_aula(self):
+        from revo_comun.limites.politicas import POLICIES
+
+        # 50 alumnos con margen para equivocarse un par de veces.
+        assert POLICIES["login_por_ip"].limit >= 150

@@ -30,9 +30,28 @@ class AjustesBase(BaseSettings):
     #: silencio a una base de datos equivocada.
     DATABASE_URL: str
 
-    DB_POOL_SIZE: int = 10
-    DB_MAX_OVERFLOW: int = 10
+    # El pool es POR PROCESO. El total contra Postgres es
+    #     servicios x workers x (pool + overflow)
+    # y si esa cuenta pasa de max_connections, el sintoma en produccion es
+    # "FATAL: sorry, too many clients already" bajo carga, justo cuando peor
+    # viene. Con los valores de aqui: 3 x 2 x 10 = 60, dentro de los 100 por
+    # defecto de PostgreSQL y con margen para mantenimiento.
+    #
+    # Estas consultas duran milisegundos, asi que un pool pequeno basta: a
+    # 30 peticiones por segundo con 5 ms de consulta hacen falta 0,15
+    # conexiones simultaneas. El pool grande no da velocidad, solo agota
+    # antes el limite del servidor.
+    DB_POOL_SIZE: int = 5
+    DB_MAX_OVERFLOW: int = 5
     DB_REQUIRE_SSL: bool = False
+
+    #: Procesos uvicorn de ESTE servicio. Solo se usa para calcular el
+    #: presupuesto de conexiones; quien los arranca es el comando del compose.
+    WORKERS: int = 1
+
+    #: Cuantos servicios comparten esta base de datos. Entra en la cuenta del
+    #: presupuesto de conexiones.
+    DB_SERVICIOS_COMPARTIDOS: int = 3
 
     # ── Tokens ───────────────────────────────────────────────
     #: Sin default a proposito: un secreto publicado en el repositorio deja
@@ -57,6 +76,13 @@ class AjustesBase(BaseSettings):
     #: X-Forwarded-For). 1 = Nginx. 2 = Cloudflare y Nginx.
     TRUSTED_PROXY_COUNT: int = 0
 
+    # ── Registro ─────────────────────────────────────────────
+    LOG_LEVEL: str = "INFO"
+    #: Deja pasar el detalle de SQLAlchemy y terceros. Solo para depurar: en
+    #: DEBUG, SQLAlchemy registra cada sentencia con sus parametros, y ahi van
+    #: correos y respuestas de alumnos.
+    LOG_RUIDOSO: bool = False
+
     # ── CORS ─────────────────────────────────────────────────
     #: Lista separada por comas. Sin comodines y sin expresiones regulares:
     #: un patron como "https://.*\\.vercel\\.app" convierte en origen valido
@@ -77,6 +103,15 @@ class AjustesBase(BaseSettings):
         return normalizado
 
     # ── Derivados ────────────────────────────────────────────
+    @property
+    def conexiones_maximas_estimadas(self) -> int:
+        """Conexiones que puede llegar a abrir el conjunto de servicios."""
+        return (
+            self.DB_SERVICIOS_COMPARTIDOS
+            * max(1, self.WORKERS)
+            * (self.DB_POOL_SIZE + self.DB_MAX_OVERFLOW)
+        )
+
     @property
     def es_produccion(self) -> bool:
         return self.ENVIRONMENT == "production"

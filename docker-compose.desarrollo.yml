@@ -32,24 +32,47 @@ services:
       - "6379:6379"
 
   auth-service:
+    environment:
+      # --reload obliga a un unico proceso: el presupuesto de
+      # conexiones debe contar 1, no los 2 de produccion.
+      WORKERS: 1
     volumes:
       - ./services/auth-service:/app
+      # La libreria compartida se monta sobre la copia instalada en la
+      # imagen. Sin esto, tocar revo_comun exige reconstruir las tres
+      # imagenes para ver el cambio, y es facil probar contra codigo viejo
+      # sin darse cuenta.
+      - ./services/comun/revo_comun:/usr/local/lib/python3.11/site-packages/revo_comun:ro
     command: >
       uvicorn main:app --host 0.0.0.0 --port 8001
       --no-server-header --proxy-headers --forwarded-allow-ips=*
       --reload
 
   survey-service:
+    environment:
+      WORKERS: 1
     volumes:
       - ./services/survey-service:/app
+      # La libreria compartida se monta sobre la copia instalada en la
+      # imagen. Sin esto, tocar revo_comun exige reconstruir las tres
+      # imagenes para ver el cambio, y es facil probar contra codigo viejo
+      # sin darse cuenta.
+      - ./services/comun/revo_comun:/usr/local/lib/python3.11/site-packages/revo_comun:ro
     command: >
       uvicorn main:app --host 0.0.0.0 --port 8002
       --no-server-header --proxy-headers --forwarded-allow-ips=*
       --reload
 
   ml-service:
+    environment:
+      WORKERS: 1
     volumes:
       - ./services/ml-service:/app
+      # La libreria compartida se monta sobre la copia instalada en la
+      # imagen. Sin esto, tocar revo_comun exige reconstruir las tres
+      # imagenes para ver el cambio, y es facil probar contra codigo viejo
+      # sin darse cuenta.
+      - ./services/comun/revo_comun:/usr/local/lib/python3.11/site-packages/revo_comun:ro
       - ml_models:/app/model/saved
     command: >
       uvicorn main:app --host 0.0.0.0 --port 8003

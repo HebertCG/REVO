@@ -141,6 +141,10 @@ services:
       # a todo el mundo por igual.
       TRUSTED_PROXY_COUNT: ${TRUSTED_PROXY_COUNT:-1}
       ENVIRONMENT: ${ENVIRONMENT:-development}
+      # Entra en la cuenta del presupuesto de conexiones que el servicio
+      # comprueba al arrancar contra el max_connections real de Postgres.
+      WORKERS: ${WORKERS:-2}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5173}
       DB_REQUIRE_SSL: ${DB_REQUIRE_SSL:-false}
     depends_on:
@@ -154,6 +158,7 @@ services:
     command: >
       uvicorn main:app --host 0.0.0.0 --port 8001
       --no-server-header --proxy-headers --forwarded-allow-ips=*
+      --workers ${WORKERS:-2}
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8001/health')"]
       interval: 20s
@@ -176,6 +181,7 @@ services:
     command: >
       uvicorn main:app --host 0.0.0.0 --port 8002
       --no-server-header --proxy-headers --forwarded-allow-ips=*
+      --workers ${WORKERS:-2}
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8002/health')"]
       interval: 20s
@@ -200,6 +206,7 @@ services:
     command: >
       uvicorn main:app --host 0.0.0.0 --port 8003
       --no-server-header --proxy-headers --forwarded-allow-ips=*
+      --workers ${WORKERS:-2}
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8003/health')"]
       interval: 20s

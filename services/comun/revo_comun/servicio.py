@@ -29,6 +29,7 @@ from typing import Callable
 
 from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import text
 
 from revo_comun.ajustes import AjustesBase
 from revo_comun.basedatos.contexto import ContextoSeguridad
@@ -36,6 +37,7 @@ from revo_comun.basedatos.motor import crear_fabrica_sesiones, crear_motor, fija
 from revo_comun.errores import registrar_manejadores
 from revo_comun.limites.contador import RateLimiter
 from revo_comun.limites.politicas import POLICIES, RequestContext
+from revo_comun.registro import configurar_registro
 from revo_comun.seguridad.cabeceras import CabecerasSeguridadMiddleware, LimiteTamanoMiddleware
 from revo_comun.seguridad.ip_cliente import extract_client_ip
 from revo_comun.seguridad.pasarela import PasarelaMiddleware
@@ -53,6 +55,15 @@ CABECERAS_CORS = ["Authorization", "Content-Type"]
 #: Cabeceras del rate limit que el frontend puede leer para avisar al alumno
 #: antes de que le rechacen la peticion.
 CABECERAS_EXPUESTAS = ["X-RateLimit-Limit", "X-RateLimit-Remaining", "Retry-After", "X-Error-Id"]
+
+#: Conexiones que se dejan libres para el superusuario y el mantenimiento.
+#: Sin reserva, un pico de trafico deja al administrador sin poder entrar
+#: a la base de datos justo cuando hace falta.
+RESERVA_CONEXIONES_MANTENIMIENTO = 15
+
+#: Valor por defecto de max_connections en PostgreSQL. Se usa como
+#: referencia conservadora cuando no se puede consultar el real.
+MAX_CONNECTIONS_POR_DEFECTO = 100
 
 
 class ServicioREVO:
@@ -133,6 +144,9 @@ class ServicioREVO:
         """
         ajustes = self.ajustes
 
+        # Lo primero: sin esto, los avisos de abajo no llegan a ninguna parte.
+        configurar_registro(nivel=ajustes.LOG_LEVEL, ruidoso=ajustes.LOG_RUIDOSO)
+
         problemas = ajustes.validar_para_produccion()
         if problemas:
             for problema in problemas:
@@ -144,6 +158,7 @@ class ServicioREVO:
 
         @asynccontextmanager
         async def ciclo_vida(app: FastAPI):
+            self._comprobar_presupuesto_de_conexiones()
             logger.info(
                 "%s arrancando en modo %s (docs %s)",
                 ajustes.SERVICE_NAME,
@@ -200,6 +215,53 @@ class ServicioREVO:
             return {"status": "ok"}
 
         return app
+
+    def _comprobar_presupuesto_de_conexiones(self) -> None:
+        """
+        Contrasta el pool configurado con el max_connections real del servidor.
+
+        Sin esto, el error aparece bajo carga y en forma de
+        "FATAL: sorry, too many clients already", que no dice nada sobre la
+        causa. Aqui se detecta al arrancar, con la cuenta hecha.
+        """
+        estimadas = self.ajustes.conexiones_maximas_estimadas
+        try:
+            with self.motor.connect() as conexion:
+                maximas = int(conexion.execute(text("SHOW max_connections")).scalar())
+        except Exception as exc:  # noqa: BLE001
+            # No poder preguntar no es motivo para dar el visto bueno: se
+            # asume el valor por defecto de PostgreSQL y se aplica la misma
+            # regla. Antes esto devolvia sin mas, asi que una base de datos
+            # inalcanzable al arrancar dejaba pasar cualquier pool.
+            maximas = MAX_CONNECTIONS_POR_DEFECTO
+            logger.warning(
+                "No se pudo consultar max_connections (%s). Se asume el valor "
+                "por defecto de PostgreSQL (%d) para comprobar el presupuesto.",
+                type(exc).__name__, maximas,
+            )
+
+        # Se reservan unas cuantas para superusuario y mantenimiento; si no,
+        # un pico deja fuera al propio administrador.
+        disponibles = maximas - RESERVA_CONEXIONES_MANTENIMIENTO
+
+        mensaje = (
+            f"Presupuesto de conexiones: {self.ajustes.DB_SERVICIOS_COMPARTIDOS} servicios "
+            f"x {max(1, self.ajustes.WORKERS)} workers x "
+            f"({self.ajustes.DB_POOL_SIZE}+{self.ajustes.DB_MAX_OVERFLOW}) = {estimadas}; "
+            f"el servidor admite {maximas}"
+        )
+
+        if estimadas > disponibles:
+            aviso = (
+                f"{mensaje}. Bajo carga daria 'too many clients already'. "
+                f"Reduce DB_POOL_SIZE/DB_MAX_OVERFLOW o WORKERS, o sube "
+                f"max_connections en PostgreSQL."
+            )
+            if self.ajustes.es_produccion:
+                raise RuntimeError(aviso)
+            logger.warning(aviso)
+        else:
+            logger.info(mensaje)
 
     # ── Dependencias ─────────────────────────────────────────
     def principal_opcional(self, request: Request) -> Principal | None:

@@ -55,13 +55,20 @@ class Answer(Base):
     session     = relationship("QuestionnaireSession", back_populates="answers")
 
 
-class User(Base):
-    """Referencia mínima para FK — no se gestiona aquí."""
-    __tablename__ = "users"
-    id       = Column(Integer, primary_key=True)
-    email    = Column(String(255))
-    full_name= Column(String(150))
-    role     = Column(String(20))
+# Aqui habia un modelo `User`. Se ha retirado a proposito: este servicio no
+# leia ni escribia esa tabla en ninguna ruta, y tenerla declarada sugeria que
+# el cuestionario es dueno de los datos de usuario cuando no lo es. La
+# identidad del alumno llega ya verificada en el token, asi que no hace falta
+# consultar `users` desde aqui.
+#
+# Cada tabla la escribe un solo servicio:
+#   auth-service   -> users, user_consents, legal_documents
+#   survey-service -> questionnaire_sessions, answers
+#   ml-service     -> predictions, prediction_feedbacks, ml_training_data
+#
+# Esa regla es lo que mantiene bajo el acoplamiento pese a compartir base de
+# datos. Antes de anadir un modelo de otro servicio aqui, considera si lo que
+# hace falta es una llamada al servicio dueno.
 
 
 class Course(Base):

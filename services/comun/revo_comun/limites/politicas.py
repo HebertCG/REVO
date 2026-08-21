@@ -108,16 +108,41 @@ POLICIES: dict[str, RateLimitPolicy] = {
     "read": RateLimitPolicy(
         name="read", limit=240, window_seconds=60, scope=Scope.USER_OR_IP, fail_open=True
     ),
-    # Login: estricto y por cuenta objetivo. Un atacante que prueba mil
-    # passwords contra una cuenta se frena; el aula entera entrando a la vez
-    # no se frena, porque cada alumno usa su propio email.
+    # ── Acceso: dos cupos a la vez, no uno ───────────────────
+    # Las rutas sin identidad previa (login, registro) son las unicas donde
+    # hay que contar por IP, y ahi choca de frente el caso del aula: 50
+    # alumnos comparten una sola IP publica y llegan todos en el mismo
+    # minuto. Un unico cupo no puede distinguir eso de un bot, porque a lo
+    # largo de una hora los dos hacen el mismo numero de peticiones.
+    #
+    # La diferencia esta en la FORMA del trafico: el aula es una rafaga
+    # corta y luego silencio; el bot es un goteo constante durante horas.
+    # Por eso se aplican dos cupos simultaneos a cada ruta: uno ancho y
+    # corto que deja pasar la rafaga, y uno estrecho y largo que corta el
+    # goteo sostenido.
+
+    # Login por cuenta atacada. Frena la fuerza bruta contra un alumno
+    # concreto sin tocar al resto del aula, porque cada uno usa su email.
     "login": RateLimitPolicy(
         name="login", limit=8, window_seconds=900, scope=Scope.CREDENTIAL, fail_open=True
     ),
-    # Alta de cuentas: por IP, porque aun no hay identidad. El techo cubre
-    # a un aula completa registrandose en la primera clase del curso.
+    # Login por IP, cupo sostenido. Sin esto, un atacante prueba tres
+    # contrasenas contra diez mil cuentas distintas y ningun cupo por
+    # credencial se entera. 400/hora deja entrar a un aula con reintentos y
+    # corta el rociado de credenciales.
+    "login_por_ip": RateLimitPolicy(
+        name="login_por_ip", limit=400, window_seconds=3600, scope=Scope.IP, fail_open=True
+    ),
+
+    # Alta de cuentas, rafaga: un aula completa registrandose a la vez el
+    # primer dia de clase. 80 en 10 minutos cubre 50 alumnos con reintentos.
     "register": RateLimitPolicy(
-        name="register", limit=60, window_seconds=3600, scope=Scope.IP, fail_open=True
+        name="register", limit=80, window_seconds=600, scope=Scope.IP, fail_open=True
+    ),
+    # Alta de cuentas, sostenido: ~3 aulas al dia desde la misma IP. Un bot
+    # creando cuentas en cadena topa aqui aunque respete la rafaga.
+    "register_diario": RateLimitPolicy(
+        name="register_diario", limit=250, window_seconds=86_400, scope=Scope.IP, fail_open=True
     ),
     # Panel de administracion. Poco trafico y alto valor: si Redis cae,
     # se cierra en vez de quedar sin control.

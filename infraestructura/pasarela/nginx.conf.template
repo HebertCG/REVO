@@ -81,7 +81,7 @@ http {
     # El login es la ruta que se ataca por fuerza bruta. Mas estricta, pero
     # no tanto como para que un aula entera entrando a la vez se atasque:
     # 50 alumnos tecleando su contrasena no llegan a 5 por segundo.
-    limit_req_zone $binary_remote_addr zone=acceso:10m rate=5r/s;
+    limit_req_zone $binary_remote_addr zone=acceso:10m rate=10r/s;
 
     # Conexiones simultaneas por IP. Un aula con 50 navegadores abre como
     # mucho 6 conexiones por navegador; 100 cubre el caso y frena al cliente
@@ -226,12 +226,12 @@ http {
 
         # Login y registro: cupo estricto, son las rutas que se atacan.
         location = /api/auth/login {
-            limit_req zone=acceso burst=20 nodelay;
+            limit_req zone=acceso burst=100 nodelay;
             proxy_pass $servicio_auth/auth/login;
         }
 
         location = /api/auth/register {
-            limit_req zone=acceso burst=20 nodelay;
+            limit_req zone=acceso burst=100 nodelay;
             proxy_pass $servicio_auth/auth/register;
         }
 

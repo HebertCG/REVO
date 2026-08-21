@@ -237,8 +237,24 @@ docker compose logs pasarela | grep 'lim=' | grep -v 'lim=-'
 docker compose restart auth-service
 
 # Copia de seguridad
-docker compose exec postgres pg_dump -U revo_user revo_db | gzip > copia_$(date +%F).sql.gz
+docker compose exec postgres pg_dump -U revo_user revo_db | gzip > copias/copia_$(date +%F).sql.gz
+
+# Consultar la base
+docker compose exec postgres psql -U revo_user -d revo_db
+
+# Ver los contadores de rate limit
+docker compose exec redis redis-cli -a "$REDIS_PASSWORD" --scan --pattern 'revo:rl:*'
 ```
+
+**Sobre el puerto 5434**: en modo desarrollo el compose lo publica para poder
+usar un cliente grafico. En Windows con Docker Desktop sobre WSL2 ese reenvio
+no siempre llega al host (depende de como este el relay de WSL). Si
+`psql -h localhost -p 5434` da "connection refused", usa
+`docker compose exec postgres psql ...`, que funciona siempre porque no
+depende del reenvio de puertos.
+
+Las copias de seguridad contienen datos personales de alumnos: el directorio
+`copias/` esta en `.gitignore` y no debe subirse a ningun repositorio.
 
 ### Que mirar cuando algo va mal
 

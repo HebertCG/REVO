@@ -186,7 +186,7 @@ Write-Host "  Los microservicios NO tienen puerto propio: se llega a ellos"
 Write-Host "  solo por la pasarela, igual que en produccion." -ForegroundColor DarkGray
 Write-Host ""
 Write-Host "  Registros  : docker compose $($composeArgs -join ' ') logs -f"
-Write-Host "  Base       : psql -h localhost -p 5434 -U revo_user -d revo_db"
+Write-Host "  Base       : docker compose $($composeArgs -join ' ') exec postgres psql -U revo_user -d revo_db"
 Write-Host "  Parar todo : docker compose $($composeArgs -join ' ') down"
 Write-Host ""
 Write-Host "  Comprobar el despliegue:" -ForegroundColor DarkGray

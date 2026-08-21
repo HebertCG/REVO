@@ -41,13 +41,53 @@ else
     fallo "la pasarela no responde en el puerto ${PUERTO}"
 fi
 
-# Los microservicios no deben tener ningun puerto publicado. Si responden
-# aqui, es que alguien reanadio un `ports:` al compose.
-for puerto in 8001 8002 8003 5432 5434 6379; do
-    if curl -s --max-time 2 "http://localhost:${puerto}/" >/dev/null 2>&1; then
-        fallo "el puerto ${puerto} esta expuesto y no deberia"
+# ── Ningun microservicio publica puerto ──────────────────────
+#
+# Se le pregunta a Docker en lugar de sondear puertos del host.
+#
+# Las dos versiones anteriores de esta comprobacion estaban mal:
+#
+#   1. Con `curl --max-time 2`, cualquier fallo contaba como "puerto
+#      cerrado". Un puerto ABIERTO cuyo servicio tardara en responder, o que
+#      no hablara HTTP, se daba por bueno. Es decir, tranquilizaba justo en
+#      el caso que tiene que detectar.
+#   2. Con una conexion TCP al host, se detecta el puerto abierto pero no se
+#      distingue "mi servicio esta expuesto" de "esta maquina ya tenia algo
+#      ahi". En un equipo con PostgreSQL instalado o un relay de WSL salen
+#      falsas alarmas, y las falsas alarmas acaban ignorandose.
+#
+# La pregunta correcta es concreta: ¿algun contenedor de REVO publica un
+# puerto que no deberia?
+publicaciones_de() {
+    local servicio="$1"
+    local contenedor
+    contenedor=$(docker ps --filter "label=com.docker.compose.service=${servicio}" \
+                           --format '{{.Names}}' | head -1)
+    [ -z "$contenedor" ] && return 1
+    docker inspect "$contenedor" --format '{{json .HostConfig.PortBindings}}' 2>/dev/null
+}
+
+for servicio in auth-service survey-service ml-service; do
+    bindings=$(publicaciones_de "$servicio") || { printf "  --   %s no esta corriendo\n" "$servicio"; continue; }
+
+    if [ "$bindings" = "{}" ] || [ "$bindings" = "null" ]; then
+        ok "${servicio} no publica ningun puerto"
     else
-        ok "el puerto ${puerto} no esta expuesto"
+        fallo "${servicio} publica puertos al host: ${bindings}"
+    fi
+done
+
+# Postgres y Redis SI publican en modo desarrollo, para poder inspeccionarlos
+# con psql y redis-cli. En produccion no deben hacerlo.
+for servicio in postgres redis; do
+    bindings=$(publicaciones_de "$servicio") || continue
+
+    if [ "$bindings" = "{}" ] || [ "$bindings" = "null" ]; then
+        ok "${servicio} no publica ningun puerto"
+    elif [ "${ENVIRONMENT:-development}" = "production" ]; then
+        fallo "${servicio} publica puertos en produccion: ${bindings}"
+    else
+        printf "  --   %s publica %s (normal en desarrollo, NO en produccion)\n" "$servicio" "$bindings"
     fi
 done
 

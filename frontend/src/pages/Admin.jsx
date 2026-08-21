@@ -78,21 +78,12 @@ export default function Admin() {
   const handleExportCsv = async () => {
     setExportingCsv(true)
     try {
-      const token = localStorage.getItem('revo_token')
-      const base = import.meta.env.VITE_ML_URL || '/api/ml'
-      const res = await fetch(`${base}/stats/export-csv`, {
-        headers: { Authorization: `Bearer ${token}` }
-      })
-      if (!res.ok) throw new Error(await res.text())
-      const blob = await res.blob()
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = 'revo_dataset.csv'
-      a.click()
-      URL.revokeObjectURL(url)
+      // La descarga vive en services/api.js: aqui se leia el token a mano de
+      // localStorage y se construia la URL del ml-service, dos cosas que ya
+      // no existen (el token esta en sessionStorage y solo hay una pasarela).
+      await mlApi.descargarDataset()
     } catch (e) {
-      alert('Error al exportar: ' + e.message)
+      setTrainResult({ error: e.mensajeUsuario || 'No se pudo exportar el dataset' })
     } finally {
       setExportingCsv(false)
     }

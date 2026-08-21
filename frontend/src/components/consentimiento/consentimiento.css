@@ -1,0 +1,251 @@
+/* ============================================================
+   Consentimiento informado
+   ============================================================
+   La casilla obligatoria y las opcionales se distinguen a la vista, no solo
+   por el texto: la obligatoria lleva fondo y borde, las opcionales quedan
+   planas. Si las tres se vieran igual, el alumno las marca todas por inercia
+   y el consentimiento opcional deja de significar nada.
+   ============================================================ */
+
+.rv-consent {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 4px 0 2px;
+}
+
+.rv-consent-fila {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 11px 12px;
+  border-radius: 11px;
+  border: 1.5px solid transparent;
+  transition: border-color .15s ease, background .15s ease;
+}
+
+.rv-consent-obligatoria {
+  background: #f6f8fe;
+  border-color: #dde5fb;
+}
+
+.rv-consent-fila:hover {
+  border-color: #c9d9ff;
+}
+
+.rv-consent-check {
+  width: 18px;
+  height: 18px;
+  margin-top: 1px;
+  flex: 0 0 auto;
+  accent-color: #2f5fe8;
+  cursor: pointer;
+}
+
+.rv-consent-check:focus-visible {
+  outline: 2px solid #2f5fe8;
+  outline-offset: 2px;
+}
+
+.rv-consent-texto {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.rv-consent-texto label {
+  font-size: 13px;
+  line-height: 1.5;
+  color: #3b465c;
+  cursor: pointer;
+}
+
+.rv-consent-marca {
+  color: #e2574c;
+  font-weight: 700;
+}
+
+.rv-consent-enlaces button {
+  padding: 0;
+  border: 0;
+  background: none;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #2f5fe8;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.rv-consent-enlaces button:hover {
+  color: #1e46bd;
+}
+
+.rv-consent-enlaces button:focus-visible {
+  outline: 2px solid #2f5fe8;
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+
+.rv-consent-separador {
+  margin: 2px 0 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #8a93a6;
+}
+
+.rv-consent-error {
+  margin: 0;
+  padding: 9px 12px;
+  border-radius: 9px;
+  background: #fdeceb;
+  color: #b3392f;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+/* ============================================================
+   Ventana del documento legal
+   ============================================================ */
+
+.rv-legal-fondo {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(13, 18, 32, .55);
+  backdrop-filter: blur(3px);
+  animation: rvLegalEntra .18s ease both;
+}
+
+.rv-legal-caja {
+  display: flex;
+  flex-direction: column;
+  width: min(720px, 100%);
+  max-height: min(82vh, 760px);
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 24px 60px rgba(13, 18, 32, .3);
+  overflow: hidden;
+}
+
+.rv-legal-cabecera {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px 22px 16px;
+  border-bottom: 1px solid #eef1f7;
+}
+
+.rv-legal-cabecera h2 {
+  margin: 0;
+  font-size: 17px;
+  line-height: 1.3;
+  letter-spacing: -.02em;
+  color: #0d1220;
+}
+
+.rv-legal-cerrar {
+  flex: 0 0 auto;
+  width: 30px;
+  height: 30px;
+  border: 0;
+  border-radius: 9px;
+  background: #f2f4f9;
+  color: #3b465c;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background .15s ease;
+}
+
+.rv-legal-cerrar:hover {
+  background: #e6eaf3;
+}
+
+.rv-legal-cerrar:focus-visible {
+  outline: 2px solid #2f5fe8;
+  outline-offset: 2px;
+}
+
+.rv-legal-cuerpo {
+  flex: 1;
+  overflow-y: auto;
+  padding: 6px 22px 20px;
+  font-size: 14px;
+  line-height: 1.65;
+  color: #3b465c;
+}
+
+.rv-legal-cuerpo:focus-visible {
+  outline: 2px solid #2f5fe8;
+  outline-offset: -2px;
+}
+
+.rv-legal-cuerpo h2 {
+  margin: 20px 0 8px;
+  font-size: 18px;
+  color: #0d1220;
+}
+
+.rv-legal-cuerpo h3 {
+  margin: 22px 0 6px;
+  font-size: 15px;
+  color: #0d1220;
+}
+
+.rv-legal-cuerpo h4 {
+  margin: 16px 0 4px;
+  font-size: 13.5px;
+  color: #0d1220;
+}
+
+.rv-legal-cuerpo p {
+  margin: 0 0 10px;
+}
+
+.rv-legal-cuerpo ul {
+  margin: 0 0 12px;
+  padding-left: 20px;
+}
+
+.rv-legal-cuerpo li {
+  margin-bottom: 5px;
+}
+
+.rv-legal-cuerpo strong {
+  color: #0d1220;
+}
+
+.rv-legal-estado {
+  padding: 18px 0;
+  color: #8a93a6;
+}
+
+.rv-legal-error {
+  color: #b3392f;
+}
+
+.rv-legal-pie {
+  padding: 12px 22px;
+  border-top: 1px solid #eef1f7;
+  background: #fafbfe;
+  font-size: 12px;
+  color: #8a93a6;
+}
+
+@keyframes rvLegalEntra {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* Quien pide menos movimiento no deberia recibir una ventana que aparece
+   con animacion. */
+@media (prefers-reduced-motion: reduce) {
+  .rv-legal-fondo { animation: none; }
+}

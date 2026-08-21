@@ -1,49 +1,137 @@
 import axios from 'axios'
 
-const getToken = () => localStorage.getItem('revo_token')
-const authHeader = () => ({ Authorization: `Bearer ${getToken()}` })
+/**
+ * Cliente HTTP de REVO.
+ *
+ * Cambio principal: antes habia tres clientes axios apuntando a tres URLs
+ * distintas (VITE_AUTH_URL, VITE_SURVEY_URL, VITE_ML_URL). Eso obligaba a
+ * publicar los tres microservicios en internet y dejaba la topologia del
+ * sistema escrita en el bundle de JavaScript, que cualquiera puede leer.
+ *
+ * Ahora hay UN solo origen: la pasarela. Ella decide por recurso a que
+ * servicio va cada peticion. Si manana el cuestionario se parte en dos
+ * servicios, este archivo no cambia.
+ */
+const BASE = import.meta.env.VITE_API_URL || '/api'
 
-// En Desarrollo, usa el Proxy de Vite. En Producción, usa las variables VITE_* de Vercel/Render.
-const authAxios = axios.create({ baseURL: import.meta.env.VITE_AUTH_URL || import.meta.env.VITE_AUTH_API || '/api/auth' })
-const surveyAxios = axios.create({ baseURL: import.meta.env.VITE_SURVEY_URL || import.meta.env.VITE_SURVEY_API || '/api/survey' })
-const mlAxios = axios.create({ baseURL: import.meta.env.VITE_ML_URL || import.meta.env.VITE_ML_API || '/api/ml' })
+const CLAVE_TOKEN = 'revo_token'
 
-// ── Auth Service ──────────────────────────────────────────
+export const guardarToken = (token) => sessionStorage.setItem(CLAVE_TOKEN, token)
+export const leerToken = () => sessionStorage.getItem(CLAVE_TOKEN)
+export const borrarToken = () => sessionStorage.removeItem(CLAVE_TOKEN)
+
+const cliente = axios.create({
+  baseURL: BASE,
+  timeout: 30000,
+  headers: { 'Content-Type': 'application/json' },
+})
+
+// El token se adjunta en un interceptor y no en cada llamada: antes cada
+// metodo repetia `{ headers: authHeader() }`, y bastaba olvidarlo una vez
+// para tener una ruta que fallaba con 401 sin motivo aparente.
+cliente.interceptors.request.use((config) => {
+  const token = leerToken()
+  if (token) config.headers.Authorization = `Bearer ${token}`
+  return config
+})
+
+/**
+ * Traduce los errores de red a algo que el usuario pueda entender.
+ *
+ * El 429 merece trato propio: es el unico caso en que se sabe exactamente
+ * cuanto hay que esperar, y decirselo al alumno evita que recargue en bucle
+ * (que es justo lo que alarga el bloqueo).
+ */
+cliente.interceptors.response.use(
+  (respuesta) => respuesta,
+  (error) => {
+    const estado = error.response?.status
+
+    if (estado === 429) {
+      const segundos = Number(error.response.headers['retry-after']) || 60
+      error.mensajeUsuario = `Demasiadas peticiones. Vuelve a intentarlo en ${segundos} segundos.`
+      error.reintentarEn = segundos
+    } else if (estado === 401) {
+      borrarToken()
+      error.mensajeUsuario = 'Tu sesion expiro. Vuelve a entrar.'
+    } else if (estado === 403) {
+      error.mensajeUsuario = 'No tienes permiso para hacer esto.'
+    } else if (estado >= 500) {
+      error.mensajeUsuario = 'El servicio no esta disponible ahora mismo.'
+    } else if (!error.response) {
+      error.mensajeUsuario = 'No hay conexion con el servidor.'
+    } else {
+      error.mensajeUsuario = error.response.data?.detail || 'Ocurrio un error.'
+    }
+
+    return Promise.reject(error)
+  },
+)
+
+// ── Autenticacion ─────────────────────────────────────────
 export const authApi = {
-  register: (data) => authAxios.post('/auth/register', data),
-  login:    (data) => authAxios.post('/auth/login', data),
-  me:       ()     => authAxios.get('/auth/me', { headers: authHeader() }),
-  verify:   ()     => authAxios.get('/auth/verify', { headers: authHeader() }),
+  register: (datos) => cliente.post('/auth/register', datos),
+  login: (datos) => cliente.post('/auth/login', datos),
+  me: () => cliente.get('/auth/me'),
+  actualizarPerfil: (datos) => cliente.put('/auth/me', datos),
+  verify: () => cliente.get('/auth/verify'),
+  misConsentimientos: () => cliente.get('/auth/me/consents'),
+  cambiarConsentimiento: (docType, granted) =>
+    cliente.put('/auth/me/consents', { doc_type: docType, granted }),
 }
 
-// ── Survey Service ────────────────────────────────────────
+// ── Documentos legales (publicos) ─────────────────────────
+export const legalApi = {
+  documentos: () => cliente.get('/legal/documents'),
+  documento: (tipo) => cliente.get(`/legal/documents/${tipo}`),
+}
+
+// ── Cuestionario ──────────────────────────────────────────
 export const surveyApi = {
-  getQuestions:              ()          => surveyAxios.get('/questions/'),
-  getSessionQuestions:       (sid)       => surveyAxios.get(`/sessions/${sid}/questions`, { headers: authHeader() }),
-  getCategories:             ()          => surveyAxios.get('/questions/categories/list'),
-  createSession:             ()          => surveyAxios.post('/sessions/', {}, { headers: authHeader() }),
-  saveAnswers:               (sid, body) => surveyAxios.post(`/sessions/${sid}/answers`, body, { headers: authHeader() }),
-  submitPhase:               (sid)       => surveyAxios.post(`/sessions/${sid}/submit_phase`, {}, { headers: authHeader() }),
-  getHistory:                ()          => surveyAxios.get('/sessions/', { headers: authHeader() }),
-  getSession:                (sid)       => surveyAxios.get(`/sessions/${sid}`, { headers: authHeader() }),
-  getRecommendedCourses:     (specId)    => surveyAxios.get(`/courses/specialization/${specId}`),
-  getRecommendedJobs:        (specId)    => surveyAxios.get(`/jobs/specialization/${specId}`),
-  getPsychometricQuestions:  (specId)    => surveyAxios.get(`/psychometric/specialization/${specId}`),
+  getQuestions: () => cliente.get('/questions/'),
+  getSessionQuestions: (sid) => cliente.get(`/sessions/${sid}/questions`),
+  getCategories: () => cliente.get('/questions/categories/list'),
+  createSession: () => cliente.post('/sessions/', {}),
+  saveAnswers: (sid, cuerpo) => cliente.post(`/sessions/${sid}/answers`, cuerpo),
+  submitPhase: (sid) => cliente.post(`/sessions/${sid}/submit_phase`, {}),
+  getHistory: () => cliente.get('/sessions/'),
+  getRecommendedCourses: (specId) => cliente.get(`/courses/specialization/${specId}`),
+  getRecommendedJobs: (specId) => cliente.get(`/jobs/specialization/${specId}`),
+  getPsychometricQuestions: (specId) => cliente.get(`/psychometric/specialization/${specId}`),
 }
 
-
-// ── ML Service ────────────────────────────────────────────
+// ── Modelo ────────────────────────────────────────────────
 export const mlApi = {
-  predict:         (body)  => mlAxios.post('/predict/', body, { headers: authHeader() }),
-  getPrediction:   (id)    => mlAxios.get(`/predict/${id}`, { headers: authHeader() }),
-  getHistory:      (uid)   => mlAxios.get(`/predict/user/${uid}/history`, { headers: authHeader() }),
-  importances:     ()      => mlAxios.get('/predict/model/importances', { headers: authHeader() }),
-  treeViz:         ()      => mlAxios.get('/predict/model/tree', { headers: authHeader() }),
-  // Requieren rol admin. El `?t=` anterior anulaba toda cache y forzaba
-  // 10 queries a PostgreSQL en cada tick del polling.
-  overview:        ()      => mlAxios.get('/stats/overview', { headers: authHeader() }),
-  trainingHistory: ()      => mlAxios.get('/stats/training-history', { headers: authHeader() }),
-  retrain:         ()      => mlAxios.post('/stats/train', {}, { headers: authHeader() }),
-  sendFeedback:    (predId, body) => mlAxios.post(`/predict/${predId}/feedback`, body, { headers: authHeader() }),
-  exportCsvUrl:    ()      => `${import.meta.env.VITE_ML_URL || '/api/ml'}/stats/export-csv`,
+  predict: (cuerpo) => cliente.post('/predict/', cuerpo),
+  getPrediction: (id) => cliente.get(`/predict/${id}`),
+  getHistory: (uid) => cliente.get(`/predict/user/${uid}/history`),
+  sendFeedback: (predId, cuerpo) => cliente.post(`/predict/${predId}/feedback`, cuerpo),
+
+  // Requieren rol admin.
+  importances: () => cliente.get('/predict/model/importances'),
+  treeViz: () => cliente.get('/predict/model/tree'),
+  overview: () => cliente.get('/stats/overview'),
+  trainingHistory: () => cliente.get('/stats/training-history'),
+  retrain: () => cliente.post('/stats/train', {}),
+
+  /**
+   * Descarga el dataset.
+   *
+   * Antes esto devolvia una URL suelta que se ponia en un <a href>. Esa
+   * peticion sale del navegador SIN la cabecera Authorization, asi que la
+   * descarga siempre respondia 401: la funcion estaba rota desde el dia en
+   * que la ruta paso a exigir rol admin. Ahora se pide con el cliente (que
+   * si adjunta el token) y el fichero se arma en memoria.
+   */
+  descargarDataset: async () => {
+    const { data } = await cliente.get('/stats/export-csv', { responseType: 'blob' })
+    const url = URL.createObjectURL(data)
+    const enlace = document.createElement('a')
+    enlace.href = url
+    enlace.download = 'revo_dataset.csv'
+    enlace.click()
+    URL.revokeObjectURL(url)
+  },
 }
+
+export default cliente

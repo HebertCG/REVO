@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import CasillasConsentimiento from '../components/consentimiento/CasillasConsentimiento'
 import personaImg from '../assets/login-persona.png'
 import './Auth.css'
 
@@ -26,6 +27,11 @@ export default function Auth({ modoInicial = 'login', mostrarSSO = false }) {
   const [verPass, setVerPass] = useState(false)
   const [recordar, setRecordar] = useState(true)
   const [form, setForm] = useState(VACIO)
+  // Las dos opcionales nacen en false. Una casilla premarcada no es
+  // consentimiento libre: es una suposicion que la ley no admite para
+  // finalidades comerciales.
+  const [consent, setConsent] = useState({ terms: false, dataCommercial: false, aiTraining: false })
+  const [errorConsent, setErrorConsent] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -34,7 +40,13 @@ export default function Auth({ modoInicial = 'login', mostrarSSO = false }) {
   useEffect(() => {
     setModo(location.pathname === '/register' ? 'registro' : 'login')
     setError('')
+    setErrorConsent('')
   }, [location.pathname])
+
+  const cambiarConsent = (clave, valor) => {
+    setConsent((c) => ({ ...c, [clave]: valor }))
+    if (clave === 'terms' && valor) setErrorConsent('')
+  }
 
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }))
 
@@ -52,6 +64,15 @@ export default function Auth({ modoInicial = 'login', mostrarSSO = false }) {
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
+
+    // Se comprueba antes de llamar al servidor. El backend lo rechaza
+    // igualmente, pero gastar una peticion para decirle al alumno algo que
+    // ya sabemos aqui es tirar un intento de su cupo de registro.
+    if (esRegistro && !consent.terms) {
+      setErrorConsent('Para crear tu cuenta necesitas aceptar los Terminos y la Politica de Privacidad.')
+      return
+    }
+
     setLoading(true)
     try {
       if (esRegistro) {
@@ -61,6 +82,9 @@ export default function Auth({ modoInicial = 'login', mostrarSSO = false }) {
           password: form.password,
           student_code: form.student_code.trim() || null,
           semester: CICLOS[form.semester] ?? null,
+          accept_terms: consent.terms,
+          consent_data_commercial: consent.dataCommercial,
+          consent_ai_training: consent.aiTraining,
         })
         navigate('/dashboard')
       } else {
@@ -69,6 +93,7 @@ export default function Auth({ modoInicial = 'login', mostrarSSO = false }) {
       }
     } catch (err) {
       setError(
+        err.mensajeUsuario ||
         err.response?.data?.detail ||
         (esRegistro ? 'No se pudo crear la cuenta' : 'Credenciales incorrectas')
       )
@@ -96,9 +121,8 @@ export default function Auth({ modoInicial = 'login', mostrarSSO = false }) {
     : 'Entra para ver tu recomendación y seguir tu plan de acción.'
   const textoBoton = esRegistro ? 'Crear cuenta y empezar' : 'Iniciar sesión'
   const textoCargando = esRegistro ? 'Creando cuenta…' : 'Entrando…'
-  const textoCheck = esRegistro
-    ? 'Acepto el uso de mis respuestas para el modelo'
-    : 'Mantener sesión abierta'
+  // Solo se usa en login: en registro lo sustituye CasillasConsentimiento.
+  const textoCheck = 'Mantener sesión abierta'
   const piePagina = esRegistro ? '¿Ya tienes cuenta?' : '¿Primera vez en REVO?'
   const pieAccion = esRegistro ? 'Inicia sesión' : 'Crea tu cuenta gratis'
   const tabLoginStyle = tab(esLogin)
@@ -204,7 +228,7 @@ export default function Auth({ modoInicial = 'login', mostrarSSO = false }) {
                       )}
                     </span>
                     <span style={{position: "relative", display: "block"}}>
-                      <input className="rvl-f1" type={tipoPassword} value={form.password} onChange={(e) => set("password", e.target.value)} required minLength={6} autoComplete={esRegistro ? "new-password" : "current-password"} placeholder="Mínimo 8 caracteres" style={{width: "100%", boxSizing: "border-box", padding: "14px 62px 14px 15px", borderRadius: "11px", border: "1.5px solid #e2e6ef", background: "#fff", fontFamily: "inherit", fontSize: "14.5px", color: "#0d1220", transition: "border-color .15s ease,box-shadow .15s ease"}} />
+                      <input className="rvl-f1" type={tipoPassword} value={form.password} onChange={(e) => set("password", e.target.value)} required minLength={10} autoComplete={esRegistro ? "new-password" : "current-password"} placeholder="Mínimo 10 caracteres" style={{width: "100%", boxSizing: "border-box", padding: "14px 62px 14px 15px", borderRadius: "11px", border: "1.5px solid #e2e6ef", background: "#fff", fontFamily: "inherit", fontSize: "14.5px", color: "#0d1220", transition: "border-color .15s ease,box-shadow .15s ease"}} />
                       <button className="rvl-h2" type="button" onClick={togglePassword} style={{position: "absolute", right: "8px", top: "50%", transform: "translateY(-50%)", padding: "6px 9px", border: "0", borderRadius: "8px", background: "#f2f4f9", color: "#3b465c", fontFamily: "inherit", fontSize: "11.5px", fontWeight: "700", cursor: "pointer"}}>
                         {labelPassword}
                       </button>
@@ -222,10 +246,18 @@ export default function Auth({ modoInicial = 'login', mostrarSSO = false }) {
                       </>
                     )}
                   </label>
-                  <label style={{display: "flex", alignItems: "center", gap: "9px", fontSize: "13.5px", color: "#3b465c", cursor: "pointer", userSelect: "none"}}>
-                    <input type="checkbox" checked={recordar} onChange={toggleRecordar} style={{width: "17px", height: "17px", accentColor: "#2f5fe8", cursor: "pointer"}} />
-                    {textoCheck}
-                  </label>
+                  {esRegistro ? (
+                    <CasillasConsentimiento
+                      valores={consent}
+                      onCambio={cambiarConsent}
+                      error={errorConsent}
+                    />
+                  ) : (
+                    <label style={{display: "flex", alignItems: "center", gap: "9px", fontSize: "13.5px", color: "#3b465c", cursor: "pointer", userSelect: "none"}}>
+                      <input type="checkbox" checked={recordar} onChange={toggleRecordar} style={{width: "17px", height: "17px", accentColor: "#2f5fe8", cursor: "pointer"}} />
+                      {textoCheck}
+                    </label>
+                  )}
                   <button className="rvl-h3 rvl-a4" type="submit" disabled={loading} style={{display: "flex", alignItems: "center", justifyContent: "center", gap: "10px", width: "100%", padding: "16px", border: "0", borderRadius: "12px", background: "#2f5fe8", color: "#fff", fontFamily: "inherit", fontSize: "15px", fontWeight: "700", cursor: "pointer", boxShadow: "0 8px 20px rgba(47,95,232,.28)", transition: "background .15s ease,transform .15s ease"}}>
                     {loading ? textoCargando : textoBoton}
                     <span style={{display: "inline-flex", alignItems: "center", justifyContent: "center", width: "22px", height: "22px", borderRadius: "999px", background: "rgba(255,255,255,.2)", fontSize: "13px"}}>

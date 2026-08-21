@@ -1,7 +1,10 @@
 -- Verificacion de la migracion 14: verificacion de correo, recuperacion de
 -- contrasena y acceso con Google.
 --
--- Se ejecuta como revo_app, igual que los servicios, para que las politicas
+-- Se ejecuta como revo_verificacion, un rol de PRUEBAS que reune los
+-- permisos de los tres servicios (ver verificar_rls.sh). No existe en
+-- produccion: alli cada servicio tiene su propio rol acotado. Se usa aqui
+-- porque estas comprobaciones cruzan los tres dominios, para que las politicas
 -- RLS apliquen. Cada bloque afirma un comportamiento; si alguno falla,
 -- RAISE EXCEPTION y el guion sale con error.
 --
@@ -12,7 +15,7 @@
 -- `users` fija antes contexto de admin y afirma que la variable no es nula.
 \set ON_ERROR_STOP on
 
-SET ROLE revo_app;
+SET ROLE revo_verificacion;
 
 DO $verificar$
 DECLARE
@@ -176,7 +179,7 @@ BEGIN
     EXECUTE 'RESET ROLE';
     UPDATE password_reset_tokens SET expires_at = NOW() - INTERVAL '1 minute'
     WHERE token_hash = encode(sha256('cad'::bytea),'hex');
-    EXECUTE 'SET ROLE revo_app';
+    EXECUTE 'SET ROLE revo_verificacion';
     SELECT * INTO r FROM revo_consumir_token_recuperacion(encode(sha256('cad'::bytea),'hex'), 'z');
     IF r.motivo <> 'token_invalido' THEN RAISE EXCEPTION 'FALLO 16: acepto uno caducado'; END IF;
     RAISE NOTICE 'OK 16 - un token caducado no sirve';
@@ -198,11 +201,18 @@ BEGIN
 
     -- ══ Aislamiento de los secretos ═════════════════════════
 
-    SELECT count(*) INTO n FROM password_reset_tokens;
-    IF n <> 0 THEN
-        RAISE EXCEPTION 'FALLO 19: los tokens de recuperacion se pueden leer (% filas)', n;
-    END IF;
-    RAISE NOTICE 'OK 19 - la tabla de tokens esta cerrada incluso para la aplicacion';
+    -- Doble cierre: la politica RLS devuelve cero filas Y ningun rol de
+    -- servicio tiene privilegio sobre la tabla. Cualquiera de los dos vale;
+    -- lo que no puede pasar es que se lean tokens.
+    BEGIN
+        SELECT count(*) INTO n FROM password_reset_tokens;
+        IF n <> 0 THEN
+            RAISE EXCEPTION 'FALLO 19: los tokens de recuperacion se pueden leer (% filas)', n;
+        END IF;
+        RAISE NOTICE 'OK 19 - la politica deja la tabla de tokens en cero filas';
+    EXCEPTION WHEN insufficient_privilege THEN
+        RAISE NOTICE 'OK 19 - ningun rol tiene siquiera permiso sobre la tabla de tokens';
+    END;
 
     PERFORM set_config('revo.user_id', v_google::text, true);
     PERFORM set_config('revo.role', 'student', true);

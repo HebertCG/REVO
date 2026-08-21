@@ -25,7 +25,7 @@
 set -euo pipefail
 
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-MIGRACIONES=(10_rls 12_consentimiento 13_registro 14_cuentas)
+MIGRACIONES=(10_rls 12_consentimiento 13_registro 14_cuentas 15_roles_por_servicio)
 
 # ── Contrasenas de los roles de aplicacion ───────────────────
 cargar_del_env() {
@@ -34,11 +34,22 @@ cargar_del_env() {
     grep -E "^${clave}=" "$RAIZ/.env" | head -1 | cut -d= -f2- || true
 }
 
-APP_DB_PASSWORD="${APP_DB_PASSWORD:-$(cargar_del_env APP_DB_PASSWORD)}"
+# Un rol por servicio desde la migracion 15. Antes bastaba con
+# APP_DB_PASSWORD porque los tres compartian el mismo rol.
+AUTH_DB_PASSWORD="${AUTH_DB_PASSWORD:-$(cargar_del_env AUTH_DB_PASSWORD)}"
+SURVEY_DB_PASSWORD="${SURVEY_DB_PASSWORD:-$(cargar_del_env SURVEY_DB_PASSWORD)}"
+ML_DB_PASSWORD="${ML_DB_PASSWORD:-$(cargar_del_env ML_DB_PASSWORD)}"
 SERVICE_DB_PASSWORD="${SERVICE_DB_PASSWORD:-$(cargar_del_env SERVICE_DB_PASSWORD)}"
 
-if [ -z "${APP_DB_PASSWORD:-}" ] || [ -z "${SERVICE_DB_PASSWORD:-}" ]; then
-    echo "ERROR: faltan APP_DB_PASSWORD y/o SERVICE_DB_PASSWORD." >&2
+faltan=""
+for clave in AUTH_DB_PASSWORD SURVEY_DB_PASSWORD ML_DB_PASSWORD SERVICE_DB_PASSWORD; do
+    if [ -z "$(eval "printf '%s' \"\${$clave:-}\"")" ]; then
+        faltan="$faltan $clave"
+    fi
+done
+
+if [ -n "$faltan" ]; then
+    echo "ERROR: faltan estas contrasenas:$faltan" >&2
     echo "Definelas en el entorno o en el .env de la raiz." >&2
     exit 1
 fi
@@ -77,12 +88,20 @@ done
 # Se pasan como variables de psql y se interpolan con :'nombre', que las
 # emite como literal correctamente entrecomillado. Concatenarlas a mano
 # rompe con cualquier contrasena que lleve una comilla simple.
-echo "    asignando contrasenas a revo_app y revo_service"
+echo "    asignando contrasenas a los roles de servicio"
 ejecutar_sql -q \
-    -v app_password="$APP_DB_PASSWORD" \
+    -v auth_password="$AUTH_DB_PASSWORD" \
+    -v survey_password="$SURVEY_DB_PASSWORD" \
+    -v ml_password="$ML_DB_PASSWORD" \
     -v service_password="$SERVICE_DB_PASSWORD" <<'SQL' > /dev/null
-ALTER ROLE revo_app     WITH PASSWORD :'app_password';
+ALTER ROLE revo_auth    WITH PASSWORD :'auth_password';
+ALTER ROLE revo_survey  WITH PASSWORD :'survey_password';
+ALTER ROLE revo_ml      WITH PASSWORD :'ml_password';
 ALTER ROLE revo_service WITH PASSWORD :'service_password';
+
+-- revo_app se queda sin permisos (migracion 15) y sin poder conectarse: un
+-- rol sin uso que aun puede iniciar sesion es una puerta que nadie vigila.
+ALTER ROLE revo_app NOLOGIN;
 SQL
 
 # ── Comprobacion ─────────────────────────────────────────────

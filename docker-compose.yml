@@ -65,16 +65,18 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:?falta POSTGRES_DB en .env}
       POSTGRES_USER: ${POSTGRES_USER:?falta POSTGRES_USER en .env}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?falta POSTGRES_PASSWORD en .env}
-      # Los consume database/11_asignar_passwords.sh para dar contrasena a
-      # los roles de aplicacion que crea la migracion de RLS.
-      APP_DB_PASSWORD: ${APP_DB_PASSWORD:?falta APP_DB_PASSWORD en .env}
+      # Los consume database/16_asignar_passwords.sh para dar contrasena a
+      # los roles que crean las migraciones 10 y 15.
+      AUTH_DB_PASSWORD: ${AUTH_DB_PASSWORD:?falta AUTH_DB_PASSWORD en .env}
+      SURVEY_DB_PASSWORD: ${SURVEY_DB_PASSWORD:?falta SURVEY_DB_PASSWORD en .env}
+      ML_DB_PASSWORD: ${ML_DB_PASSWORD:?falta ML_DB_PASSWORD en .env}
       SERVICE_DB_PASSWORD: ${SERVICE_DB_PASSWORD:?falta SERVICE_DB_PASSWORD en .env}
       PGDATA: /var/lib/postgresql/data/pgdata
     volumes:
       - postgres_data:/var/lib/postgresql/data
       # El directorio completo se monta y se ejecuta en orden alfabetico:
-      # 01 esquema, 02-09 datos, 10 RLS, 11 contrasenas, 12 consentimiento,
-      # 13 alta de alumnos.
+      # 01 esquema, 02-09 datos, 10 RLS, 12 consentimiento, 13 alta de
+      # alumnos, 14 cuentas, 15 roles por servicio, 16 contrasenas.
       - ./database:/docker-entrypoint-initdb.d:ro
     networks:
       - revo_interna
@@ -127,10 +129,13 @@ services:
     container_name: revo_auth
     restart: unless-stopped
     environment: &entorno_base
-      # Los servicios entran como revo_app: NO son duenos de las tablas, asi
-      # que las politicas RLS les aplican. Con revo_user (el dueno) se las
-      # saltarian y todo el trabajo de RLS seria decorativo.
-      DATABASE_URL: postgresql://revo_app:${APP_DB_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      # Cada servicio entra con SU PROPIO rol, y ninguno es dueno de las
+      # tablas: asi las politicas RLS le aplican (con revo_user, el dueno, se
+      # las saltaria y todo el trabajo de RLS seria decorativo) y ademas solo
+      # alcanza las tablas de su dominio. Con el rol compartido anterior, la
+      # regla de "cada tabla la escribe un solo servicio" era una convencion
+      # del codigo; ahora la impone el motor (ver 15_roles_por_servicio.sql).
+      DATABASE_URL: postgresql://revo_auth:${AUTH_DB_PASSWORD}@postgres:5432/${POSTGRES_DB}
       REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/0
       JWT_SECRET: ${JWT_SECRET:?falta JWT_SECRET en .env}
       JWT_EXPIRE_HOURS: ${JWT_EXPIRE_HOURS:-24}
@@ -177,6 +182,7 @@ services:
     container_name: revo_survey
     environment:
       <<: *entorno_base
+      DATABASE_URL: postgresql://revo_survey:${SURVEY_DB_PASSWORD}@postgres:5432/${POSTGRES_DB}
       ML_SERVICE_URL: http://ml-service:8003
     command: >
       uvicorn main:app --host 0.0.0.0 --port 8002
@@ -200,6 +206,11 @@ services:
     container_name: revo_ml
     environment:
       <<: *entorno_base
+      DATABASE_URL: postgresql://revo_ml:${ML_DB_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      # El entrenamiento corre en segundo plano, sin alumno detras, y usa su
+      # propio rol: asi una tarea de fondo no hereda los permisos de las
+      # rutas que atienden peticiones.
+      SERVICE_DATABASE_URL: postgresql://revo_service:${SERVICE_DB_PASSWORD}@postgres:5432/${POSTGRES_DB}
       MODEL_PATH: /app/model/saved/decision_tree.pkl
     volumes:
       - ml_models:/app/model/saved

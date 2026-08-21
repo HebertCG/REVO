@@ -50,7 +50,7 @@ VALUES (1, 'terms', '1.0', true, '200.60.1.1'),
 ON CONFLICT DO NOTHING;
 
 -- ============================================================
-SET ROLE revo_app;
+SET ROLE revo_verificacion;
 -- ============================================================
 
 DO $verificar$

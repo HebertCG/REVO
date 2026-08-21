@@ -1,140 +1,220 @@
+# ============================================================
+# REVO — Despliegue con Docker Compose
+# ============================================================
+# Cambio principal frente a la version anterior: los microservicios YA NO
+# publican puertos. Antes, `ports: 8001:8001` los dejaba accesibles desde
+# cualquier maquina de la red, saltandose cualquier control de la pasarela.
+# Ahora el unico proceso con un puerto publicado es Nginx.
+#
+# Dos redes:
+#   revo_publica  - solo Nginx. Es la frontera con el mundo.
+#   revo_interna  - servicios, Postgres y Redis. `internal: true` significa
+#                   que Docker no le da salida a internet: aunque un servicio
+#                   se vea comprometido, no puede exfiltrar por su cuenta.
+#
+# Variables: ver .env.example. La sintaxis ${VAR:?mensaje} aborta el arranque
+# si falta la variable, en vez de continuar con un valor de ejemplo.
+# ============================================================
+
 services:
 
   # ─────────────────────────────────────────────
-  # PostgreSQL - Base de datos central
+  # Pasarela — el unico puerto abierto
+  # ─────────────────────────────────────────────
+  pasarela:
+    image: nginx:1.27-alpine
+    container_name: revo_pasarela
+    restart: unless-stopped
+    environment:
+      GATEWAY_SECRET: ${GATEWAY_SECRET:?falta GATEWAY_SECRET en .env}
+      # Hace que envsubst escriba el resultado en /etc/nginx/nginx.conf en
+      # vez de en conf.d, que es lo que necesitamos al sustituir el fichero
+      # principal completo.
+      NGINX_ENVSUBST_OUTPUT_DIR: /etc/nginx
+    volumes:
+      - ./infraestructura/pasarela/nginx.conf.template:/etc/nginx/templates/nginx.conf.template:ro
+    ports:
+      - "${PUERTO_PUBLICO:-8080}:80"
+    depends_on:
+      auth-service:
+        condition: service_started
+      survey-service:
+        condition: service_started
+      ml-service:
+        condition: service_started
+    networks:
+      - revo_publica
+      - revo_interna
+    healthcheck:
+      # 127.0.0.1 y no localhost: dentro del contenedor localhost resuelve
+      # primero a ::1, y nginx solo escucha en IPv4. Con "localhost" la sonda
+      # falla siempre aunque el servicio este perfectamente.
+      test: ["CMD", "wget", "-q", "-O-", "http://127.0.0.1/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+
+  # ─────────────────────────────────────────────
+  # PostgreSQL
   # ─────────────────────────────────────────────
   postgres:
     image: postgres:16-alpine
     container_name: revo_postgres
     restart: unless-stopped
     environment:
-      # Todo viene del .env de la raiz (ver .env.example). La sintaxis
-      # ${VAR:?mensaje} aborta el arranque si la variable no existe, en vez
-      # de continuar con un valor por defecto publicado en el repositorio.
       POSTGRES_DB: ${POSTGRES_DB:?falta POSTGRES_DB en .env}
       POSTGRES_USER: ${POSTGRES_USER:?falta POSTGRES_USER en .env}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?falta POSTGRES_PASSWORD en .env}
+      # Los consume database/11_asignar_passwords.sh para dar contrasena a
+      # los roles de aplicacion que crea la migracion de RLS.
+      APP_DB_PASSWORD: ${APP_DB_PASSWORD:?falta APP_DB_PASSWORD en .env}
+      SERVICE_DB_PASSWORD: ${SERVICE_DB_PASSWORD:?falta SERVICE_DB_PASSWORD en .env}
       PGDATA: /var/lib/postgresql/data/pgdata
-    ports:
-      - "5434:5432"   # 5434 externo para no chocar con otros Postgres locales
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      # El directorio completo se monta en orden alfabetico. Antes solo se
-      # montaban 01-05, por lo que cursos, empleos y las preguntas
-      # psicometricas (07/08/09) nunca se sembraban.
+      # El directorio completo se monta y se ejecuta en orden alfabetico:
+      # 01 esquema, 02-09 datos, 10 RLS, 11 contrasenas, 12 consentimiento,
+      # 13 alta de alumnos.
       - ./database:/docker-entrypoint-initdb.d:ro
     networks:
-      - revo_network
+      - revo_interna
+    # Sin `ports`: Postgres no asoma al exterior. Para inspeccionarlo en
+    # desarrollo: docker compose exec postgres psql -U revo_user -d revo_db
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U revo_user -d revo_db"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 10s
       timeout: 5s
-      retries: 5
+      retries: 10
+      start_period: 30s
 
   # ─────────────────────────────────────────────
-  # Auth Service - Puerto 8001
+  # Redis — cupos de peticiones compartidos
   # ─────────────────────────────────────────────
-  auth-service:
+  # Es lo que hace que el limite sea por alumno y no por worker: sin Redis,
+  # cada proceso de uvicorn cuenta por su cuenta y el limite real se
+  # multiplica por el numero de workers.
+  redis:
+    image: redis:7.2-alpine
+    container_name: revo_redis
+    restart: unless-stopped
+    command: >
+      redis-server
+      --requirepass ${REDIS_PASSWORD:?falta REDIS_PASSWORD en .env}
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
+      --appendonly no
+      --save ""
+    networks:
+      - revo_interna
+    healthcheck:
+      test: ["CMD", "redis-cli", "--no-auth-warning", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    # Los contadores de rate limit son efimeros por definicion: si Redis se
+    # reinicia, se pierden y no pasa nada. Por eso no hay persistencia ni
+    # volumen, y la politica de memoria descarta lo mas viejo.
+
+  # ─────────────────────────────────────────────
+  # Auth Service
+  # ─────────────────────────────────────────────
+  auth-service: &servicio_base
     build:
-      context: ./services/auth-service
-      dockerfile: Dockerfile
+      # El contexto es ./services para que el Dockerfile pueda copiar
+      # ./comun, que es la libreria compartida.
+      context: ./services
+      dockerfile: auth-service/Dockerfile
     container_name: revo_auth
     restart: unless-stopped
-    environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+    environment: &entorno_base
+      # Los servicios entran como revo_app: NO son duenos de las tablas, asi
+      # que las politicas RLS les aplican. Con revo_user (el dueno) se las
+      # saltarian y todo el trabajo de RLS seria decorativo.
+      DATABASE_URL: postgresql://revo_app:${APP_DB_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/0
       JWT_SECRET: ${JWT_SECRET:?falta JWT_SECRET en .env}
-      JWT_EXPIRE_HOURS: 24
-      SERVICE_PORT: 8001
-    ports:
-      - "8001:8001"
+      JWT_EXPIRE_HOURS: ${JWT_EXPIRE_HOURS:-24}
+      GATEWAY_SECRET: ${GATEWAY_SECRET}
+      REQUIRE_GATEWAY: ${REQUIRE_GATEWAY:-true}
+      # 1 = solo Nginx delante. Si se pone Cloudflare, sube a 2. Con el
+      # numero mal puesto, el limite por IP cuenta contra el proxy y castiga
+      # a todo el mundo por igual.
+      TRUSTED_PROXY_COUNT: ${TRUSTED_PROXY_COUNT:-1}
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5173}
+      DB_REQUIRE_SSL: ${DB_REQUIRE_SSL:-false}
     depends_on:
       postgres:
         condition: service_healthy
+      redis:
+        condition: service_healthy
     networks:
-      - revo_network
-    volumes:
-      - ./services/auth-service:/app
-    command: uvicorn main:app --host 0.0.0.0 --port 8001 --reload
+      - revo_interna
+    # Sin `ports`: solo se llega por la pasarela.
+    command: >
+      uvicorn main:app --host 0.0.0.0 --port 8001
+      --no-server-header --proxy-headers --forwarded-allow-ips=*
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8001/health')"]
+      interval: 20s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
 
   # ─────────────────────────────────────────────
-  # Survey Service - Puerto 8002
+  # Survey Service
   # ─────────────────────────────────────────────
   survey-service:
+    <<: *servicio_base
     build:
-      context: ./services/survey-service
-      dockerfile: Dockerfile
+      context: ./services
+      dockerfile: survey-service/Dockerfile
     container_name: revo_survey
-    restart: unless-stopped
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
-      JWT_SECRET: ${JWT_SECRET:?falta JWT_SECRET en .env}
-      SERVICE_PORT: 8002
-    ports:
-      - "8002:8002"
-    depends_on:
-      postgres:
-        condition: service_healthy
-    networks:
-      - revo_network
-    volumes:
-      - ./services/survey-service:/app
-    command: uvicorn main:app --host 0.0.0.0 --port 8002 --reload
+      <<: *entorno_base
+      ML_SERVICE_URL: http://ml-service:8003
+    command: >
+      uvicorn main:app --host 0.0.0.0 --port 8002
+      --no-server-header --proxy-headers --forwarded-allow-ips=*
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8002/health')"]
+      interval: 20s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
 
   # ─────────────────────────────────────────────
-  # ML Service - Puerto 8003
+  # ML Service
   # ─────────────────────────────────────────────
   ml-service:
+    <<: *servicio_base
     build:
-      context: ./services/ml-service
-      dockerfile: Dockerfile
+      context: ./services
+      dockerfile: ml-service/Dockerfile
     container_name: revo_ml
-    restart: unless-stopped
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
-      JWT_SECRET: ${JWT_SECRET:?falta JWT_SECRET en .env}
-      SERVICE_PORT: 8003
+      <<: *entorno_base
       MODEL_PATH: /app/model/saved/decision_tree.pkl
-    ports:
-      - "8003:8003"
-    depends_on:
-      postgres:
-        condition: service_healthy
-    networks:
-      - revo_network
     volumes:
-      - ./services/ml-service:/app
       - ml_models:/app/model/saved
-    command: uvicorn main:app --host 0.0.0.0 --port 8003 --reload
-
-  # ─────────────────────────────────────────────
-  # Frontend React/Vite - Puerto 5173
-  # ─────────────────────────────────────────────
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    container_name: revo_frontend
-    restart: unless-stopped
-    environment:
-      VITE_AUTH_API: http://localhost:8001
-      VITE_SURVEY_API: http://localhost:8002
-      VITE_ML_API: http://localhost:8003
-    ports:
-      - "5173:5173"
-    depends_on:
-      - auth-service
-      - survey-service
-      - ml-service
-    networks:
-      - revo_network
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
-    command: npm run dev -- --host 0.0.0.0
+    command: >
+      uvicorn main:app --host 0.0.0.0 --port 8003
+      --no-server-header --proxy-headers --forwarded-allow-ips=*
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8003/health')"]
+      interval: 20s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
 
 networks:
-  revo_network:
+  revo_publica:
     driver: bridge
+  revo_interna:
+    driver: bridge
+    # Sin salida a internet. Un servicio comprometido no puede sacar datos
+    # por su cuenta ni descargarse herramientas.
+    internal: true
 
 volumes:
   postgres_data:

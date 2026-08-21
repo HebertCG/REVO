@@ -1,0 +1,264 @@
+# ============================================================
+# REVO — Pasarela Nginx
+# ============================================================
+# Es el UNICO proceso con un puerto publicado. Los tres microservicios viven
+# en la red interna del compose y no exponen nada al exterior: para llegar a
+# ellos hay que pasar por aqui.
+#
+# Reparto de responsabilidades con el rate limit de la aplicacion:
+#
+#   Nginx      -> freno grueso por IP. Absorbe floods y escaneos antes de que
+#                 lleguen a gastar un worker de Python o una conexion a la
+#                 base de datos. No sabe quien es cada alumno.
+#   Aplicacion -> cupo fino por alumno, con Redis. Es lo que evita que un
+#                 aula de 50 alumnos tras la misma IP se estorbe entre si.
+#
+# Los dos hacen falta. Solo Nginx castigaria al aula entera por la IP
+# compartida; solo la aplicacion dejaria que un flood llegue hasta Python.
+# ============================================================
+
+user nginx;
+worker_processes auto;
+
+# Cada worker acepta hasta 4096 conexiones. Con auto (un worker por nucleo)
+# eso cubre de sobra un aula; el limite real lo ponen las zonas de abajo.
+events {
+    worker_connections 4096;
+    multi_accept on;
+}
+
+http {
+    include       /etc/nginx/mime.types;
+    default_type  application/json;
+
+    # ── Registro ─────────────────────────────────────────────
+    # Se registra la IP real y el estado. No se registran cabeceras: la
+    # cabecera Authorization lleva el token del alumno y un log con tokens es
+    # un almacen de credenciales.
+    log_format revo '$remote_addr - $status "$request" '
+                    '$body_bytes_sent ${request_time}s '
+                    'lim=$limit_req_status';
+
+    access_log /var/log/nginx/access.log revo;
+    error_log  /var/log/nginx/error.log warn;
+
+    # ── Higiene basica ───────────────────────────────────────
+    # Ocultar la version: le ahorra al atacante el trabajo de averiguar que
+    # CVEs probar.
+    server_tokens off;
+
+    sendfile      on;
+    tcp_nopush    on;
+    tcp_nodelay   on;
+    keepalive_timeout 30s;
+
+    # ── Defensa contra clientes lentos (Slowloris) ───────────
+    # Un ataque de Slowloris abre cientos de conexiones y manda un byte cada
+    # pocos segundos para retenerlas abiertas. Estos timeouts las cierran.
+    client_body_timeout   10s;
+    client_header_timeout 10s;
+    send_timeout          15s;
+    reset_timedout_connection on;
+
+    # ── Techo de tamano ──────────────────────────────────────
+    # El cuerpo mas grande que manda el frontend es el guardado masivo de 25
+    # respuestas, que no llega a 2 KB. 256 KB es margen de sobra y evita que
+    # una sola peticion reserve cientos de megas.
+    client_max_body_size 256k;
+    client_body_buffer_size 32k;
+    large_client_header_buffers 4 8k;
+
+    # ── Zonas de limite ──────────────────────────────────────
+    # $binary_remote_addr en vez de $remote_addr: ocupa 4 bytes por IPv4 en
+    # vez de hasta 15, asi que en 10 MB caben ~160.000 IPs distintas.
+    #
+    # Los numeros salen del uso real de un aula, no de una cifra redonda:
+    # 50 alumnos jugando generan del orden de 2-5 peticiones por segundo en
+    # total. 30 r/s con rafagas de 60 deja muchisimo margen para el uso
+    # legitimo y sigue cortando un flood.
+    limit_req_zone $binary_remote_addr zone=general:10m rate=30r/s;
+
+    # El login es la ruta que se ataca por fuerza bruta. Mas estricta, pero
+    # no tanto como para que un aula entera entrando a la vez se atasque:
+    # 50 alumnos tecleando su contrasena no llegan a 5 por segundo.
+    limit_req_zone $binary_remote_addr zone=acceso:10m rate=5r/s;
+
+    # Conexiones simultaneas por IP. Un aula con 50 navegadores abre como
+    # mucho 6 conexiones por navegador; 100 cubre el caso y frena al cliente
+    # que abre mil para agotar los descriptores.
+    limit_conn_zone $binary_remote_addr zone=conexiones:10m;
+
+    # Los rechazos se registran como 429, no como 503: 503 significa "el
+    # servicio esta caido" y confunde el diagnostico.
+    limit_req_status 429;
+    limit_conn_status 429;
+
+    # ── Compresion ───────────────────────────────────────────
+    gzip on;
+    gzip_types application/json text/plain;
+    gzip_min_length 1024;
+    # gzip desactivado para respuestas con datos del alumno seria lo ideal
+    # frente a BREACH, pero aqui no hay cookies de sesion ni CSRF token en
+    # el cuerpo, asi que el vector no aplica.
+
+    # ── Cabeceras hacia los servicios ────────────────────────
+    proxy_http_version 1.1;
+    proxy_set_header Host              $host;
+    proxy_set_header X-Real-IP         $remote_addr;
+    proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header Connection        "";
+
+    # El secreto de la pasarela. Los servicios rechazan con 403 cualquier
+    # peticion que no lo traiga, asi que aunque un puerto quede publicado por
+    # error, no se puede hablar con ellos directamente.
+    proxy_set_header X-Revo-Gateway    $revo_gateway_secret;
+
+    # Timeouts hacia los servicios. Sin ellos, un servicio colgado retiene
+    # conexiones de Nginx hasta agotarlas.
+    proxy_connect_timeout 5s;
+    proxy_send_timeout    30s;
+    proxy_read_timeout    35s;
+
+    # No se sirve nada desde cache: las respuestas llevan datos del alumno.
+    proxy_buffering off;
+
+    # El valor real lo inyecta envsubst al arrancar el contenedor. La imagen
+    # oficial de nginx procesa /etc/nginx/templates/*.template y solo sustituye
+    # las variables ${NOMBRE} que existen en el entorno: las variables propias
+    # de nginx ($host, $binary_remote_addr, ...) se escriben sin llaves y no
+    # se tocan.
+    map $host $revo_gateway_secret {
+        default "${GATEWAY_SECRET}";
+    }
+
+    # ── Servicios internos ───────────────────────────────────
+    upstream auth {
+        server auth-service:8001;
+        keepalive 16;
+    }
+    upstream survey {
+        server survey-service:8002;
+        keepalive 16;
+    }
+    upstream ml {
+        server ml-service:8003;
+        keepalive 16;
+    }
+
+    server {
+        listen 80;
+        server_name _;
+
+        limit_conn conexiones 100;
+
+        # Cabeceras de seguridad. Los servicios ya las ponen; se repiten aqui
+        # para que tambien cubran los errores que genera el propio Nginx
+        # (429, 502), que no pasan por la aplicacion.
+        add_header X-Content-Type-Options "nosniff" always;
+        add_header X-Frame-Options "DENY" always;
+        add_header Referrer-Policy "no-referrer" always;
+        add_header Content-Security-Policy "default-src 'none'; frame-ancestors 'none'" always;
+
+        # ── Metodos permitidos ───────────────────────────────
+        # TRACE y TRACK habilitan Cross-Site Tracing. No se usan aqui.
+        if ($request_method !~ ^(GET|POST|PUT|PATCH|DELETE|OPTIONS)$) {
+            return 405;
+        }
+
+        # ── Sonda de salud de la propia pasarela ─────────────
+        location = /health {
+            access_log off;
+            return 200 '{"status":"ok"}';
+        }
+
+        # ── Documentacion cerrada ────────────────────────────
+        # Los servicios ya no la publican en produccion. Esto es el cinturon
+        # sobre los tirantes: aunque alguien despliegue con ENVIRONMENT mal
+        # puesto, el mapa de la API no sale de la red interna.
+        location ~ ^/api/.*(docs|redoc|openapi\.json) {
+            return 404;
+        }
+
+        # ── Mapa de la API ───────────────────────────────────
+        # La pasarela presenta UNA sola API plana y decide por recurso a que
+        # servicio va cada cosa. Dos ventajas sobre el esquema anterior
+        # (/api/auth/, /api/survey/, /api/ml/):
+        #
+        #   1. Las URLs dejan de doblarse. Antes, el prefijo del router de
+        #      auth coincidia con el del proxy y salia /api/auth/auth/register.
+        #   2. El cliente no sabe cuantos servicios hay ni cual atiende que.
+        #      Si manana el cuestionario se parte en dos servicios, las URLs
+        #      publicas no cambian.
+        #
+        # En proxy_pass, cuando se incluye una URI (el "/auth/" final), nginx
+        # sustituye el prefijo de la location por esa URI. Quitar esa barra
+        # final cambia el comportamiento y rompe el enrutado.
+
+        # Login y registro: cupo estricto, son las rutas que se atacan.
+        location = /api/auth/login {
+            limit_req zone=acceso burst=20 nodelay;
+            proxy_pass http://auth/auth/login;
+        }
+
+        location = /api/auth/register {
+            limit_req zone=acceso burst=20 nodelay;
+            proxy_pass http://auth/auth/register;
+        }
+
+        # Resto de autenticacion y perfil.
+        location /api/auth/ {
+            limit_req zone=general burst=60 nodelay;
+            proxy_pass http://auth/auth/;
+        }
+
+        # Documentos legales. Publicos a proposito: hay que poder leerlos
+        # antes de tener cuenta, porque se aceptan durante el registro.
+        location /api/legal/ {
+            limit_req zone=general burst=60 nodelay;
+            proxy_pass http://auth/legal/;
+        }
+
+        # ── Cuestionario ─────────────────────────────────────
+        location /api/sessions/ {
+            limit_req zone=general burst=60 nodelay;
+            proxy_pass http://survey/sessions/;
+        }
+
+        location /api/questions/ {
+            limit_req zone=general burst=60 nodelay;
+            proxy_pass http://survey/questions/;
+        }
+
+        location /api/courses/ {
+            limit_req zone=general burst=60 nodelay;
+            proxy_pass http://survey/courses/;
+        }
+
+        location /api/jobs/ {
+            limit_req zone=general burst=60 nodelay;
+            proxy_pass http://survey/jobs/;
+        }
+
+        location /api/psychometric/ {
+            limit_req zone=general burst=60 nodelay;
+            proxy_pass http://survey/psychometric/;
+        }
+
+        # ── Modelo ───────────────────────────────────────────
+        location /api/predict/ {
+            limit_req zone=general burst=60 nodelay;
+            proxy_pass http://ml/predict/;
+        }
+
+        location /api/stats/ {
+            limit_req zone=general burst=60 nodelay;
+            proxy_pass http://ml/stats/;
+        }
+
+        # Cualquier otra cosa no existe. No se revela que hay detras.
+        location / {
+            return 404 '{"detail":"No encontrado"}';
+        }
+    }
+}

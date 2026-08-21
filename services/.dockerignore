@@ -1,0 +1,28 @@
+# El contexto de build es ./services, asi que sin esto cada imagen se llevaria
+# los tres venv/ locales (cientos de MB) y los __pycache__ de la maquina de
+# desarrollo, que ademas pueden traer bytecode incompatible con la imagen.
+venv/
+*/venv/
+.venv/
+*/.venv/
+
+__pycache__/
+*/__pycache__/
+**/__pycache__/
+*.py[cod]
+
+.pytest_cache/
+**/.pytest_cache/
+*.egg-info/
+**/*.egg-info/
+.coverage
+htmlcov/
+
+# Los .env locales NUNCA entran en una imagen: quedarian dentro de una capa
+# publicable y legible con `docker history`.
+.env
+*/.env
+.env.*
+
+# Pruebas: no hacen falta en la imagen de produccion.
+*/pruebas/

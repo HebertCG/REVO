@@ -160,17 +160,19 @@ def preguntas_de_la_sesion(
         # FASE 1: 1 pregunta por cada especializacion (10 preguntas).
         # Se aleatoriza para que el pool de 100 se use y el examen no sea
         # identico entre alumnos.
-        preguntas = []
-        for spec_id in SPEC_IDS:
-            pregunta = db.scalar(
+        #
+        # DISTINCT ON es especifico de PostgreSQL y aqui vale la pena: hace en
+        # UNA consulta lo que antes eran diez, una por especializacion. Con 50
+        # alumnos entrando a la vez, eso es la diferencia entre 500 idas y
+        # vueltas a la base de datos y 50.
+        return list(
+            db.scalars(
                 select(Question)
-                .where(Question.specialization_id == spec_id)
-                .order_by(func.random())
-                .limit(1)
+                .distinct(Question.specialization_id)
+                .where(Question.specialization_id.in_(list(SPEC_IDS)))
+                .order_by(Question.specialization_id, func.random())
             )
-            if pregunta:
-                preguntas.append(pregunta)
-        return preguntas
+        )
 
     if sesion.phase == 2:
         # FASE 2: 5 preguntas de cada una de las top 3 = 15 preguntas.
@@ -248,9 +250,11 @@ def guardar_respuestas(
             db.add(fila)
         guardadas.append(fila)
 
+    # Sin bucle de refresh: los ids los rellena el INSERT ... RETURNING que
+    # SQLAlchemy ya emite, y con expire_on_commit=False los objetos siguen
+    # utilizables despues del commit. El bucle anterior costaba un SELECT por
+    # respuesta guardada.
     db.commit()
-    for fila in guardadas:
-        db.refresh(fila)
     return guardadas
 
 

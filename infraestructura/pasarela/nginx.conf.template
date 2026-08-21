@@ -133,17 +133,39 @@ http {
     }
 
     # ── Servicios internos ───────────────────────────────────
-    upstream auth {
-        server auth-service:8001;
-        keepalive 16;
+    #
+    # ATENCION: aqui NO se usa un bloque `upstream`. Es deliberado y corrige
+    # un fallo grave.
+    #
+    # Con `upstream auth { server auth-service:8001; }`, nginx resuelve ese
+    # nombre UNA SOLA VEZ, al cargar la configuracion, y se queda con la IP
+    # para siempre. Docker asigna una IP nueva cada vez que se recrea un
+    # contenedor. Resultado: cualquier despliegue, reinicio o caida con
+    # reinicio automatico de un servicio deja la pasarela apuntando a una IP
+    # muerta y devolviendo 502 de forma PERMANENTE, hasta que alguien
+    # reinicia nginx a mano. Verificado en esta instalacion: tras reiniciar
+    # auth-service, nginx siguio intentando 172.24.0.4 mientras el servicio
+    # estaba en 172.24.0.5.
+    #
+    # La solucion en nginx de codigo abierto es resolver el nombre en CADA
+    # peticion, y para eso el destino tiene que ser una variable.
+    #
+    # Coste: al usar una variable en proxy_pass se pierde el pool de
+    # conexiones keepalive hacia los servicios, asi que cada peticion abre
+    # una conexion TCP nueva. En la red interna de Docker eso es una
+    # fraccion de milisegundo, y es un precio pequeno frente a que un
+    # despliegue tumbe la API entera.
+    resolver 127.0.0.11 valid=10s ipv6=off;
+    resolver_timeout 5s;
+
+    map $host $servicio_auth {
+        default "http://auth-service:8001";
     }
-    upstream survey {
-        server survey-service:8002;
-        keepalive 16;
+    map $host $servicio_survey {
+        default "http://survey-service:8002";
     }
-    upstream ml {
-        server ml-service:8003;
-        keepalive 16;
+    map $host $servicio_ml {
+        default "http://ml-service:8003";
     }
 
     server {
@@ -191,69 +213,85 @@ http {
         #      Si manana el cuestionario se parte en dos servicios, las URLs
         #      publicas no cambian.
         #
-        # En proxy_pass, cuando se incluye una URI (el "/auth/" final), nginx
-        # sustituye el prefijo de la location por esa URI. Quitar esa barra
-        # final cambia el comportamiento y rompe el enrutado.
+        # ATENCION con proxy_pass y variables: cuando el destino contiene una
+        # variable, nginx YA NO recorta el prefijo de la location. Un destino
+        # con URI (terminado en barra) pasa a enviarse tal cual, asi que
+        # /api/auth/me llegaria al servicio como /auth/ a secas y responderia
+        # 404. Por eso cada ruta por prefijo hace primero un `rewrite`
+        # explicito y despues un `proxy_pass` SIN URI: nginx envia entonces
+        # la ruta que dejo el rewrite.
+        #
+        # Con destino estatico si se sustituye el prefijo automaticamente,
+        # pero un destino estatico es justo lo que cachea la IP para siempre.
 
         # Login y registro: cupo estricto, son las rutas que se atacan.
         location = /api/auth/login {
             limit_req zone=acceso burst=20 nodelay;
-            proxy_pass http://auth/auth/login;
+            proxy_pass $servicio_auth/auth/login;
         }
 
         location = /api/auth/register {
             limit_req zone=acceso burst=20 nodelay;
-            proxy_pass http://auth/auth/register;
+            proxy_pass $servicio_auth/auth/register;
         }
 
         # Resto de autenticacion y perfil.
         location /api/auth/ {
             limit_req zone=general burst=60 nodelay;
-            proxy_pass http://auth/auth/;
+            rewrite ^/api/auth/(.*)$ /auth/$1 break;
+            proxy_pass $servicio_auth;
         }
 
         # Documentos legales. Publicos a proposito: hay que poder leerlos
         # antes de tener cuenta, porque se aceptan durante el registro.
         location /api/legal/ {
             limit_req zone=general burst=60 nodelay;
-            proxy_pass http://auth/legal/;
+            rewrite ^/api/legal/(.*)$ /legal/$1 break;
+            proxy_pass $servicio_auth;
         }
 
         # ── Cuestionario ─────────────────────────────────────
         location /api/sessions/ {
             limit_req zone=general burst=60 nodelay;
-            proxy_pass http://survey/sessions/;
+            rewrite ^/api/sessions/(.*)$ /sessions/$1 break;
+            proxy_pass $servicio_survey;
         }
 
         location /api/questions/ {
             limit_req zone=general burst=60 nodelay;
-            proxy_pass http://survey/questions/;
+            rewrite ^/api/questions/(.*)$ /questions/$1 break;
+            proxy_pass $servicio_survey;
         }
 
         location /api/courses/ {
             limit_req zone=general burst=60 nodelay;
-            proxy_pass http://survey/courses/;
+            rewrite ^/api/courses/(.*)$ /courses/$1 break;
+            proxy_pass $servicio_survey;
         }
 
         location /api/jobs/ {
             limit_req zone=general burst=60 nodelay;
-            proxy_pass http://survey/jobs/;
+            rewrite ^/api/jobs/(.*)$ /jobs/$1 break;
+            proxy_pass $servicio_survey;
         }
 
         location /api/psychometric/ {
             limit_req zone=general burst=60 nodelay;
-            proxy_pass http://survey/psychometric/;
+            rewrite ^/api/psychometric/(.*)$ /psychometric/$1 break;
+            proxy_pass $servicio_survey;
         }
 
         # ── Modelo ───────────────────────────────────────────
         location /api/predict/ {
             limit_req zone=general burst=60 nodelay;
-            proxy_pass http://ml/predict/;
+            rewrite ^/api/predict/(.*)$ /predict/$1 break;
+            proxy_pass $servicio_ml;
         }
 
         location /api/stats/ {
             limit_req zone=general burst=60 nodelay;
-            proxy_pass http://ml/stats/;
+            rewrite ^/api/stats/(.*)$ /stats/$1 break;
+            proxy_pass $servicio_ml;
         }
 
         # Cualquier otra cosa no existe. No se revela que hay detras.

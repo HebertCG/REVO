@@ -1,0 +1,57 @@
+# ============================================================
+# REVO — Añadidos para desarrollo local
+# ============================================================
+# Se aplica ENCIMA de docker-compose.yml:
+#
+#   docker compose -f docker-compose.yml -f docker-compose.desarrollo.yml up -d
+#
+# Que cambia respecto a produccion:
+#
+#   1. Recarga en caliente: el codigo se monta desde el disco y uvicorn
+#      arranca con --reload. Se edita un .py y el servicio se reinicia solo.
+#   2. Postgres y Redis publican puerto, para poder inspeccionarlos con psql
+#      o redis-cli desde la maquina.
+#   3. La pasarela sigue delante. Es lo que hace que el desarrollo se parezca
+#      a produccion: si el enrutado esta mal, se ve aqui y no al desplegar.
+#
+# Lo que NO cambia: los microservicios siguen sin publicar puerto. Aunque sea
+# desarrollo, se trabaja contra la misma superficie que en produccion.
+#
+# NUNCA usar este fichero en un servidor de produccion.
+# ============================================================
+
+services:
+
+  postgres:
+    ports:
+      # 5434 en el host para no chocar con un Postgres instalado localmente.
+      - "5434:5432"
+
+  redis:
+    ports:
+      - "6379:6379"
+
+  auth-service:
+    volumes:
+      - ./services/auth-service:/app
+    command: >
+      uvicorn main:app --host 0.0.0.0 --port 8001
+      --no-server-header --proxy-headers --forwarded-allow-ips=*
+      --reload
+
+  survey-service:
+    volumes:
+      - ./services/survey-service:/app
+    command: >
+      uvicorn main:app --host 0.0.0.0 --port 8002
+      --no-server-header --proxy-headers --forwarded-allow-ips=*
+      --reload
+
+  ml-service:
+    volumes:
+      - ./services/ml-service:/app
+      - ml_models:/app/model/saved
+    command: >
+      uvicorn main:app --host 0.0.0.0 --port 8003
+      --no-server-header --proxy-headers --forwarded-allow-ips=*
+      --reload

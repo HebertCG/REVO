@@ -31,6 +31,29 @@ una filtracion en varias.
 
 ---
 
+## 1.b Si ya tenias REVO corriendo antes
+
+Postgres solo ejecuta los scripts de `database/` cuando el directorio de datos
+esta **vacio**. Sobre una base que ya existe, las migraciones nuevas se
+ignoran en silencio y los servicios fallan al arrancar con
+`el rol "revo_app" no existe`.
+
+Para una base existente:
+
+```bash
+docker compose up -d postgres          # solo la base
+bash database/aplicar_migraciones.sh   # aplica 10, 12 y 13 y crea los roles
+```
+
+El script es idempotente y comprueba al final que RLS quedo activo en todas
+las tablas y que los cuatro documentos legales estan vigentes.
+
+Si la base es de desarrollo y no importa perder los datos, el camino corto es
+`docker compose down -v` y volver a levantar: los scripts se ejecutan solos
+sobre el volumen limpio.
+
+---
+
 ## 2. Opcion A — Docker Compose (servidor propio)
 
 Es la opcion con mejor aislamiento: los servicios, Postgres y Redis viven en

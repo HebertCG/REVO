@@ -84,68 +84,23 @@ def resolve_bucket(policy: RateLimitPolicy, context: RequestContext) -> str:
     return f"{KEY_PREFIX}:{policy.name}:i:{context.client_ip}"
 
 
-# ── Catalogo de politicas ────────────────────────────────────
-# Los numeros salen del uso real, no de una cifra redonda:
-#   - un cuestionario completo son 25 respuestas + guardado masivo + reintentos
-#   - un alumno hace como mucho un par de sesiones seguidas
-#   - el techo por IP debe aguantar un aula entera trabajando a la vez
-POLICIES: dict[str, RateLimitPolicy] = {
-    # Escritura de respuestas durante el juego. Por alumno, generoso:
-    # el front guarda tras cada pregunta y ademas hace un guardado masivo.
-    "answers": RateLimitPolicy(
-        name="answers", limit=120, window_seconds=60, scope=Scope.USER_OR_IP, fail_open=True
-    ),
-    # Cierre de fase. Dispara la prediccion, es caro; pero el front reintenta
-    # hasta 3 veces cuando Render despierta el servicio.
-    "submit_phase": RateLimitPolicy(
-        name="submit_phase", limit=20, window_seconds=300, scope=Scope.USER_OR_IP, fail_open=True
-    ),
-    # Inferencia del modelo.
-    "predict": RateLimitPolicy(
-        name="predict", limit=20, window_seconds=300, scope=Scope.USER_OR_IP, fail_open=True
-    ),
-    # Lectura de preguntas y catalogos.
+# ── Politicas comunes ────────────────────────────────────────
+# Aqui SOLO viven los cupos que necesita cualquier servicio. Los cupos de un
+# dominio concreto (responder el cuestionario, pedir una prediccion) los
+# declara el servicio dueno, en su propio modulo `politicas.py`.
+#
+# El motivo no es estetico. Con todos los cupos aqui, cambiar el limite de
+# respuestas del cuestionario obligaba a tocar la libreria compartida y a
+# reconstruir las tres imagenes: un cambio que solo afecta a survey-service
+# se convertia en un despliegue de todo el sistema. La libreria aporta el
+# MECANISMO; cada servicio decide su POLITICA.
+POLITICAS_COMUNES: dict[str, RateLimitPolicy] = {
+    # Lecturas de catalogos y perfil. Las hacen los tres.
     "read": RateLimitPolicy(
         name="read", limit=240, window_seconds=60, scope=Scope.USER_OR_IP, fail_open=True
     ),
-    # ── Acceso: dos cupos a la vez, no uno ───────────────────
-    # Las rutas sin identidad previa (login, registro) son las unicas donde
-    # hay que contar por IP, y ahi choca de frente el caso del aula: 50
-    # alumnos comparten una sola IP publica y llegan todos en el mismo
-    # minuto. Un unico cupo no puede distinguir eso de un bot, porque a lo
-    # largo de una hora los dos hacen el mismo numero de peticiones.
-    #
-    # La diferencia esta en la FORMA del trafico: el aula es una rafaga
-    # corta y luego silencio; el bot es un goteo constante durante horas.
-    # Por eso se aplican dos cupos simultaneos a cada ruta: uno ancho y
-    # corto que deja pasar la rafaga, y uno estrecho y largo que corta el
-    # goteo sostenido.
-
-    # Login por cuenta atacada. Frena la fuerza bruta contra un alumno
-    # concreto sin tocar al resto del aula, porque cada uno usa su email.
-    "login": RateLimitPolicy(
-        name="login", limit=8, window_seconds=900, scope=Scope.CREDENTIAL, fail_open=True
-    ),
-    # Login por IP, cupo sostenido. Sin esto, un atacante prueba tres
-    # contrasenas contra diez mil cuentas distintas y ningun cupo por
-    # credencial se entera. 400/hora deja entrar a un aula con reintentos y
-    # corta el rociado de credenciales.
-    "login_por_ip": RateLimitPolicy(
-        name="login_por_ip", limit=400, window_seconds=3600, scope=Scope.IP, fail_open=True
-    ),
-
-    # Alta de cuentas, rafaga: un aula completa registrandose a la vez el
-    # primer dia de clase. 80 en 10 minutos cubre 50 alumnos con reintentos.
-    "register": RateLimitPolicy(
-        name="register", limit=80, window_seconds=600, scope=Scope.IP, fail_open=True
-    ),
-    # Alta de cuentas, sostenido: ~3 aulas al dia desde la misma IP. Un bot
-    # creando cuentas en cadena topa aqui aunque respete la rafaga.
-    "register_diario": RateLimitPolicy(
-        name="register_diario", limit=250, window_seconds=86_400, scope=Scope.IP, fail_open=True
-    ),
-    # Panel de administracion. Poco trafico y alto valor: si Redis cae,
-    # se cierra en vez de quedar sin control.
+    # Panel de administracion. Poco trafico y alto valor: si Redis cae, se
+    # cierra en vez de quedar sin control.
     "admin": RateLimitPolicy(
         name="admin", limit=120, window_seconds=60, scope=Scope.USER_OR_IP, fail_open=False
     ),
@@ -156,3 +111,18 @@ POLICIES: dict[str, RateLimitPolicy] = {
         name="global", limit=1200, window_seconds=60, scope=Scope.IP, fail_open=True
     ),
 }
+
+
+def combinar_politicas(
+    propias: dict[str, RateLimitPolicy] | None = None,
+) -> dict[str, RateLimitPolicy]:
+    """
+    Une las politicas comunes con las que declara el servicio.
+
+    Si un servicio define una politica con un nombre comun, la suya gana: es
+    su decision y la libreria no debe imponerle un limite que no le encaja.
+    """
+    catalogo = dict(POLITICAS_COMUNES)
+    if propias:
+        catalogo.update(propias)
+    return catalogo

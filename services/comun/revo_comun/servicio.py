@@ -36,7 +36,11 @@ from revo_comun.basedatos.contexto import ContextoSeguridad
 from revo_comun.basedatos.motor import crear_fabrica_sesiones, crear_motor, fijar_contexto
 from revo_comun.errores import registrar_manejadores
 from revo_comun.limites.contador import RateLimiter
-from revo_comun.limites.politicas import POLICIES, RequestContext
+from revo_comun.limites.politicas import (
+    RateLimitPolicy,
+    RequestContext,
+    combinar_politicas,
+)
 from revo_comun.registro import configurar_registro
 from revo_comun.seguridad.cabeceras import CabecerasSeguridadMiddleware, LimiteTamanoMiddleware
 from revo_comun.seguridad.ip_cliente import extract_client_ip
@@ -69,15 +73,25 @@ MAX_CONNECTIONS_POR_DEFECTO = 100
 class ServicioREVO:
     """Contenedor de las piezas transversales de un microservicio."""
 
-    def __init__(self, ajustes: AjustesBase, cliente_redis=None):
+    def __init__(
+        self,
+        ajustes: AjustesBase,
+        cliente_redis=None,
+        politicas: dict[str, RateLimitPolicy] | None = None,
+    ):
         """
         Args:
             ajustes: configuracion del servicio.
+            politicas: cupos propios del servicio, que se unen a los
+                comunes. Que cada servicio traiga los suyos evita que
+                cambiar el limite de una ruta obligue a reconstruir los
+                otros dos servicios.
             cliente_redis: cliente ya construido. Se inyecta en las pruebas
                 para no depender de un Redis real; en produccion se deja en
                 None y se conecta desde REDIS_URL.
         """
         self.ajustes = ajustes
+        self.politicas = combinar_politicas(politicas)
 
         self.tokens = TokenIssuer(
             secret=ajustes.JWT_SECRET,
@@ -327,10 +341,15 @@ class ServicioREVO:
             por_credencial: si es True, lee el email del cuerpo para contar
                 por cuenta objetivo en vez de por IP. Solo para /login.
         """
-        if nombre_politica not in POLICIES:
-            raise KeyError(f"Politica de rate limit desconocida: {nombre_politica!r}")
+        if nombre_politica not in self.politicas:
+            conocidas = ", ".join(sorted(self.politicas))
+            raise KeyError(
+                f"Politica de rate limit desconocida: {nombre_politica!r}. "
+                f"Este servicio conoce: {conocidas}. Si es suya, declarala en "
+                f"su modulo politicas.py."
+            )
 
-        politica = POLICIES[nombre_politica]
+        politica = self.politicas[nombre_politica]
 
         async def dependencia(request: Request):
             quien = self.principal_opcional(request)

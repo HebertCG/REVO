@@ -1,15 +1,17 @@
 from revo_comun.limites.politicas import (
-    POLICIES,
+    POLITICAS_COMUNES,
     RateLimitPolicy,
     RequestContext,
     Scope,
+    combinar_politicas,
     resolve_bucket,
 )
 
 __all__ = [
-    "POLICIES",
+    "POLITICAS_COMUNES",
     "RateLimitPolicy",
     "RequestContext",
     "Scope",
+    "combinar_politicas",
     "resolve_bucket",
 ]

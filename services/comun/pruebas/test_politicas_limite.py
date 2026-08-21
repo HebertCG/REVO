@@ -6,7 +6,7 @@ recibe HTTP 429 y el examen se cae para toda la clase.
 import pytest
 
 from revo_comun.limites.politicas import (
-    POLICIES,
+    POLITICAS_COMUNES,
     RateLimitPolicy,
     RequestContext,
     Scope,
@@ -92,29 +92,61 @@ class TestCredencial:
         assert ":i:" in bucket
 
 
-class TestCatalogoDePoliticas:
-    def test_las_rutas_de_juego_se_limitan_por_alumno_no_por_ip(self):
-        for nombre in ("answers", "submit_phase", "predict"):
-            assert POLICIES[nombre].scope is Scope.USER_OR_IP, nombre
+class TestCatalogoComun:
+    """
+    Aqui solo se comprueba lo COMUN. Los cupos de dominio (responder el
+    cuestionario, pedir una prediccion) los declara y los prueba su propio
+    servicio: si vivieran aqui, cambiar el limite del cuestionario obligaria
+    a reconstruir tambien auth y ml.
+    """
 
-    def test_el_cupo_de_respuestas_cubre_un_cuestionario_completo(self):
-        # 10 preguntas de fase 1 + 15 de fase 2 + reintentos y guardado masivo.
-        assert POLICIES["answers"].limit >= 40
+    def test_solo_contiene_lo_que_usan_todos(self):
+        assert set(POLITICAS_COMUNES) == {"read", "admin", "global"}
 
-    def test_el_login_es_estricto_para_frenar_fuerza_bruta(self):
-        assert POLICIES["login"].limit <= 10
-        assert POLICIES["login"].scope is Scope.CREDENTIAL
-
-    def test_las_rutas_de_juego_no_tumban_la_clase_si_redis_cae(self):
-        assert POLICIES["answers"].fail_open is True
+    def test_no_conoce_el_dominio_de_ningun_servicio(self):
+        # Si alguno de estos nombres vuelve aqui, la libreria ha vuelto a
+        # saber cosas que no le corresponden.
+        for nombre in ("answers", "submit_phase", "predict", "login", "register"):
+            assert nombre not in POLITICAS_COMUNES, nombre
 
     def test_las_rutas_de_administracion_se_cierran_si_redis_cae(self):
-        assert POLICIES["admin"].fail_open is False
+        assert POLITICAS_COMUNES["admin"].fail_open is False
 
     def test_toda_politica_declara_una_ventana_positiva(self):
-        for nombre, policy in POLICIES.items():
+        for nombre, policy in POLITICAS_COMUNES.items():
             assert policy.window_seconds > 0, nombre
             assert policy.limit > 0, nombre
+
+
+class TestCombinarPoliticas:
+    def test_une_las_comunes_con_las_del_servicio(self):
+        from revo_comun.limites.politicas import combinar_politicas
+
+        propia = RateLimitPolicy("answers", limit=120, window_seconds=60, scope=Scope.USER_OR_IP)
+        catalogo = combinar_politicas({"answers": propia})
+
+        assert catalogo["answers"] is propia
+        assert "read" in catalogo
+
+    def test_sin_politicas_propias_devuelve_solo_las_comunes(self):
+        from revo_comun.limites.politicas import combinar_politicas
+
+        assert set(combinar_politicas()) == set(POLITICAS_COMUNES)
+
+    def test_el_servicio_puede_endurecer_un_cupo_comun(self):
+        # Su decision manda: la libreria no le impone un limite que no encaja.
+        from revo_comun.limites.politicas import combinar_politicas
+
+        estricta = RateLimitPolicy("read", limit=10, window_seconds=60, scope=Scope.USER_OR_IP)
+        assert combinar_politicas({"read": estricta})["read"].limit == 10
+
+    def test_combinar_no_modifica_el_catalogo_comun(self):
+        # Un servicio que ajusta un cupo no puede alterarselo a los demas.
+        from revo_comun.limites.politicas import combinar_politicas
+
+        combinar_politicas({"read": RateLimitPolicy("read", 1, 60, Scope.IP)})
+
+        assert POLITICAS_COMUNES["read"].limit == 240
 
 
 class TestValidacion:

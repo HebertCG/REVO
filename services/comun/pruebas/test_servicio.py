@@ -14,7 +14,14 @@ from pydantic import BaseModel
 
 from revo_comun.ajustes import AjustesBase
 from revo_comun.seguridad.tokens import Principal
+from revo_comun.limites.politicas import RateLimitPolicy, Scope
 from revo_comun.servicio import ServicioREVO
+
+# Un servicio de mentira declara sus propios cupos, igual que los reales.
+POLITICAS_DE_PRUEBA = {
+    "login": RateLimitPolicy("login", limit=8, window_seconds=900, scope=Scope.CREDENTIAL),
+    "submit_phase": RateLimitPolicy("submit_phase", limit=20, window_seconds=300, scope=Scope.USER_OR_IP),
+}
 
 SECRETO = "un-secreto-de-pruebas-suficientemente-largo-para-hs256"
 SECRETO_PASARELA = "un-secreto-de-pasarela-largo-y-aleatorio-para-pruebas"
@@ -39,7 +46,11 @@ def crear_ajustes(**extra):
 def servicio():
     # El cliente de Redis se inyecta: las pruebas no dependen de la red y no
     # gastan el timeout de conexion en cada caso.
-    return ServicioREVO(crear_ajustes(), cliente_redis=fakeredis.FakeStrictRedis())
+    return ServicioREVO(
+        crear_ajustes(),
+        cliente_redis=fakeredis.FakeStrictRedis(),
+        politicas=POLITICAS_DE_PRUEBA,
+    )
 
 
 @pytest.fixture
@@ -201,7 +212,7 @@ class TestDocumentacion:
             DB_REQUIRE_SSL=True,
             CORS_ORIGINS="https://revo.pe",
         )
-        servicio = ServicioREVO(ajustes, cliente_redis=fakeredis.FakeStrictRedis())
+        servicio = ServicioREVO(ajustes, cliente_redis=fakeredis.FakeStrictRedis(), politicas=POLITICAS_DE_PRUEBA)
         app = servicio.crear_app(titulo="Pruebas")
         cliente = TestClient(app)
 
@@ -223,7 +234,7 @@ class TestConfiguracionDeProduccion:
             "CORS_ORIGINS": "https://revo.pe",
         }
         base.update(extra)
-        servicio = ServicioREVO(crear_ajustes(**base), cliente_redis=fakeredis.FakeStrictRedis())
+        servicio = ServicioREVO(crear_ajustes(**base), cliente_redis=fakeredis.FakeStrictRedis(), politicas=POLITICAS_DE_PRUEBA)
         return servicio.crear_app(titulo="Pruebas")
 
     def test_una_configuracion_correcta_arranca(self):
@@ -252,7 +263,9 @@ class TestConfiguracionDeProduccion:
     def test_en_desarrollo_no_estorba(self):
         # Las mismas condiciones "inseguras" en desarrollo no bloquean nada.
         servicio = ServicioREVO(
-            crear_ajustes(ENVIRONMENT="development"), cliente_redis=fakeredis.FakeStrictRedis()
+            crear_ajustes(ENVIRONMENT="development"),
+            cliente_redis=fakeredis.FakeStrictRedis(),
+            politicas=POLITICAS_DE_PRUEBA,
         )
 
         assert servicio.crear_app(titulo="Pruebas") is not None
@@ -300,34 +313,3 @@ class TestPresupuestoDeConexiones:
         ajustes = crear_ajustes(WORKERS=0, DB_POOL_SIZE=5, DB_MAX_OVERFLOW=5)
 
         assert ajustes.conexiones_maximas_estimadas == 30
-
-
-class TestCuposDeAcceso:
-    """El aula comparte una sola IP publica: es el caso que decide el diseno."""
-
-    def test_el_registro_admite_un_aula_completa_de_golpe(self):
-        from revo_comun.limites.politicas import POLICIES
-
-        assert POLICIES["register"].limit >= 50
-        assert POLICIES["register"].window_seconds <= 600
-
-    def test_el_registro_tiene_ademas_un_techo_sostenido(self):
-        # Sin el, la rafaga ancha deja a un bot crear cuentas todo el dia.
-        from revo_comun.limites.politicas import POLICIES
-
-        assert POLICIES["register_diario"].window_seconds >= 86_400
-        assert POLICIES["register_diario"].limit < POLICIES["register"].limit * 24
-
-    def test_el_login_se_limita_por_cuenta_y_tambien_por_ip(self):
-        # Solo por cuenta, un atacante rocia tres claves contra mil cuentas
-        # y ningun cupo se entera.
-        from revo_comun.limites.politicas import POLICIES, Scope
-
-        assert POLICIES["login"].scope is Scope.CREDENTIAL
-        assert POLICIES["login_por_ip"].scope is Scope.IP
-
-    def test_el_cupo_de_login_por_ip_deja_pasar_a_un_aula(self):
-        from revo_comun.limites.politicas import POLICIES
-
-        # 50 alumnos con margen para equivocarse un par de veces.
-        assert POLICIES["login_por_ip"].limit >= 150

@@ -1,0 +1,20 @@
+# ============================================================
+# Pasarela para Render
+# ============================================================
+# En el compose la pasarela usa la imagen oficial de nginx con la plantilla
+# montada como volumen. Render no monta volumenes del repositorio, asi que la
+# plantilla tiene que ir dentro de la imagen.
+#
+# Diferencia de fondo con el compose: en Render los servicios no estan en una
+# red interna, son URLs publicas de HTTPS. Por eso se usa una plantilla
+# distinta que resuelve nombres externos y habla TLS con ellos.
+# ============================================================
+FROM nginx:1.27-alpine
+
+# La imagen oficial procesa /etc/nginx/templates/*.template con envsubst al
+# arrancar y sustituye solo las variables ${NOMBRE} presentes en el entorno.
+COPY nginx.render.conf.template /etc/nginx/templates/nginx.conf.template
+
+ENV NGINX_ENVSUBST_OUTPUT_DIR=/etc/nginx
+
+EXPOSE 80

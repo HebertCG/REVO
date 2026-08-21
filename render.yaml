@@ -1,43 +1,160 @@
+# ============================================================
+# REVO — Despliegue en Render
+# ============================================================
+# Alternativa gestionada al despliegue con Docker Compose. El mismo codigo
+# corre en los dos sitios: lo unico que cambia son las variables de entorno.
+#
+# Diferencia importante con el compose: en Render cada servicio es una URL
+# publica. No hay red interna en el plan gratuito, asi que el aislamiento por
+# red no existe y TODA la defensa de "ninguna API expuesta" recae en el
+# secreto de pasarela (REQUIRE_GATEWAY + GATEWAY_SECRET). Por eso aqui es
+# obligatorio, no opcional.
+#
+# Antes de desplegar hay que crear a mano en el panel de Render:
+#   1. Un PostgreSQL gestionado.
+#   2. Un Redis (o una instancia de Upstash) para los cupos de peticiones.
+#   3. Aplicar las migraciones de database/ en orden, incluyendo 10_rls.sql,
+#      12_consentimiento.sql y 13_registro.sql, y crear los roles revo_app y
+#      revo_service con contrasena.
+#
+# Los valores marcados con `sync: false` NO se versionan: se escriben en el
+# panel de Render. Es la razon de que no haya ningun secreto en este fichero.
+# ============================================================
+
 services:
+  # ─────────────────────────────────────────────
+  # Pasarela — el unico servicio que deberia recibir trafico del navegador
+  # ─────────────────────────────────────────────
+  - type: web
+    name: revo-pasarela
+    runtime: docker
+    plan: starter
+    dockerfilePath: ./infraestructura/pasarela/Dockerfile.render
+    dockerContext: ./infraestructura/pasarela
+    envVars:
+      - key: GATEWAY_SECRET
+        sync: false
+      - key: URL_AUTH
+        sync: false
+      - key: URL_SURVEY
+        sync: false
+      - key: URL_ML
+        sync: false
+
+  # ─────────────────────────────────────────────
+  # Auth Service
+  # ─────────────────────────────────────────────
   - type: web
     name: revo-auth-service
-    env: python
-    plan: free
+    runtime: python
+    plan: starter
     rootDir: services/auth-service
-    buildCommand: "pip install -r requirements.txt"
-    startCommand: "uvicorn main:app --host 0.0.0.0 --port $PORT"
+    # `pip install ../comun` instala la libreria compartida. Render clona el
+    # repositorio completo, asi que la ruta relativa existe aunque rootDir
+    # apunte a este subdirectorio.
+    buildCommand: "pip install -r requirements.txt && pip install ../comun"
+    startCommand: "uvicorn main:app --host 0.0.0.0 --port $PORT --no-server-header --proxy-headers --forwarded-allow-ips=*"
+    healthCheckPath: /health
     envVars:
       - key: PYTHON_VERSION
-        value: "3.10.0"
+        value: "3.11.9"
+      - key: ENVIRONMENT
+        value: production
+      # Con revo_app, NO con el dueno de las tablas: es lo que hace que las
+      # politicas RLS apliquen de verdad.
       - key: DATABASE_URL
         sync: false
-      - key: SECRET_KEY
-        generateValue: true
+      - key: DB_REQUIRE_SSL
+        value: "true"
+      - key: REDIS_URL
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: GATEWAY_SECRET
+        sync: false
+      # Obligatorio en Render: sin red privada, es lo unico que impide llamar
+      # al servicio directamente por su URL publica.
+      - key: REQUIRE_GATEWAY
+        value: "true"
+      # Render pone su propio balanceador delante, y la pasarela anade otro
+      # salto: dos proxies de confianza.
+      - key: TRUSTED_PROXY_COUNT
+        value: "2"
+      - key: CORS_ORIGINS
+        sync: false
 
+  # ─────────────────────────────────────────────
+  # Survey Service
+  # ─────────────────────────────────────────────
   - type: web
     name: revo-survey-service
-    env: python
-    plan: free
+    runtime: python
+    plan: starter
     rootDir: services/survey-service
-    buildCommand: "pip install -r requirements.txt"
-    startCommand: "uvicorn main:app --host 0.0.0.0 --port $PORT"
+    buildCommand: "pip install -r requirements.txt && pip install ../comun"
+    startCommand: "uvicorn main:app --host 0.0.0.0 --port $PORT --no-server-header --proxy-headers --forwarded-allow-ips=*"
+    healthCheckPath: /health
     envVars:
       - key: PYTHON_VERSION
-        value: "3.10.0"
-      - key: ML_SERVICE_URL
-        value: "https://revo-ml-service.onrender.com"
+        value: "3.11.9"
+      - key: ENVIRONMENT
+        value: production
       - key: DATABASE_URL
+        sync: false
+      - key: DB_REQUIRE_SSL
+        value: "true"
+      - key: REDIS_URL
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: GATEWAY_SECRET
+        sync: false
+      - key: REQUIRE_GATEWAY
+        value: "true"
+      - key: TRUSTED_PROXY_COUNT
+        value: "2"
+      - key: CORS_ORIGINS
+        sync: false
+      - key: ML_SERVICE_URL
         sync: false
 
+  # ─────────────────────────────────────────────
+  # ML Service
+  # ─────────────────────────────────────────────
   - type: web
     name: revo-ml-service
-    env: python
-    plan: free
+    runtime: python
+    plan: starter
     rootDir: services/ml-service
-    buildCommand: "pip install -r requirements.txt"
-    startCommand: "python train_cron.py & uvicorn main:app --host 0.0.0.0 --port $PORT"
+    buildCommand: "pip install -r requirements.txt && pip install ../comun"
+    startCommand: "uvicorn main:app --host 0.0.0.0 --port $PORT --no-server-header --proxy-headers --forwarded-allow-ips=*"
+    healthCheckPath: /health
     envVars:
       - key: PYTHON_VERSION
-        value: "3.10.0"
+        value: "3.11.9"
+      - key: ENVIRONMENT
+        value: production
       - key: DATABASE_URL
         sync: false
+      - key: DB_REQUIRE_SSL
+        value: "true"
+      - key: REDIS_URL
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: GATEWAY_SECRET
+        sync: false
+      - key: REQUIRE_GATEWAY
+        value: "true"
+      - key: TRUSTED_PROXY_COUNT
+        value: "2"
+      - key: CORS_ORIGINS
+        sync: false
+      # El modelo entrenado necesita sobrevivir a los reinicios: sin disco,
+      # cada despliegue vuelve a entrenar desde cero al arrancar.
+      - key: MODEL_PATH
+        value: /var/data/modelo/decision_tree.pkl
+    disk:
+      name: modelo
+      mountPath: /var/data/modelo
+      sizeGB: 1

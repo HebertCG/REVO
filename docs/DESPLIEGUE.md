@@ -181,8 +181,11 @@ REVO_TEST_DATABASE_URL="postgresql://revo_app:...@host/revo_db" \
 # 4. Frontend
 cd frontend && npm run build && node --test src/**/*.test.mjs
 
-# 5. Despliegue completo (40 comprobaciones)
+# 5. Despliegue completo: lo que NO debe poder hacerse (40 comprobaciones)
 PUERTO=8080 bash infraestructura/verificar_despliegue.sh
+
+# 6. Recorrido de un alumno: lo que SI debe funcionar
+python infraestructura/prueba_flujo_completo.py
 ```
 
 Lista corta de lo que hay que confirmar a mano:

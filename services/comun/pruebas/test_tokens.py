@@ -10,8 +10,8 @@ import base64
 import json
 import time
 
+import jwt
 import pytest
-from jose import jwt
 
 from revo_comun.seguridad.tokens import (
     ACCESS_TOKEN_TYPE,
@@ -230,10 +230,15 @@ class TestTokenInterno:
         assert issuer.verify(token).user_id == 5
 
     def test_el_token_interno_caduca_mucho_antes_que_el_de_sesion(self, issuer):
-        interno = jwt.get_unverified_claims(
+        def claims_sin_verificar(token):
+            # Solo para inspeccionar en la prueba. En codigo de produccion
+            # jamas se leen claims sin verificar la firma.
+            return jwt.decode(token, options={"verify_signature": False})
+
+        interno = claims_sin_verificar(
             issuer.issue(user_id=5, role="student", expire_seconds=60)
         )
-        sesion = jwt.get_unverified_claims(issuer.issue(user_id=5, role="student"))
+        sesion = claims_sin_verificar(issuer.issue(user_id=5, role="student"))
 
         assert interno["exp"] < sesion["exp"]
 

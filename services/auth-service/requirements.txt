@@ -6,7 +6,9 @@ pydantic[email]==2.7.1
 pydantic-settings==2.2.1
 python-dotenv==1.0.1
 python-multipart==0.0.9
-python-jose[cryptography]==3.3.0
+# PyJWT en vez de python-jose: aquella se quedo en 3.3.0 (2021), sin
+# mantenimiento y con CVE abiertos, y es la libreria que valida identidad.
+PyJWT==2.10.1
 redis==5.0.4
 
 # bcrypt sin pin a 4.0.1: al quitar passlib ya no hace falta congelarlo en

@@ -7,6 +7,14 @@ donde arreglar el mismo fallo, y ninguna comprobaba emisor, audiencia ni
 proposito del token.
 
 Decisiones que importan:
+  - Se usa PyJWT y no python-jose. python-jose se quedo en la version 3.3.0
+    de 2021 y arrastra CVE conocidos (CVE-2024-33663 de confusion de
+    algoritmo y CVE-2024-33664 de denegacion de servicio al descomprimir).
+    El uso de aqui no es explotable por ninguno de los dos, porque la lista
+    de algoritmos es fija y no se descifra JWE, pero una libreria sin
+    mantenimiento en la pieza que decide QUIEN eres no es defendible: el
+    proximo fallo no tendria arreglo. Es el mismo motivo por el que se
+    quito passlib.
   - `algorithms` es una lista fija. Si se pasa el algoritmo del propio token
     a la verificacion, un atacante elige "none" y firma lo que quiera.
   - `aud` e `iss` se verifican siempre: sin ellos, un token de cualquier otro
@@ -21,7 +29,8 @@ import uuid
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 
-from jose import JWTError, jwt
+import jwt
+from jwt import PyJWTError
 
 ACCESS_TOKEN_TYPE = "access"
 
@@ -149,9 +158,11 @@ class TokenIssuer:
                 algorithms=[ALGORITHM],
                 issuer=self._issuer,
                 audience=self._audience,
-                options={"require_exp": True, "require_iat": True},
+                # `require` obliga a que las tres esten presentes: un token
+                # sin exp no caduca nunca, y uno sin iat no se puede fechar.
+                options={"require": ["exp", "iat", "sub"]},
             )
-        except JWTError as exc:
+        except PyJWTError as exc:
             raise TokenError("Token invalido o expirado") from exc
 
         if claims.get("typ") != ACCESS_TOKEN_TYPE:

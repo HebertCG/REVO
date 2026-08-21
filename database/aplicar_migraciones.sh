@@ -25,7 +25,7 @@
 set -euo pipefail
 
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-MIGRACIONES=(10_rls 12_consentimiento 13_registro)
+MIGRACIONES=(10_rls 12_consentimiento 13_registro 14_cuentas)
 
 # ── Contrasenas de los roles de aplicacion ───────────────────
 cargar_del_env() {

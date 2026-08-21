@@ -43,7 +43,7 @@ echo "==> Cargando esquema y politicas"
 # de entrenamiento) no aportan nada a esta verificacion y la alargan.
 for archivo in 01_init 01b_schema_sync 02_seed_specializations 03_seed_questions \
                07_seed_courses 08_seed_jobs 09_psychometric_questions \
-               10_rls 12_consentimiento; do
+               10_rls 12_consentimiento 13_registro 14_cuentas; do
     docker exec -i "$CONTENEDOR" psql -v ON_ERROR_STOP=1 -U revo_user -d revo_db -q \
         < "$RAIZ/database/$archivo.sql" > /dev/null
     echo "    cargado $archivo"
@@ -52,6 +52,10 @@ done
 echo "==> Ejecutando comprobaciones de aislamiento"
 SALIDA=$(docker exec -i "$CONTENEDOR" psql -U revo_user -d revo_db \
     < "$RAIZ/database/pruebas/verificar_rls.sql" 2>&1)
+
+SALIDA_CUENTAS=$(docker exec -i "$CONTENEDOR" psql -U revo_user -d revo_db     < "$RAIZ/database/pruebas/verificar_cuentas.sql" 2>&1)
+SALIDA="$SALIDA
+$SALIDA_CUENTAS"
 
 echo "$SALIDA" | grep -E "NOTICE|ERROR" | sed 's/^NOTICE:  //'
 

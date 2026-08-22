@@ -15,6 +15,26 @@
 -- `users` fija antes contexto de admin y afirma que la variable no es nula.
 \set ON_ERROR_STOP on
 
+-- Este guion corre despues del de RLS sobre la misma base, asi que empieza
+-- limpiando. No se usa ON CONFLICT: sobre una tabla con RLS, PostgreSQL
+-- necesita ver la fila en conflicto para resolverlo, y sin contexto la
+-- politica de SELECT no deja ver nada.
+SELECT set_config('revo.role', 'admin', false);
+TRUNCATE users CASCADE;
+SELECT set_config('revo.role', '', false);
+
+-- El dueno tiene que ser miembro del rol para poder asumirlo. Un dueno
+-- superusuario puede hacer SET ROLE hacia cualquiera y esto no hacia falta;
+-- en un Postgres gestionado el dueno no es superusuario y sin esto falla con
+-- 'permission denied to set role'.
+DO $membresia$
+BEGIN
+    EXECUTE format('GRANT revo_verificacion TO %I', current_user);
+EXCEPTION WHEN OTHERS THEN
+    NULL;  -- ya es miembro, o es superusuario y no lo necesita
+END
+$membresia$;
+
 SET ROLE revo_verificacion;
 
 DO $verificar$
@@ -31,6 +51,7 @@ DECLARE
     v_segundo  TEXT := encode(sha256('segundo-token'::bytea), 'hex');
 BEGIN
     -- ── Preparacion ─────────────────────────────────────────
+    -- (La limpieza previa la hace el guion que invoca a este.)
     SELECT * INTO r FROM revo_crear_alumno('ana.cuentas@uni.pe', 'hash', 'Ana', NULL, 7);
     v_ana := r.nuevo_id;
 

@@ -71,9 +71,17 @@ $comprobar_proveedor$;
 -- Las cuentas que ya existian se dan por verificadas: se crearon antes de
 -- que existiera la verificacion y bloquearlas ahora seria expulsar a gente
 -- que lleva meses usando la plataforma.
+-- Mismo motivo que en la migracion 12: users tiene FORCE ROW LEVEL SECURITY,
+-- asi que sin contexto de admin este UPDATE no toca ninguna fila cuando el
+-- dueno no es superusuario. No daria error, simplemente no haria nada, y las
+-- cuentas antiguas quedarian sin verificar sin que nadie se entere.
+SELECT set_config('revo.role', 'admin', false);
+
 UPDATE users
 SET email_verified = TRUE, email_verified_at = created_at
 WHERE email_verified = FALSE AND created_at < NOW();
+
+SELECT set_config('revo.role', '', false);
 
 -- ------------------------------------------------------------
 -- 2. Codigos de verificacion de correo

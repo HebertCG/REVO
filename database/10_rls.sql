@@ -96,8 +96,19 @@ GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO revo_app, revo_service;
 -- permisos y el INSERT fallara con "permission denied for sequence", que es
 -- un error que no apunta a la causa real. Lo detectaron las pruebas de
 -- integracion del registro tras anadir user_consents en la migracion 12.
-ALTER DEFAULT PRIVILEGES FOR ROLE revo_user IN SCHEMA public
-    GRANT USAGE, SELECT ON SEQUENCES TO revo_app, revo_service;
+-- El nombre del dueno NO se escribe a mano. En el compose es revo_user, pero
+-- en un Postgres gestionado (Supabase, Neon, RDS) es otro, normalmente
+-- `postgres`. Con el nombre fijo, esta migracion fallaba con
+-- 'role "revo_user" does not exist' y arrastraba a las dos siguientes.
+DO $privilegios$
+BEGIN
+    EXECUTE format(
+        'ALTER DEFAULT PRIVILEGES FOR ROLE %I IN SCHEMA public '
+        'GRANT USAGE, SELECT ON SEQUENCES TO revo_app, revo_service',
+        current_user
+    );
+END
+$privilegios$;
 
 -- ------------------------------------------------------------
 -- 4. users

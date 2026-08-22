@@ -2,25 +2,44 @@
 -- Cada bloque afirma un comportamiento; si alguno falla, RAISE EXCEPTION.
 \set ON_ERROR_STOP on
 
--- ---- Datos de partida (como dueno, antes de asumir revo_app) ----
+-- ---- Datos de partida ----
+-- Se parte de tabla limpia en vez de usar ON CONFLICT: sobre una tabla con
+-- RLS, PostgreSQL necesita poder VER la fila en conflicto para resolverlo, y
+-- sin contexto la politica de SELECT no deja ver nada. Con un dueno
+-- superusuario no se nota (se salta RLS); en un Postgres gestionado, si.
+SELECT set_config('revo.role', 'admin', false);
+TRUNCATE users CASCADE;
+SELECT set_config('revo.role', '', false);
 INSERT INTO users (id, email, password_hash, full_name, role)
 VALUES (1, 'ana@uni.pe', 'hash-ana', 'Ana Alumna', 'student'),
        (2, 'beto@uni.pe', 'hash-beto', 'Beto Alumno', 'student')
-ON CONFLICT (id) DO NOTHING;
+;
 
 -- El admin se inserta con contexto de admin, porque la politica de alta
 -- solo deja crear alumnos sin contexto.
 SELECT set_config('revo.role', 'admin', false);
 INSERT INTO users (id, email, password_hash, full_name, role)
 VALUES (3, 'admin@uni.pe', 'hash-admin', 'Admin', 'admin')
-ON CONFLICT (id) DO NOTHING;
+;
 SELECT set_config('revo.role', '', false);
 
 SELECT setval('users_id_seq', 10);
 
-INSERT INTO questionnaire_sessions (id, user_id, status, phase)
-VALUES (100, 1, 'in_progress', 1), (200, 2, 'in_progress', 1)
-ON CONFLICT (id) DO NOTHING;
+-- Las sesiones se siembran como su propio alumno. La politica exige
+-- revo_es_alumno(user_id) tambien al escribir, asi que sin contexto no entra
+-- ninguna fila. Con un dueno superusuario esto pasaba desapercibido porque
+-- se saltaba RLS; en un Postgres gestionado, no.
+SELECT set_config('revo.role', 'student', false);
+
+SELECT set_config('revo.user_id', '1', false);
+INSERT INTO questionnaire_sessions (id, user_id, status, phase) VALUES (100, 1, 'in_progress', 1);
+
+SELECT set_config('revo.user_id', '2', false);
+INSERT INTO questionnaire_sessions (id, user_id, status, phase) VALUES (200, 2, 'in_progress', 1);
+
+SELECT set_config('revo.user_id', '', false);
+SELECT set_config('revo.role', '', false);
+
 SELECT setval('questionnaire_sessions_id_seq', 300);
 
 -- answers tambien tiene FORCE RLS, asi que ni el dueno inserta sin
@@ -37,8 +56,14 @@ SELECT 200, q.id, 5 FROM questions q ORDER BY q.id LIMIT 1;
 SELECT set_config('revo.user_id', '', false);
 SELECT set_config('revo.role', '', false);
 
+-- El dataset solo admite aportaciones de alguien identificado o del rol de
+-- servicio. Sin contexto, la politica lo rechaza.
+SELECT set_config('revo.user_id', '0', false);
+SELECT set_config('revo.role', 'service', false);
 INSERT INTO ml_training_data (aff_1, specialization_id, source)
 VALUES (0.9, 1, 'synthetic');
+SELECT set_config('revo.user_id', '', false);
+SELECT set_config('revo.role', '', false);
 
 -- Ana rechaza el entrenamiento; Beto lo autoriza. Es el caso que decide si
 -- el consentimiento opcional sirve de algo.
@@ -47,9 +72,21 @@ VALUES (1, 'terms', '1.0', true, '200.60.1.1'),
        (1, 'ai_training', '1.0', false, '200.60.1.1'),
        (2, 'terms', '1.0', true, '200.60.1.2'),
        (2, 'ai_training', '1.0', true, '200.60.1.2')
-ON CONFLICT DO NOTHING;
+;
 
 -- ============================================================
+-- El dueno tiene que ser miembro del rol para poder asumirlo. Un dueno
+-- superusuario puede hacer SET ROLE hacia cualquiera y esto no hacia falta;
+-- en un Postgres gestionado el dueno no es superusuario y sin esto falla con
+-- 'permission denied to set role'.
+DO $membresia$
+BEGIN
+    EXECUTE format('GRANT revo_verificacion TO %I', current_user);
+EXCEPTION WHEN OTHERS THEN
+    NULL;  -- ya es miembro, o es superusuario y no lo necesita
+END
+$membresia$;
+
 SET ROLE revo_verificacion;
 -- ============================================================
 

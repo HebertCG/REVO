@@ -52,7 +52,8 @@ echo "==> Cargando esquema y politicas"
 for archivo in 01_init 01b_schema_sync 02_seed_specializations 03_seed_questions \
                07_seed_courses 08_seed_jobs 09_psychometric_questions \
                10_rls 12_consentimiento 13_registro 14_cuentas \
-               15_roles_por_servicio; do
+               15_roles_por_servicio 17_mover_catalogos \
+               18_compatibilidad_gestionado; do
     docker exec -i "$CONTENEDOR" psql -v ON_ERROR_STOP=1 -U revo_user -d revo_db -q \
         < "$RAIZ/database/$archivo.sql" > /dev/null
     echo "    cargado $archivo"

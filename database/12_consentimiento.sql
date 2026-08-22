@@ -145,6 +145,20 @@ CREATE POLICY consentimientos_propios ON user_consents FOR ALL
 -- ------------------------------------------------------------
 -- 5. Contenido inicial de los documentos
 -- ------------------------------------------------------------
+-- El INSERT va DESPUES de activar RLS con FORCE, asi que la politica de
+-- escritura (solo admin) tambien aplica a quien corre la migracion.
+--
+-- En un Postgres local eso no se nota porque el dueno suele ser superusuario
+-- y los superusuarios se saltan RLS. En un Postgres gestionado (Supabase,
+-- Neon, RDS) el dueno NO es superusuario y la migracion fallaba con
+-- 'new row violates row-level security policy for table "legal_documents"'.
+--
+-- El contexto de admin hace falta ademas por el ON CONFLICT del final:
+-- PostgreSQL necesita poder VER la fila en conflicto para resolverlo, asi que
+-- un INSERT ... ON CONFLICT sobre una tabla con RLS falla si la politica de
+-- SELECT no deja ver nada, aunque el WITH CHECK del INSERT si pase.
+SELECT set_config('revo.role', 'admin', false);
+
 INSERT INTO legal_documents (doc_type, version, title, summary, body_md, is_required)
 VALUES
 (
@@ -402,6 +416,9 @@ $doc$,
     FALSE
 )
 ON CONFLICT (doc_type, version) DO NOTHING;
+
+-- Se suelta la identidad de administrador en cuanto deja de hacer falta.
+SELECT set_config('revo.role', '', false);
 
 DO $verificacion$
 DECLARE

@@ -13,9 +13,13 @@
 # Antes de desplegar hay que crear a mano en el panel de Render:
 #   1. Un PostgreSQL gestionado.
 #   2. Un Redis (o una instancia de Upstash) para los cupos de peticiones.
-#   3. Aplicar las migraciones de database/ en orden, incluyendo 10_rls.sql,
-#      12_consentimiento.sql y 13_registro.sql, y crear los roles revo_app y
-#      revo_service con contrasena.
+#   3. Aplicar TODAS las migraciones de database/ en orden y dar contrasena
+#      a los roles que crean: revo_auth, revo_survey, revo_ml y revo_service.
+#      El runbook completo esta en docs/DESPLIEGUE_NUBE.md.
+#
+# IMPORTANTE: cada servicio usa SU PROPIO rol en DATABASE_URL, no uno
+# compartido. Es lo que impide que el cuestionario pueda leer la tabla de
+# usuarios (ver database/15_roles_por_servicio.sql).
 #
 # Los valores marcados con `sync: false` NO se versionan: se escriben en el
 # panel de Render. Es la razon de que no haya ningun secreto en este fichero.
@@ -60,7 +64,7 @@ services:
         value: "3.11.9"
       - key: ENVIRONMENT
         value: production
-      # Con revo_app, NO con el dueno de las tablas: es lo que hace que las
+      # Con revo_auth, NO con el dueno de las tablas: es lo que hace que las
       # politicas RLS apliquen de verdad.
       - key: DATABASE_URL
         sync: false

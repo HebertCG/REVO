@@ -15,12 +15,24 @@
 #
 # Uso:
 #     PUERTO=8080 bash infraestructura/verificar_despliegue.sh
+#
+# Contra un despliegue remoto:
+#     BASE=https://revo-pasarela.onrender.com bash infraestructura/verificar_despliegue.sh
 # ============================================================
 set -uo pipefail
 
+# BASE permite verificar un despliegue remoto, no solo el local. Sin esto,
+# la guia de despliegue en la nube no tendria forma de comprobarse.
 PUERTO="${PUERTO:-8080}"
-BASE="http://localhost:${PUERTO}"
+BASE="${BASE:-http://localhost:${PUERTO}}"
 API="${BASE}/api"
+
+# Las comprobaciones de "que puertos publica cada contenedor" solo tienen
+# sentido en local: en un despliegue gestionado no hay Docker que preguntar.
+case "$BASE" in
+    *localhost*|*127.0.0.1*) REMOTO=0 ;;
+    *)                       REMOTO=1 ;;
+esac
 
 VERDE='\033[0;32m'; ROJO='\033[0;31m'; GRIS='\033[0;90m'; RESET='\033[0m'
 PASADAS=0
@@ -36,9 +48,9 @@ codigo() { curl -s -o /dev/null -w "%{http_code}" --max-time 10 "$@"; }
 seccion "Superficie expuesta"
 
 if [ "$(codigo "${BASE}/health")" = "200" ]; then
-    ok "la pasarela responde en el puerto ${PUERTO}"
+    ok "la pasarela responde en ${BASE}"
 else
-    fallo "la pasarela no responde en el puerto ${PUERTO}"
+    fallo "la pasarela no responde en ${BASE}"
 fi
 
 # ── Ningun microservicio publica puerto ──────────────────────
@@ -67,7 +79,14 @@ publicaciones_de() {
     docker inspect "$contenedor" --format '{{json .HostConfig.PortBindings}}' 2>/dev/null
 }
 
+if [ "$REMOTO" = "1" ]; then
+    printf "  --   despliegue remoto: no hay contenedores locales que inspeccionar.\n"
+    printf "  --   Que los servicios no esten expuestos se comprueba mas abajo:\n"
+    printf "  --   la pasarela filtra y ellos exigen su secreto.\n"
+fi
+
 for servicio in auth-service survey-service ml-service; do
+    [ "$REMOTO" = "1" ] && break
     bindings=$(publicaciones_de "$servicio") || { printf "  --   %s no esta corriendo\n" "$servicio"; continue; }
 
     if [ "$bindings" = "{}" ] || [ "$bindings" = "null" ]; then
@@ -80,6 +99,7 @@ done
 # Postgres y Redis SI publican en modo desarrollo, para poder inspeccionarlos
 # con psql y redis-cli. En produccion no deben hacerlo.
 for servicio in postgres redis; do
+    [ "$REMOTO" = "1" ] && break
     bindings=$(publicaciones_de "$servicio") || continue
 
     if [ "$bindings" = "{}" ] || [ "$bindings" = "null" ]; then

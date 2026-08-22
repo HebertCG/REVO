@@ -40,11 +40,11 @@ export default function Dashboard() {
   return (
     <div className="rv dash">
       <main className="rv-ancho dash-contenido">
-        <header className="dash-cab rv-entra">
-          <div>
-            <p className="dash-saludo">Hola, {nombre}</p>
-            <h1>Este es el mapa de tu avance.</h1>
-            <p className="rv-sub">
+        <header className="dash-barra rv-entra">
+          <div className="dash-identidad">
+            <strong>Hola, {nombre}</strong>
+            <span aria-hidden="true">·</span>
+            <p>
               {user?.semester ? `Ciclo ${user.semester}` : 'Estudiante'}
               {user?.student_code ? ` · ${user.student_code}` : ''}
             </p>
@@ -70,7 +70,7 @@ export default function Dashboard() {
             <div className="dash-vacio-sombra" aria-hidden="true" />
             <div className="dash-vacio-copy">
               <p className="dash-contexto">Tu recorrido empieza aquí</p>
-              <h2>Descubre qué rutas se parecen más a ti.</h2>
+              <h1>Descubre qué rutas se parecen más a ti.</h1>
               <p className="rv-sub">
                 Son 25 preguntas y unos seis minutos. Al terminar conocerás las tres
                 ramas de Ingeniería de Sistemas con mayor afinidad y la confianza de
@@ -96,21 +96,21 @@ export default function Dashboard() {
               <div className="dash-heroe-sombra" aria-hidden="true" />
 
               <div className="dash-heroe-txt">
-                <p className="dash-contexto">
-                  Tu señal más reciente · {fechaCorta(ultima.created_at)}
-                </p>
-
-                <div className="dash-heroe-spec">
-                  <span className="dash-heroe-icono" aria-hidden="true">{meta.icon}</span>
-                  <h2 id="dash-resultado-titulo">{ultima.specialization}</h2>
-                </div>
+                <p className="dash-contexto">Actualizado el {fechaCorta(ultima.created_at)}</p>
+                <h1 className="dash-senal-titulo" id="dash-resultado-titulo">
+                  Lo que más encaja contigo hoy:
+                  <span className="dash-senal-ruta">
+                    <span className="dash-heroe-icono" aria-hidden="true">{meta.icon}</span>
+                    {ultima.specialization}
+                  </span>
+                </h1>
 
                 <div className="dash-confianza">
                   <p>
                     <span className="rv-dato dash-cifra">{ultima.confidence_pct}</span>
                     <span className="rv-dato dash-cifra-pct">%</span>
                   </p>
-                  <span>compatibilidad en tu última evaluación</span>
+                  <span>Coincidencia estimada. Es una referencia, no una nota.</span>
                 </div>
 
                 <div
@@ -129,9 +129,9 @@ export default function Dashboard() {
 
                 <div className="dash-heroe-acc">
                   <Link to={`/results/${ultima.prediction_id}`} className="rv-btn rv-btn-1">
-                    Ver resultado completo <span aria-hidden="true">→</span>
+                    Abrir mi resultado <span aria-hidden="true">→</span>
                   </Link>
-                  <Link to="/history" className="rv-btn rv-btn-2">Ver historial</Link>
+                  <Link to="/history" className="rv-btn rv-btn-2">Comparar historial</Link>
                 </div>
               </div>
             </section>

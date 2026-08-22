@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import personaDashboard from '../assets/persona-dashboard-revo.png'
 import { useAuth } from '../context/AuthContext'
 import { mlApi } from '../services/api'
 import {
-  specMeta, calcularScore, nivelDe, siguienteNivel, fechaCorta,
+  calcularScore, fechaCorta, nivelDe, siguienteNivel, specMeta,
 } from '../theme/specs'
 import '../theme/app.css'
 import './Dashboard.css'
@@ -17,7 +18,7 @@ export default function Dashboard() {
   useEffect(() => {
     if (!user) return
     mlApi.getHistory(user.id)
-      .then((r) => setHistorial(r.data || []))
+      .then((response) => setHistorial(response.data || []))
       .catch(() => setHistorial([]))
       .finally(() => setCargando(false))
   }, [user])
@@ -31,66 +32,95 @@ export default function Dashboard() {
   const avance = proximo
     ? Math.min(((score - nivel.min) / (proximo.min - nivel.min)) * 100, 100)
     : 100
-
+  const confianzaMedia = historial.length
+    ? Math.round(historial.reduce((total, item) => total + item.confidence_pct, 0) / historial.length)
+    : 0
   const nombre = user?.full_name?.split(' ')[0] || 'estudiante'
 
   return (
     <div className="rv dash">
-      <div className="rv-ancho">
-
-        {/* ── Encabezado ───────────────────────────────── */}
+      <main className="rv-ancho dash-contenido">
         <header className="dash-cab rv-entra">
           <div>
-            <p className="rv-etiq">Tu panel</p>
-            <h1>Hola, {nombre}</h1>
+            <p className="dash-saludo">Hola, {nombre}</p>
+            <h1>Este es el mapa de tu avance.</h1>
             <p className="rv-sub">
               {user?.semester ? `Ciclo ${user.semester}` : 'Estudiante'}
               {user?.student_code ? ` · ${user.student_code}` : ''}
             </p>
           </div>
-          <button className="rv-btn rv-btn-1" onClick={() => navigate('/questionnaire')}>
-            Nueva evaluación
+          <button type="button" className="rv-btn rv-btn-1 dash-accion-principal" onClick={() => navigate('/questionnaire')}>
+            Nueva evaluación <span aria-hidden="true">→</span>
           </button>
         </header>
 
         {cargando ? (
-          <div className="dash-esqueleto">
-            <div className="rv-esq" style={{ height: 260 }} />
-            <div className="rv-esq" style={{ height: 260 }} />
+          <div className="dash-esqueleto" aria-label="Cargando tu dashboard">
+            <div className="rv-esq dash-esqueleto-heroe" />
+            <div className="rv-esq dash-esqueleto-linea" />
+            <div className="rv-esq dash-esqueleto-linea" />
           </div>
         ) : !ultima ? (
-          /* ── Sin evaluaciones ───────────────────────── */
-          <section className="rv-tarjeta rv-vacio rv-entra">
-            <div className="rv-vacio-icono">🎯</div>
-            <h2>Aún no tienes ninguna evaluación</h2>
-            <p className="rv-sub" style={{ maxWidth: '46ch', margin: '10px auto 22px' }}>
-              Son 25 preguntas y unos seis minutos. Al terminar sabrás qué tres
-              ramas de Ingeniería de Sistemas encajan mejor contigo, con el nivel
-              de confianza de cada una.
-            </p>
-            <Link to="/questionnaire" className="rv-btn rv-btn-1">
-              Empezar el test
-            </Link>
+          <section className="dash-vacio rv-entra">
+            <img
+              className="dash-vacio-imagen"
+              src={personaDashboard}
+              alt="Personaje REVO colocando la primera señal de una ruta profesional"
+            />
+            <div className="dash-vacio-sombra" aria-hidden="true" />
+            <div className="dash-vacio-copy">
+              <p className="dash-contexto">Tu recorrido empieza aquí</p>
+              <h2>Descubre qué rutas se parecen más a ti.</h2>
+              <p className="rv-sub">
+                Son 25 preguntas y unos seis minutos. Al terminar conocerás las tres
+                ramas de Ingeniería de Sistemas con mayor afinidad y la confianza de
+                cada resultado.
+              </p>
+              <Link to="/questionnaire" className="rv-btn rv-btn-1">
+                Empezar el test <span aria-hidden="true">→</span>
+              </Link>
+            </div>
           </section>
         ) : (
           <>
-            {/* ── El resultado manda: ocupa el lugar principal ── */}
-            <section className="dash-heroe rv-tarjeta rv-entra">
+            <section
+              className="dash-heroe rv-entra"
+              style={{ '--dash-spec-color': meta.color }}
+              aria-labelledby="dash-resultado-titulo"
+            >
+              <img
+                className="dash-heroe-imagen"
+                src={personaDashboard}
+                alt="Personaje REVO colocando una nueva señal sobre su recorrido profesional"
+              />
+              <div className="dash-heroe-sombra" aria-hidden="true" />
+
               <div className="dash-heroe-txt">
-                <p className="rv-etiq">Tu última recomendación</p>
+                <p className="dash-contexto">
+                  Tu señal más reciente · {fechaCorta(ultima.created_at)}
+                </p>
 
                 <div className="dash-heroe-spec">
                   <span className="dash-heroe-icono" aria-hidden="true">{meta.icon}</span>
-                  <h2>{ultima.specialization}</h2>
+                  <h2 id="dash-resultado-titulo">{ultima.specialization}</h2>
                 </div>
 
-                <div className="dash-heroe-num">
-                  <span className="rv-dato dash-cifra">{ultima.confidence_pct}</span>
-                  <span className="dash-cifra-pct rv-dato">%</span>
-                  <span className="rv-sub">de compatibilidad</span>
+                <div className="dash-confianza">
+                  <p>
+                    <span className="rv-dato dash-cifra">{ultima.confidence_pct}</span>
+                    <span className="rv-dato dash-cifra-pct">%</span>
+                  </p>
+                  <span>compatibilidad en tu última evaluación</span>
                 </div>
 
-                <div className="rv-pista" style={{ margin: '4px 0 20px' }}>
+                <div
+                  className="rv-pista dash-heroe-pista"
+                  role="progressbar"
+                  aria-label="Compatibilidad de la última evaluación"
+                  aria-valuemin="0"
+                  aria-valuemax="100"
+                  aria-valuenow={ultima.confidence_pct}
+                >
                   <div
                     className="rv-relleno"
                     style={{ width: `${ultima.confidence_pct}%`, background: meta.color }}
@@ -99,101 +129,93 @@ export default function Dashboard() {
 
                 <div className="dash-heroe-acc">
                   <Link to={`/results/${ultima.prediction_id}`} className="rv-btn rv-btn-1">
-                    Ver mi resultado completo
+                    Ver resultado completo <span aria-hidden="true">→</span>
                   </Link>
                   <Link to="/history" className="rv-btn rv-btn-2">Ver historial</Link>
                 </div>
+              </div>
+            </section>
 
-                <p className="rv-menor" style={{ marginTop: 14 }}>
-                  Evaluado el {fechaCorta(ultima.created_at)}
+            <dl className="dash-metricas rv-entra" style={{ animationDelay: '.05s' }}>
+              <div>
+                <dt>Evaluaciones</dt>
+                <dd className="rv-dato">{historial.length}</dd>
+                <dd className="dash-metrica-nota">{historial.length === 1 ? 'Tu primera señal registrada' : 'Tu recorrido hasta hoy'}</dd>
+              </div>
+              <div>
+                <dt>Confianza media</dt>
+                <dd className="rv-dato">{confianzaMedia}<span>%</span></dd>
+                <dd className="dash-metrica-nota">Promedio de tus evaluaciones</dd>
+              </div>
+              <div>
+                <dt>REVO Score</dt>
+                <dd className="rv-dato">{score}</dd>
+                <dd className="dash-metrica-nota"><span className="rv-marca" style={{ background: nivel.color }} /> Nivel {nivel.label}</dd>
+              </div>
+            </dl>
+
+            <section className="dash-nivel rv-entra" style={{ animationDelay: '.09s' }} aria-labelledby="dash-nivel-titulo">
+              <div className="dash-nivel-copy">
+                <p className="dash-contexto">Tu siguiente hito</p>
+                <h2 id="dash-nivel-titulo">
+                  {proximo ? `De ${nivel.label} a ${proximo.label}` : `Nivel ${nivel.label} completado`}
+                </h2>
+                <p className="rv-sub">
+                  {historial.length < 3
+                    ? 'Mantén una señal consistente durante tres evaluaciones y suma 150 puntos extra.'
+                    : 'Cada evaluación aporta 100 puntos, más el doble de tu confianza media.'}
                 </p>
               </div>
 
-              {/* Barra de color de la especialidad: el acento va aquí,
-                  no en el texto, que se mantiene legible siempre. */}
-              <div
-                className="dash-heroe-borde"
-                style={{ background: meta.color }}
-                aria-hidden="true"
-              />
-            </section>
-
-            {/* ── Métricas secundarias ───────────────────── */}
-            <section className="dash-metricas rv-entra" style={{ animationDelay: '.06s' }}>
-              <article className="rv-tarjeta dash-met">
-                <p className="rv-etiq">Evaluaciones</p>
-                <p className="rv-dato dash-met-num">{historial.length}</p>
-                <p className="rv-menor">
-                  {historial.length === 1 ? 'La primera de muchas' : 'Repite cada ciclo'}
-                </p>
-              </article>
-
-              <article className="rv-tarjeta dash-met">
-                <p className="rv-etiq">Confianza media</p>
-                <p className="rv-dato dash-met-num">
-                  {Math.round(
-                    historial.reduce((a, h) => a + h.confidence_pct, 0) / historial.length
-                  )}<span className="dash-met-pct">%</span>
-                </p>
-                <p className="rv-menor">Entre todas tus evaluaciones</p>
-              </article>
-
-              <article className="rv-tarjeta dash-met dash-met-nivel">
-                <p className="rv-etiq">REVO Score</p>
-                <p className="rv-dato dash-met-num">{score}</p>
-                <p className="rv-menor">
-                  <span className="rv-marca" style={{ background: nivel.color }} />{' '}
-                  Nivel {nivel.label}
-                </p>
-              </article>
-            </section>
-
-            {/* ── Progreso de nivel ──────────────────────── */}
-            <section className="rv-tarjeta dash-nivel rv-entra" style={{ animationDelay: '.1s' }}>
-              <div className="dash-nivel-cab">
-                <span className="rv-ficha">
-                  <span aria-hidden="true">{nivel.icon}</span> {nivel.label}
-                </span>
-                {proximo ? (
-                  <p className="rv-menor">
-                    Te faltan <strong className="rv-dato" style={{ color: 'var(--tinta)' }}>{faltan}</strong> pts
-                    {' '}para {proximo.label}
-                  </p>
-                ) : (
-                  <p className="rv-menor">Has llegado al nivel máximo</p>
-                )}
+              <div className="dash-nivel-recorrido">
+                <div className="dash-nivel-cab">
+                  <span className="rv-ficha"><span aria-hidden="true">{nivel.icon}</span> {nivel.label}</span>
+                  {proximo ? (
+                    <p>Faltan <strong className="rv-dato">{faltan}</strong> pts</p>
+                  ) : (
+                    <p>Nivel máximo alcanzado</p>
+                  )}
+                </div>
+                <div
+                  className="rv-pista dash-nivel-pista"
+                  role="progressbar"
+                  aria-label={`Progreso hacia ${proximo?.label || nivel.label}`}
+                  aria-valuemin="0"
+                  aria-valuemax="100"
+                  aria-valuenow={Math.round(avance)}
+                >
+                  <div className="rv-relleno" style={{ width: `${avance}%`, background: nivel.color }} />
+                  <span className="dash-nivel-marca" style={{ left: `${avance}%`, borderColor: nivel.color }} aria-hidden="true" />
+                </div>
+                <div className="dash-nivel-extremos" aria-hidden="true">
+                  <span>{nivel.min} pts</span>
+                  <span>{proximo ? `${proximo.min} pts` : `${score} pts`}</span>
+                </div>
               </div>
-
-              <div className="rv-pista" style={{ height: 8 }}>
-                <div className="rv-relleno" style={{ width: `${avance}%`, background: nivel.color }} />
-              </div>
-
-              <p className="rv-menor dash-nivel-tip">
-                {historial.length < 3
-                  ? 'Consigue el mismo resultado en tres evaluaciones seguidas y ganas 150 puntos de consistencia.'
-                  : 'Cada evaluación aporta 100 puntos, más el doble de tu confianza media.'}
-              </p>
             </section>
 
-            {/* ── Evaluaciones recientes ─────────────────── */}
-            <section className="rv-entra" style={{ animationDelay: '.14s' }}>
+            <section className="dash-recientes rv-entra" style={{ animationDelay: '.13s' }} aria-labelledby="dash-recientes-titulo">
               <div className="dash-lista-cab">
-                <h3>Evaluaciones recientes</h3>
+                <div>
+                  <h2 id="dash-recientes-titulo">Evaluaciones recientes</h2>
+                  <p className="rv-sub">Revisa cómo ha cambiado tu señal con el tiempo.</p>
+                </div>
                 {historial.length > 4 && (
-                  <Link to="/history" className="dash-enlace">Ver las {historial.length}</Link>
+                  <Link to="/history" className="dash-enlace">Ver las {historial.length} evaluaciones →</Link>
                 )}
               </div>
 
               <ul className="dash-lista">
-                {historial.slice(0, 4).map((h) => {
-                  const m = specMeta(h.specialization)
+                {historial.slice(0, 4).map((item, index) => {
+                  const itemMeta = specMeta(item.specialization)
                   return (
-                    <li key={h.prediction_id}>
-                      <Link to={`/results/${h.prediction_id}`} className="dash-fila">
-                        <span className="rv-marca" style={{ background: m.color }} aria-hidden="true" />
-                        <span className="dash-fila-nom">{h.specialization}</span>
-                        <span className="rv-menor dash-fila-fecha">{fechaCorta(h.created_at)}</span>
-                        <span className="rv-dato dash-fila-pct">{h.confidence_pct}%</span>
+                    <li key={item.prediction_id}>
+                      <Link to={`/results/${item.prediction_id}`} className="dash-fila">
+                        <span className="dash-fila-indice rv-dato">{String(index + 1).padStart(2, '0')}</span>
+                        <span className="rv-marca" style={{ background: itemMeta.color }} aria-hidden="true" />
+                        <span className="dash-fila-nom">{item.specialization}</span>
+                        <span className="rv-menor dash-fila-fecha">{fechaCorta(item.created_at)}</span>
+                        <span className="rv-dato dash-fila-pct">{item.confidence_pct}%</span>
                         <span className="dash-fila-flecha" aria-hidden="true">→</span>
                       </Link>
                     </li>
@@ -203,7 +225,7 @@ export default function Dashboard() {
             </section>
           </>
         )}
-      </div>
+      </main>
     </div>
   )
 }

@@ -22,8 +22,15 @@ SPECIALIZATION_MAP = {
 
 def build_feature_vector(answers: dict) -> np.ndarray:
     """
-    Convierte un dict {q1: 4.0, q2: 3.0, ...} a un array numpy ordenado.
-    Rellena con 3.0 (valor neutro) si falta alguna pregunta.
+    Convierte {aff_1: 0.9, aff_2: 0.3, ...} en el array que espera el modelo.
+
+    Una afinidad que falte se rellena con 0.0, no con un valor "neutro": las
+    afinidades van de 0 a 1, asi que 0.0 significa "esta rama no se exploro",
+    que es justo lo que ocurre con las siete ramas fuera del top 3.
+
+    (El docstring anterior decia 3.0, heredado de cuando el vector guardaba
+    respuestas Likert en bruto. El codigo siempre uso 0.0, y las pruebas
+    fijan ese comportamiento.)
     """
     vector = [float(answers.get(f"aff_{i}", 0.0)) for i in range(1, 11)]
     return np.array(vector).reshape(1, -1)

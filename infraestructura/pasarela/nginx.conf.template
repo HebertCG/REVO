@@ -266,13 +266,13 @@ http {
         location /api/courses/ {
             limit_req zone=general burst=60 nodelay;
             rewrite ^/api/courses/(.*)$ /courses/$1 break;
-            proxy_pass $servicio_survey;
+            proxy_pass $servicio_ml;
         }
 
         location /api/jobs/ {
             limit_req zone=general burst=60 nodelay;
             rewrite ^/api/jobs/(.*)$ /jobs/$1 break;
-            proxy_pass $servicio_survey;
+            proxy_pass $servicio_ml;
         }
 
         location /api/psychometric/ {

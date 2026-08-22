@@ -71,28 +71,9 @@ class Answer(Base):
 # hace falta es una llamada al servicio dueno.
 
 
-class Course(Base):
-    __tablename__ = "courses"
-    id                = Column(Integer, primary_key=True)
-    specialization_id = Column(Integer, nullable=False)
-    platform          = Column(String(50), nullable=False)
-    title             = Column(String(255), nullable=False)
-    url               = Column(Text, nullable=False)
-    level             = Column(String(50), default="Principiante")
-    price_model       = Column(String(50), default="Pago")
-    thumbnail_url     = Column(Text)
-
-
-class Job(Base):
-    __tablename__ = "jobs"
-    id                = Column(Integer, primary_key=True)
-    specialization_id = Column(Integer, nullable=False)
-    company           = Column(String(100), nullable=False)
-    title             = Column(String(255), nullable=False)
-    salary_range      = Column(String(100))
-    location          = Column(String(100), default="Remoto - Latam")
-    url               = Column(Text, default="#")
-    posted_days_ago   = Column(Integer, default=1)
+# Cursos y empleos ya no viven aqui: se movieron a ml-service, que es quien
+# produce la especializacion contra la que se indexan. Este servicio ejecuta
+# el cuestionario y nada mas.
 
 
 class PsychometricQuestion(Base):

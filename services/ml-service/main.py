@@ -9,6 +9,8 @@ import os
 
 from config import settings
 from model.trainer import load_model, train_model
+from routers.courses import router as router_cursos
+from routers.jobs import router as router_empleos
 from routers.predict import router as router_prediccion
 from routers.stats import router as router_estadisticas
 from servicio_revo import servicio
@@ -47,9 +49,13 @@ def preparar_modelo() -> None:
 
 app = servicio.crear_app(
     titulo="REVO - ML Service",
-    descripcion="Prediccion de especializacion y estadisticas del modelo.",
+    descripcion="Prediccion de especializacion, recomendaciones y estadisticas del modelo.",
     al_arrancar=preparar_modelo,
 )
 
 app.include_router(router_prediccion)
 app.include_router(router_estadisticas)
+# Cursos y empleos: que hacer con el resultado. Van indexados por
+# especializacion, que es lo que este servicio produce.
+app.include_router(router_cursos)
+app.include_router(router_empleos)

@@ -81,3 +81,35 @@ class PredictionFeedback(Base):
 
 # get_db() ya no vive aqui. Para peticiones se usa servicio.sesion (fija el
 # contexto RLS del alumno) y para tareas de fondo servicio.sesion_de_servicio().
+
+
+# ── Recomendaciones derivadas del resultado ──────────────────
+# Cursos y empleos vivian en survey-service. Se mueven aqui porque no tienen
+# nada que ver con ejecutar el cuestionario: son "que hacer con tu
+# resultado", y van indexados por especializacion, que es lo que este
+# servicio produce y ya posee. Con el cambio, survey-service queda con una
+# sola responsabilidad.
+
+
+class Course(Base):
+    __tablename__ = "courses"
+    id                = Column(Integer, primary_key=True)
+    specialization_id = Column(Integer, nullable=False)
+    platform          = Column(String(50), nullable=False)
+    title             = Column(String(255), nullable=False)
+    url               = Column(Text, nullable=False)
+    level             = Column(String(50), default="Principiante")
+    price_model       = Column(String(50), default="Pago")
+    thumbnail_url     = Column(Text)
+
+
+class Job(Base):
+    __tablename__ = "jobs"
+    id                = Column(Integer, primary_key=True)
+    specialization_id = Column(Integer, nullable=False)
+    company           = Column(String(100), nullable=False)
+    title             = Column(String(255), nullable=False)
+    salary_range      = Column(String(100))
+    location          = Column(String(100), default="Remoto - Latam")
+    url               = Column(Text, default="#")
+    posted_days_ago   = Column(Integer, default=1)

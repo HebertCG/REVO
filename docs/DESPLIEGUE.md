@@ -186,6 +186,24 @@ PUERTO=8080 bash infraestructura/verificar_despliegue.sh
 
 # 6. Recorrido de un alumno: lo que SI debe funcionar
 python infraestructura/prueba_flujo_completo.py
+
+# 7. Fronteras entre servicios: que cada rol solo alcance sus tablas
+CONTENEDOR=revo_postgres bash database/pruebas/verificar_fronteras.sh
+```
+
+### Pruebas de integracion
+
+Se saltan si no encuentran base de datos. Como Postgres no publica puerto
+(a proposito), se ejecutan **dentro del contenedor**, que si la alcanza por
+la red interna:
+
+```bash
+URL=$(docker exec revo_ml printenv DATABASE_URL)
+docker exec -e "REVO_TEST_DATABASE_URL=$URL" revo_ml sh -c "cd /app && pytest pruebas/ -q"
+
+# Lo mismo para auth y survey, cambiando el contenedor:
+URL=$(docker exec revo_auth printenv DATABASE_URL)
+docker exec -e "REVO_TEST_DATABASE_URL=$URL" revo_auth sh -c "cd /app && pytest pruebas/ -q"
 ```
 
 Lista corta de lo que hay que confirmar a mano:

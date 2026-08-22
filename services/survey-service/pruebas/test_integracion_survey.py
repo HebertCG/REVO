@@ -264,16 +264,9 @@ class TestFlujoDeFases:
 
 
 class TestCatalogosPublicos:
-    def test_los_cursos_se_consultan_por_rama(self, entorno):
-        cliente, _ = entorno
-
-        assert cliente.get("/courses/specialization/1").status_code in (200, 404)
-
-    def test_una_rama_inexistente_se_rechaza_antes_de_consultar(self, entorno):
-        cliente, _ = entorno
-
-        assert cliente.get("/courses/specialization/99").status_code == 422
-        assert cliente.get("/courses/specialization/0").status_code == 422
+    # Los cursos y empleos se movieron a ml-service, que es quien produce la
+    # especializacion contra la que se indexan. Sus pruebas se fueron con
+    # ellos, a services/ml-service/pruebas/test_integracion_ml.py.
 
     def test_el_banco_psicometrico_completo_es_solo_de_admin(self, entorno, alumnos):
         cliente, _ = entorno

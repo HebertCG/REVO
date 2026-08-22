@@ -49,7 +49,8 @@ if [ "$PROPIO" = "1" ]; then
     echo "==> Cargando esquema, politicas y roles"
     for archivo in 01_init 01b_schema_sync 02_seed_specializations 03_seed_questions \
                    07_seed_courses 08_seed_jobs 09_psychometric_questions \
-                   10_rls 12_consentimiento 13_registro 14_cuentas 15_roles_por_servicio; do
+                   10_rls 12_consentimiento 13_registro 14_cuentas \
+                   15_roles_por_servicio 17_mover_catalogos; do
         docker exec -i "$DESECHABLE" psql -v ON_ERROR_STOP=1 -U revo_user -d revo_db -q \
             < "$RAIZ/database/$archivo.sql" > /dev/null
     done
@@ -112,6 +113,8 @@ comprobar revo_auth   answers                cerrado
 comprobar revo_auth   ml_training_data       cerrado
 comprobar revo_auth   predictions            cerrado
 comprobar revo_auth   questionnaire_sessions cerrado
+comprobar revo_survey courses                cerrado
+comprobar revo_survey jobs                   cerrado
 
 echo ""
 echo "== El rol antiguo compartido quedo cerrado =="
@@ -127,10 +130,11 @@ comprobar revo_auth   legal_documents        abierto
 comprobar revo_survey questionnaire_sessions abierto
 comprobar revo_survey answers                abierto
 comprobar revo_survey questions              abierto
-comprobar revo_survey courses                abierto
 comprobar revo_ml     predictions            abierto
 comprobar revo_ml     ml_training_data       abierto
 comprobar revo_ml     specializations        abierto
+comprobar revo_ml     courses                abierto
+comprobar revo_ml     jobs                   abierto
 
 echo ""
 echo "============================================="

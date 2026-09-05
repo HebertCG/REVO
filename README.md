@@ -142,14 +142,14 @@ Los servicios Python se prueban con `pytest` desde `services/`.
 
 ## Despliegue
 
-| Documento | Contenido |
+| Fichero | Contenido |
 |---|---|
-| [`docs/DESPLIEGUE.md`](docs/DESPLIEGUE.md) | Despliegue con Docker Compose |
-| [`docs/DESPLIEGUE_NUBE.md`](docs/DESPLIEGUE_NUBE.md) | Postgres gestionado y verificación remota |
-| [`docs/DESPLIEGUE_SUPABASE.md`](docs/DESPLIEGUE_SUPABASE.md) | Base de datos gratuita en Supabase, con instalador de un solo fichero |
-| [`docs/SEGURIDAD.md`](docs/SEGURIDAD.md) | Modelo de amenazas y decisiones de seguridad |
-| [`render.yaml`](render.yaml) | Definición de servicios para Render |
+| [`render.yaml`](render.yaml) | Definición de los cuatro servicios para Render |
 | [`frontend/vercel.json`](frontend/vercel.json) | Frontend en Vercel — ver nota abajo |
+| [`infraestructura/render/`](infraestructura/render/) | Despertar los servicios y comprobar el límite de peticiones |
+
+Las guías detalladas de despliegue y el modelo de amenazas se mantienen
+fuera del repositorio público.
 
 **Sobre Vercel:** Vercel sirve el frontend, que es una SPA estática. Los tres microservicios y PostgreSQL **no** corren en Vercel: necesitan un proceso permanente y una base de datos, y van en Render (`render.yaml`) o en cualquier host con Docker. `frontend/vercel.json` reenvía `/api/*` a la pasarela para que el navegador siga viendo un solo origen y no haga falta CORS.
 

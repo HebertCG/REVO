@@ -1,6 +1,7 @@
 # ============================================================
 # REVO - Despliegue en Render
 # ============================================================
+# ============================================================
 # AVISO SOBRE EL PLAN GRATUITO
 #
 # Los cuatro servicios estan en `plan: free`. Render duerme un servicio
@@ -12,7 +13,7 @@
 # Para una sustentacion: entra unos minutos antes y navega una pantalla de
 # cada servicio para dejarlos despiertos.
 #
-# La base de datos va en Supabase, no en Render. Ver docs/DESPLIEGUE_SUPABASE.md
+# La base de datos va en Supabase, no en Render.
 # ============================================================
 # Alternativa gestionada al despliegue con Docker Compose. El mismo codigo
 # corre en los dos sitios: lo unico que cambia son las variables de entorno.
@@ -28,7 +29,6 @@
 #   2. Un Redis (o una instancia de Upstash) para los cupos de peticiones.
 #   3. Aplicar TODAS las migraciones de database/ en orden y dar contrasena
 #      a los roles que crean: revo_auth, revo_survey, revo_ml y revo_service.
-#      El runbook completo esta en docs/DESPLIEGUE_NUBE.md.
 #
 # IMPORTANTE: cada servicio usa SU PROPIO rol en DATABASE_URL, no uno
 # compartido. Es lo que impide que el cuestionario pueda leer la tabla de

@@ -77,6 +77,11 @@ services:
       # El directorio completo se monta y se ejecuta en orden alfabetico:
       # 01 esquema, 02-09 datos, 10 RLS, 12 consentimiento, 13 alta de
       # alumnos, 14 cuentas, 15 roles por servicio, 16 contrasenas.
+      #
+      # ATENCION: database/ NO esta en el repositorio publico. Con un clon
+      # limpio, este montaje apunta a un directorio vacio y Postgres
+      # arranca SIN esquema ni datos: la aplicacion levanta pero falla en
+      # la primera consulta. Hay que traer el directorio aparte.
       - ./database:/docker-entrypoint-initdb.d:ro
     networks:
       - revo_interna

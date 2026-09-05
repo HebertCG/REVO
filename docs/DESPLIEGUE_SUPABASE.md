@@ -49,15 +49,28 @@ simplemente ninguna contraseña funciona.
 
 ### Antes de pulsar Run
 
-Baja al bloque **PASO FINAL** del fichero y sustituye las cuatro contraseñas
-de ejemplo. El script se niega a terminar si no lo haces, si repites alguna
-o si alguna baja de 20 caracteres.
+El bloque **PASO FINAL** del fichero trae cuatro contraseñas de ejemplo
+(`CAMBIAME-...`) y el script **se niega a terminar** con ellas puestas. Es
+deliberado: `INSTALAR_SUPABASE.sql` está versionado y el repositorio es
+público, así que unas contraseñas reales ahí dentro estarían publicadas.
 
-Para generarlas, en tu terminal:
+Para rellenarlas sin tocar el fichero versionado:
 
-    python -c "import secrets; print(secrets.token_urlsafe(36))"
+    python database/rellenar_instalador.py
 
-Tienen que ser **cuatro distintas**. Si repites la misma, quien consiga una
+Eso genera `database/INSTALAR_SUPABASE.privado.sql` —ignorado por git— con las
+cuatro contraseñas dentro, y las imprime una vez por pantalla. **Anótalas**:
+hacen falta en el paso 4 para las `DATABASE_URL` de Render.
+
+Es esa copia privada, no el fichero original, la que se pega en el editor SQL
+de Supabase.
+
+Si prefieres elegirlas tú, pásalas por entorno:
+
+    REVO_CLAVE_AUTH=... REVO_CLAVE_SURVEY=... REVO_CLAVE_ML=...     REVO_CLAVE_SERVICE=... python database/rellenar_instalador.py
+
+Tienen que ser **cuatro distintas** y de 20 caracteres o más; el script lo
+comprueba antes de escribir nada. Si repites la misma, quien consiga una
 credencial las tiene todas y la separación de `15_roles_por_servicio.sql`
 deja de significar nada.
 
@@ -81,6 +94,8 @@ El fichero se ejecutó contra un PostgreSQL 16 limpio en Docker:
 | `revo_survey` leyendo `courses` | `permission denied` |
 | `revo_ml` leyendo `courses` | 30 filas |
 | Bloque final con las contraseñas sin editar | se niega a terminar |
+| Cada rol conectándose con su contraseña | correcto los cuatro |
+| Un rol con la contraseña de otro | `password authentication failed` |
 
 Lo único que no se puede reproducir fuera de Supabase es `CREATE EXTENSION`
 con un dueño que no sea superusuario: en un Postgres vanilla hace falta

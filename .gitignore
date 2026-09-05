@@ -64,3 +64,17 @@ docs/*.pdf
 # Documentos de trabajo interno (no describen el sistema publicado)
 PRD.md
 PRODUCT.md
+
+# Copia local del instalador con las contrasenas reales dentro.
+# Se genera con database/rellenar_instalador.py y nunca se sube.
+database/INSTALAR_SUPABASE.privado.sql
+
+# Fuera del repositorio publico.
+#
+# database/ trae el esquema, las politicas RLS y los datos de arranque.
+# Se conserva en local: docker-compose lo monta como directorio de
+# inicializacion de Postgres, y de ahi sale INSTALAR_SUPABASE.sql.
+#
+# docs/ son las guias de despliegue y el modelo de amenazas.
+docs/
+database/

@@ -9,7 +9,6 @@ import {
   LANDING_PHASES,
   LANDING_ROUTE_GROUPS,
   getLandingCta,
-  getQuestionBreakdown,
 } from './landingContent'
 import './PanelInformativo.css'
 
@@ -21,23 +20,15 @@ export default function PanelInformativo() {
   const { user } = useAuth()
   const [activePhaseId, setActivePhaseId] = useState(LANDING_PHASES[0].id)
   const activePhase = LANDING_PHASES.find((phase) => phase.id === activePhaseId)
-  const questions = getQuestionBreakdown()
   const primaryCta = getLandingCta(Boolean(user))
 
   return (
     <main className="revo-panel">
       <section className="lp-hero" aria-labelledby="landing-title">
-        <div className="lp-signal-path" aria-hidden="true">
-          <span />
-          <span />
-          <span />
-        </div>
-
         <div className="lp-wrap lp-hero-layout">
           <div className="lp-hero-copy">
             <h1 id="landing-title">
-              Tu carrera ya empezó.<br />
-              Ahora encuentra <em>tu dirección.</em>
+              Tu carrera ya empezó. Encuentra <em>tu dirección.</em>
             </h1>
             <p className="lp-hero-lead">
               REVO convierte 29 preguntas en tres desafíos breves para descubrir
@@ -53,25 +44,15 @@ export default function PanelInformativo() {
                 Ver cómo funciona
               </a>
             </div>
-
-            <dl className="lp-hero-metrics" aria-label="Datos principales del cuestionario">
-              <div>
-                <dt>Preguntas</dt>
-                <dd>{questions.total}</dd>
-              </div>
-              <div>
-                <dt>Fases adaptativas</dt>
-                <dd>03</dd>
-              </div>
-              <div>
-                <dt>Tiempo estimado</dt>
-                <dd>≈ 8 min</dd>
-              </div>
-            </dl>
           </div>
 
           <div className="lp-hero-visual">
-            <div className="lp-hero-halo" aria-hidden="true" />
+            <div className="lp-speed-lines" aria-hidden="true">
+              <span />
+              <span />
+              <span />
+            </div>
+            <span className="lp-hero-wordmark" aria-hidden="true">REVO</span>
             <img
               className="lp-hero-person"
               src={personaTrayectoria}

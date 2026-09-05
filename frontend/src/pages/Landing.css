@@ -9,8 +9,8 @@
   /* Al contraerse, el navbar deja transparente su contenedor exterior.
      Este fondo cubre el hueco superior sin producir una franja clara antes
      de que el hero termine de pasar por debajo de la barra flotante. */
-  background: #0a1020;
-  color: #101526;
+  background: #e10600;
+  color: #0b0b0d;
 }
 
 .landing-light .site-footer { border-top: 0; }

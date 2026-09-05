@@ -9,7 +9,7 @@ export const LANDING_PHASES = [
     description: 'Una señal por cada especialización para detectar tus tres áreas con mayor afinidad.',
     example: 'Te dan un problema sin instrucciones claras. ¿Lo conviertes en datos, lo prototipas o lo conversas con el equipo?',
     outcome: 'El sistema conserva tus tres rutas más fuertes y descarta el ruido inicial.',
-    accent: '#ff655d',
+    accent: '#e10600',
   },
   {
     id: 'afina',
@@ -21,7 +21,7 @@ export const LANDING_PHASES = [
     description: 'Cinco preguntas específicas por cada ruta detectada. Aquí la curiosidad se separa del interés real.',
     example: 'Un modelo funciona bien en pruebas y falla en producción. ¿Qué revisarías primero?',
     outcome: 'Tus respuestas comparan tareas reales de las tres especializaciones finalistas.',
-    accent: '#4f7df3',
+    accent: '#bd0c06',
   },
   {
     id: 'revela',
@@ -33,7 +33,7 @@ export const LANDING_PHASES = [
     description: 'Situaciones de equipo revelan cómo analizas, colaboras, ejecutas y cuidas los detalles.',
     example: 'Faltan dos días para la entrega y el módulo de otro compañero no compila. ¿Qué haces?',
     outcome: 'Tu estilo de trabajo ajusta la recomendación final sin reemplazar tus afinidades.',
-    accent: '#f2a93b',
+    accent: '#970400',
   },
 ]
 

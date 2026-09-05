@@ -68,6 +68,21 @@
     min-height: 0;
     overflow-y: auto;
     overscroll-behavior: contain;
+
+    /* El diseño trae `align-items: center` en línea, y con contenido más
+       alto que el contenedor eso corta por arriba de forma irrecuperable:
+       el centrado empuja la caja por encima del borde superior, y la barra
+       de desplazamiento no llega ahí porque solo recorre desde el borde
+       inicial hacia abajo. En el registro eran 140px perdidos, incluido el
+       título; solo se veían reduciendo el zoom del navegador. */
+    align-items: flex-start !important;
+  }
+
+  /* El centrado se hace con márgenes automáticos: centran igual mientras
+     el formulario quepa, y cuando no cabe se quedan en cero en lugar de
+     desbordar hacia arriba. */
+  .revo-auth > div > div > div:last-child > div {
+    margin: auto;
   }
 }
 

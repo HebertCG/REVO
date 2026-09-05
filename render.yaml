@@ -1,5 +1,18 @@
 # ============================================================
-# REVO — Despliegue en Render
+# REVO - Despliegue en Render
+# ============================================================
+# AVISO SOBRE EL PLAN GRATUITO
+#
+# Los cuatro servicios estan en `plan: free`. Render duerme un servicio
+# gratuito tras 15 minutos sin trafico y tarda unos 50 segundos en
+# despertarlo. Aqui hay una cadena de cuatro (navegador -> pasarela ->
+# servicio), asi que la primera peticion despues de un rato puede tardar
+# bastante y parecer que la aplicacion esta rota.
+#
+# Para una sustentacion: entra unos minutos antes y navega una pantalla de
+# cada servicio para dejarlos despiertos.
+#
+# La base de datos va en Supabase, no en Render. Ver docs/DESPLIEGUE_SUPABASE.md
 # ============================================================
 # Alternativa gestionada al despliegue con Docker Compose. El mismo codigo
 # corre en los dos sitios: lo unico que cambia son las variables de entorno.
@@ -32,7 +45,7 @@ services:
   - type: web
     name: revo-pasarela
     runtime: docker
-    plan: starter
+    plan: free
     dockerfilePath: ./infraestructura/pasarela/Dockerfile.render
     dockerContext: ./infraestructura/pasarela
     envVars:
@@ -51,7 +64,7 @@ services:
   - type: web
     name: revo-auth-service
     runtime: python
-    plan: starter
+    plan: free
     rootDir: services/auth-service
     # `pip install ../comun` instala la libreria compartida. Render clona el
     # repositorio completo, asi que la ruta relativa existe aunque rootDir
@@ -93,7 +106,7 @@ services:
   - type: web
     name: revo-survey-service
     runtime: python
-    plan: starter
+    plan: free
     rootDir: services/survey-service
     buildCommand: "pip install -r requirements.txt && pip install ../comun"
     startCommand: "uvicorn main:app --host 0.0.0.0 --port $PORT --no-server-header --proxy-headers --forwarded-allow-ips=*"
@@ -128,7 +141,7 @@ services:
   - type: web
     name: revo-ml-service
     runtime: python
-    plan: starter
+    plan: free
     rootDir: services/ml-service
     buildCommand: "pip install -r requirements.txt && pip install ../comun"
     startCommand: "uvicorn main:app --host 0.0.0.0 --port $PORT --no-server-header --proxy-headers --forwarded-allow-ips=*"

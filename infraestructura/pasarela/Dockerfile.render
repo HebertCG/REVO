@@ -1,12 +1,12 @@
 # ============================================================
-# Pasarela para Render
+# Pasarela para el despliegue en Render
 # ============================================================
 # En el compose la pasarela usa la imagen oficial de nginx con la plantilla
-# montada como volumen. Render no monta volumenes del repositorio, asi que la
-# plantilla tiene que ir dentro de la imagen.
+# montada como volumen. Render no monta volumenes del repositorio, asi que
+# la plantilla tiene que ir dentro de la imagen.
 #
-# Diferencia de fondo con el compose: en Render los servicios no estan en una
-# red interna, son URLs publicas de HTTPS. Por eso se usa una plantilla
+# Diferencia de fondo con el compose: en Render los servicios no estan en
+# una red interna, son URLs publicas de HTTPS. Por eso se usa una plantilla
 # distinta que resuelve nombres externos y habla TLS con ellos.
 # ============================================================
 FROM nginx:1.27-alpine
@@ -16,5 +16,10 @@ FROM nginx:1.27-alpine
 COPY nginx.render.conf.template /etc/nginx/templates/nginx.conf.template
 
 ENV NGINX_ENVSUBST_OUTPUT_DIR=/etc/nginx
+
+# La plantilla usa ${PORT} en el `listen`. Si la variable no existe,
+# envsubst la sustituye por vacio y nginx muere con "invalid port".
+# Render pisa este valor con el suyo; el compose se queda en 80.
+ENV PORT=80
 
 EXPOSE 80

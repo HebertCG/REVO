@@ -53,8 +53,14 @@ PREGUNTAS_POR_SPEC_FASE_2 = 5
 PUNTUACION_MAXIMA_RAMA = 30.0
 
 #: Vigencia del token que survey-service emite para hablar con ml-service.
-#: Solo tiene que durar una peticion.
-TOKEN_INTERNO_SEGUNDOS = 60
+#:
+#: Dura una peticion, pero esa peticion puede incluir el arranque en frio del
+#: ml-service. Con 60 s y un arranque de 55 s el token llegaba practicamente
+#: caducado, y el fallo habria sido un 401 dificil de leer: el servicio estaba
+#: vivo y respondiendo, solo que la credencial habia expirado por el camino.
+#: Se mantiene por encima de ML_TIMEOUT_SECONDS para que el que corte sea el
+#: timeout, que si dice lo que pasa.
+TOKEN_INTERNO_SEGUNDOS = 180
 
 
 def _spec_totals(db: Session, session_id: int) -> dict[int, dict]:

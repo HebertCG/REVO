@@ -58,4 +58,10 @@ EXPOSE 8002
 
 # El comando real lo pone docker-compose (con --no-server-header y
 # --proxy-headers). Este es el arranque por defecto si se corre suelto.
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8002", "--no-server-header"]
+#
+# El puerto NO va fijo: Render inyecta PORT y espera que el proceso
+# escuche justo ahi. Se usa la forma shell para que ${PORT} se expanda,
+# con exec para que uvicorn siga siendo el PID 1 y reciba el SIGTERM del
+# apagado en vez de que lo maten a lo bruto. Sin PORT en el entorno se
+# mantiene el puerto historico del compose.
+CMD ["sh", "-c", "exec uvicorn main:app --host 0.0.0.0 --port ${PORT:-8002} --no-server-header"]

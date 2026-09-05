@@ -23,7 +23,6 @@
 
 /* ── Marca ────────────────────────────────────────────────── */
 .footer-logo { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
-.footer-logo-icon { font-size: 1.3rem; }
 .footer-logo-text {
   font-size: 1.35rem; font-weight: 800; color: #fff; letter-spacing: -0.02em;
 }
@@ -41,7 +40,7 @@
   margin: 0;
   font-size: 0.8rem;
   line-height: 1.55;
-  color: #64748b;
+  color: #6f7f97;
   max-width: 38ch;
 }
 
@@ -83,7 +82,7 @@
   color: #94a3b8;
   line-height: 1.4;
 }
-.footer-rama-mas { color: #64748b; font-style: italic; }
+.footer-rama-mas { color: #6f7f97; font-style: italic; }
 
 /* ── Línea inferior ───────────────────────────────────────── */
 .footer-bottom {
@@ -98,7 +97,7 @@
   gap: 10px 24px;
 }
 
-.footer-bottom p { margin: 0; font-size: 0.82rem; color: #64748b; }
+.footer-bottom p { margin: 0; font-size: 0.82rem; color: #6f7f97; }
 
 .footer-engine {
   display: flex; align-items: center; gap: 8px;

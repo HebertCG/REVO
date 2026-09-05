@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { useAuth } from '../context/AuthContext'
+import { useAuth } from '../context/contextoAuth'
 import CasillasConsentimiento from '../components/consentimiento/CasillasConsentimiento'
-import personaImg from '../assets/login-persona.png'
+import personaImg from '../assets/login-persona.webp'
 import './Auth.css'
 
 // El diseno ofrece el ciclo por rangos; el backend guarda un entero
@@ -69,7 +69,7 @@ export default function Auth({ modoInicial = 'login', mostrarSSO = false }) {
     // igualmente, pero gastar una peticion para decirle al alumno algo que
     // ya sabemos aqui es tirar un intento de su cupo de registro.
     if (esRegistro && !consent.terms) {
-      setErrorConsent('Para crear tu cuenta necesitas aceptar los Terminos y la Politica de Privacidad.')
+      setErrorConsent('Para crear tu cuenta necesitas aceptar los Términos y la Política de Privacidad.')
       return
     }
 
@@ -141,23 +141,12 @@ export default function Auth({ modoInicial = 'login', mostrarSSO = false }) {
             <div style={{position: "relative", overflow: "hidden", background: "#2f5fe8", color: "#fff", padding: "clamp(26px,3.4vw,44px)", display: "flex", flexDirection: "column", justifyContent: "space-between", gap: "26px", minHeight: "clamp(330px,38vw,620px)", borderRadius: "0 30% 30% 0 / 0 50% 50% 0", zIndex: "1"}}>
               <div style={{position: "absolute", right: "-22%", top: "-16%", width: "74%", aspectRatio: "1", borderRadius: "999px", background: "#1e46bd", opacity: ".55", pointerEvents: "none"}}></div>
               <div style={{position: "absolute", left: "-30%", bottom: "-26%", width: "80%", aspectRatio: "1", borderRadius: "999px", background: "#5b86ff", opacity: ".35", pointerEvents: "none"}}></div>
-              <div style={{position: "relative", display: "flex", alignItems: "center", gap: "9px"}}>
-                <span style={{display: "inline-flex", alignItems: "center", justifyContent: "center", width: "26px", height: "26px", borderRadius: "8px", background: "#fff", color: "#2f5fe8", fontSize: "14px", fontWeight: "800"}}>
-                  ⚡
-                </span>
-                <span style={{fontSize: "19px", fontWeight: "800", letterSpacing: "-.02em"}}>
-                  REVO
-                  <span style={{color: "#c9d9ff"}}>
-                    .
-                  </span>
-                </span>
-              </div>
               <div style={{position: "relative", flex: "1", display: "flex", alignItems: "center", justifyContent: "center"}}>
-                <img src={personaImg} alt="Estudiante haciendo el test de REVO en su escritorio" style={{display: "block", width: "100%", maxWidth: "460px", height: "auto", maxHeight: "clamp(320px,36vw,560px)", objectFit: "contain"}} />
+                <img src={personaImg} fetchPriority="high" decoding="async" width={623} height={919} alt="Estudiante haciendo el test de REVO en su escritorio" style={{display: "block", width: "100%", maxWidth: "460px", height: "auto", maxHeight: "clamp(320px,36vw,560px)", objectFit: "contain"}} />
               </div>
             </div>
             <div style={{position: "relative", display: "flex", alignItems: "center", justifyContent: "center", padding: "clamp(28px,4vw,56px) clamp(20px,4vw,44px)"}}>
-              <div style={{width: "100%", maxWidth: "392px", minHeight: "688px", display: "flex", flexDirection: "column", justifyContent: "center", animation: "revoRise .6s .08s ease both"}}>
+              <div style={{width: "100%", maxWidth: "392px", display: "flex", flexDirection: "column", justifyContent: "center", animation: "revoRise .6s .08s ease both"}}>
                 <div style={{display: "flex", padding: "4px", borderRadius: "12px", background: "#f2f4f9", border: "1px solid rgba(13,18,32,.07)"}}>
                   <button type="button" onClick={verLogin} style={tabLoginStyle}>
                     Iniciar sesión
@@ -253,7 +242,7 @@ export default function Auth({ modoInicial = 'login', mostrarSSO = false }) {
                       error={errorConsent}
                     />
                   ) : (
-                    <label style={{display: "flex", alignItems: "center", gap: "9px", fontSize: "13.5px", color: "#3b465c", cursor: "pointer", userSelect: "none"}}>
+                    <label className="revo-auth-recordar" style={{display: "flex", alignItems: "center", gap: "9px", fontSize: "13.5px", color: "#3b465c", cursor: "pointer", userSelect: "none"}}>
                       <input type="checkbox" checked={recordar} onChange={toggleRecordar} style={{width: "17px", height: "17px", accentColor: "#2f5fe8", cursor: "pointer"}} />
                       {textoCheck}
                     </label>
@@ -270,7 +259,7 @@ export default function Auth({ modoInicial = 'login', mostrarSSO = false }) {
                     <div style={{display: "flex", flexDirection: "column", gap: "12px"}}>
                       <div style={{display: "flex", alignItems: "center", gap: "12px"}}>
                         <span style={{flex: "1", height: "1px", background: "rgba(13,18,32,.1)"}}></span>
-                        <span style={{fontSize: "11.5px", fontWeight: "600", color: "#8a93a6"}}>
+                        <span style={{fontSize: "11.5px", fontWeight: "600", color: "#6a758b"}}>
                           o continúa con
                         </span>
                         <span style={{flex: "1", height: "1px", background: "rgba(13,18,32,.1)"}}></span>
@@ -284,8 +273,8 @@ export default function Auth({ modoInicial = 'login', mostrarSSO = false }) {
                     </div>
                     </>
                   )}
-                  <p style={{margin: "4px 0 0", fontSize: "12.5px", lineHeight: "1.55", color: "#8a93a6"}}>
-                    {piePagina}
+                  <p style={{margin: "4px 0 0", fontSize: "12.5px", lineHeight: "1.55", color: "#6a758b"}}>
+                    {piePagina}{' '}
                     <a href={esRegistro ? "/login" : "/register"} onClick={alternar} style={{fontWeight: "700"}}>
                       {pieAccion}
                     </a>

@@ -7,7 +7,16 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "prueba": "playwright test",
+    "prueba:responsivo": "playwright test --project=responsivo",
+    "prueba:carga": "playwright test --project=carga --workers=6",
+    "prueba:movil": "playwright test --project=movil",
+    "prueba:escritorio": "playwright test --project=escritorio",
+    "prueba:informe": "playwright show-report pruebas/.informe",
+    "prueba:unidad": "node --test src/**/*.test.mjs",
+    "prueba:fallos": "playwright test --reporter=json && node pruebas/utiles/resumirFallos.mjs",
+    "prueba:capturas": "playwright test --project=capturas"
   },
   "dependencies": {
     "axios": "^1.14.0",
@@ -18,7 +27,9 @@
     "recharts": "^3.8.1"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
     "@eslint/js": "^9.39.4",
+    "@playwright/test": "^1.62.1",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.1",

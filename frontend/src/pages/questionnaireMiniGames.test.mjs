@@ -52,6 +52,54 @@ test('espera el boton Jugar antes de abrir el banner del minijuego', () => {
   }), 'game')
 })
 
+test('un fallo al preparar la partida lleva a la pantalla de error', () => {
+  // El caso que dejaba al alumno encallado: la sesion no se pudo crear, asi
+  // que sigue en el sorteo, pero el boton Jugar esta apagado y no hay forma
+  // de avanzar ni de saber que paso.
+  assert.equal(resolveQuestionnaireEntryView({
+    stage: 'selected',
+    miniGame: 'cards',
+    loading: false,
+    hasQuestion: false,
+    error: 'No se pudo iniciar el cuestionario.',
+  }), 'error')
+})
+
+test('una sesion que no trae preguntas tambien acaba en error', () => {
+  // Aqui no hay ningun error que mostrar: la llamada respondio 200 con una
+  // lista vacia. Antes esto dejaba el boton en "Preparando preguntas..."
+  // para siempre.
+  assert.equal(resolveQuestionnaireEntryView({
+    stage: 'selected',
+    miniGame: 'cards',
+    loading: false,
+    hasQuestion: false,
+  }), 'error')
+})
+
+test('mientras carga no se declara ningun fallo', () => {
+  assert.equal(resolveQuestionnaireEntryView({
+    stage: 'selected',
+    miniGame: 'cards',
+    loading: true,
+    hasQuestion: false,
+  }), 'selected')
+})
+
+test('los avisos de reintento del envio no cuentan como fallo', () => {
+  // `error` se usa tambien para mensajes temporales mientras se reintenta el
+  // envio ("Reintentando en 10s"). Si esos cayeran en la vista de error, el
+  // alumno veria la partida rota en mitad de un reintento que va a funcionar.
+  assert.equal(resolveQuestionnaireEntryView({
+    stage: 'playing',
+    miniGame: 'cards',
+    loading: false,
+    hasQuestion: true,
+    error: 'El servicio esta despertando. Reintentando en 10s (1/3)',
+    busy: true,
+  }), 'ocupado')
+})
+
 test('distribuye las paradas entre los tres carriles', () => {
   assert.deepEqual([0, 1, 2, 3, 4].map(getRoadTargetLane), [0, 1, 2, 0, 1])
 })

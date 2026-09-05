@@ -1,9 +1,16 @@
 import { useState, useEffect } from 'react'
 import { useParams, useLocation, Link } from 'react-router-dom'
 import { mlApi, surveyApi } from '../services/api'
-import { useAuth } from '../context/AuthContext'
 import { RadarChart, PolarGrid, PolarAngleAxis, Radar, ResponsiveContainer, BarChart, Bar, XAxis, Tooltip, Cell } from 'recharts'
+import { ajustarParaContraste } from '../theme/contraste'
 import './Results.css'
+
+/**
+ * Fondo real del panel: `.glass` es rgba(21,21,23,.92) compuesto sobre
+ * el cuerpo #0b0b0d. Es el color contra el que hay que medir el
+ * contraste de los acentos que llegan del modelo.
+ */
+const FONDO_PANEL = '#141416'
 
 const CAREERS = {
   'Desarrollo de Software':               { paths: ['Frontend Developer', 'Backend Developer', 'Full Stack Developer', 'Mobile Developer', 'Software Architect'], color:'#E10600' },
@@ -258,13 +265,13 @@ export default function Results() {
   const { id } = useParams()
   const { state } = useLocation()
   const [data, setData] = useState(state || null)
-  const [importances, setImportances] = useState([])
   const [courses, setCourses] = useState([])
   const [jobs, setJobs] = useState([])          // empleos de Remotive (tiempo real)
   const [jobsLoading, setJobsLoading] = useState(false)
   const [loading, setLoading] = useState(!state)
+  const [errorCarga, setErrorCarga] = useState('')
   // Arquetipo profesional calculado en Fase 3
-  const [archetype, setArchetype] = useState(() => {
+  const [archetype] = useState(() => {
     const stored = sessionStorage.getItem('revo_archetype')
     return stored ? JSON.parse(stored) : null
   })
@@ -293,12 +300,25 @@ export default function Results() {
           surveyApi.getRecommendedCourses(r.data.primary.specialization_id).then(c => setCourses(c.data)).catch(()=>{})
         }
         if (r.data.primary?.name) fetchRemotiveJobs(r.data.primary.name)
+      }).catch((err) => {
+        // Sin este catch la promesa quedaba rechazada sin capturar y el
+        // navegador registraba la excepcion como un fallo de la aplicacion.
+        //
+        // El motivo se distingue a proposito: un 404 si es un resultado que
+        // no existe, pero un 500 o una caida de red no lo son. Decirle al
+        // alumno "no encontrado" cuando lo que fallo fue el servicio le hace
+        // creer que perdio su evaluacion.
+        const noExiste = err?.response?.status === 404
+        setErrorCarga(
+          noExiste
+            ? 'Resultado no encontrado.'
+            : err?.mensajeUsuario || 'No pudimos cargar este resultado.'
+        )
       }).finally(() => setLoading(false))
     } else if (state?.primary?.specialization_id) {
       surveyApi.getRecommendedCourses(state.primary.specialization_id).then(c => setCourses(c.data)).catch(()=>{})
     }
     if (state?.primary?.name) fetchRemotiveJobs(state.primary.name)
-    mlApi.importances().then(r => setImportances(r.data.slice(0, 8))).catch(() => {})
   }, [id, state])
 
   if (loading) return (
@@ -308,7 +328,20 @@ export default function Results() {
       </div>
     </div>
   )
-  if (!data) return <div className="page"><div className="container"><p className="text-muted">Resultado no encontrado.</p></div></div>
+  if (!data) return (
+    <div className="page">
+      <div className="container">
+        <p className="text-muted" role="status">
+          {errorCarga || 'Resultado no encontrado.'}
+        </p>
+        {errorCarga && (
+          <Link to="/history" className="btn btn-secondary" style={{ marginTop: 16 }}>
+            Volver a mi historial
+          </Link>
+        )}
+      </div>
+    </div>
+  )
 
   const primary = data.primary
   const color = CAREERS[primary?.name]?.color || '#E10600'
@@ -378,19 +411,24 @@ export default function Results() {
         <div className="results-grid">
           {/* Top 3 */}
           <div className="glass results-panel animate-fade" style={{ animationDelay:'0.1s' }}>
-            <h3 className="panel-title">Top 3 Especializaciones</h3>
+            <h2 className="panel-title">Top 3 Especializaciones</h2>
             {(data.top3 || []).map((s, i) => {
               const c = CAREERS[s.name]?.color || '#E10600'
+              // El color de la rama llega del modelo, no de la hoja de
+              // estilos, asi que ninguna regla CSS puede garantizar su
+              // contraste: se ajusta al pintarlo. La barra conserva el
+              // color crudo porque es un relleno, no texto.
+              const cTexto = ajustarParaContraste(c, FONDO_PANEL)
               return (
                 <div key={i} className="top3-item">
-                  <div className="top3-rank" style={{ color: c }}>#{i+1}</div>
+                  <div className="top3-rank" style={{ color: cTexto }}>#{i+1}</div>
                   <div className="top3-info">
                     <div className="top3-name font-semibold">{s.name}</div>
                     <div className="progress-track" style={{ marginTop: 6 }}>
                       <div className="progress-fill" style={{ width:`${s.confidence_pct}%`, background: c }} />
                     </div>
                   </div>
-                  <div className="top3-pct font-bold" style={{ color: c }}>{s.confidence_pct}%</div>
+                  <div className="top3-pct font-bold" style={{ color: cTexto }}>{s.confidence_pct}%</div>
                 </div>
               )
             })}
@@ -399,7 +437,7 @@ export default function Results() {
           {/* Radar Chart */}
           {radarData.length > 0 && (
             <div className="glass results-panel animate-fade" style={{ animationDelay:'0.2s' }}>
-              <h3 className="panel-title">Distribución de Aptitudes</h3>
+              <h2 className="panel-title">Distribución de Aptitudes</h2>
               <ResponsiveContainer width="100%" height={240}>
                 <RadarChart data={radarData}>
                   <PolarGrid stroke="rgba(255,255,255,0.08)" />
@@ -413,7 +451,7 @@ export default function Results() {
           {/* Bar Chart */}
           {barData.length > 0 && (
             <div className="glass results-panel animate-fade" style={{ animationDelay:'0.3s' }}>
-              <h3 className="panel-title">Probabilidades del Árbol</h3>
+              <h2 className="panel-title">Probabilidades del Árbol</h2>
               <ResponsiveContainer width="100%" height={200}>
                 <BarChart data={barData} margin={{ left: -20 }}>
                   <XAxis dataKey="name" tick={{ fill:'#94A3B8', fontSize:10 }} axisLine={false} tickLine={false} />
@@ -436,9 +474,9 @@ export default function Results() {
         {/* Roadmap de Cursos Evolutivo */}
         {courses.length > 0 && (
           <div className="glass results-panel animate-fade course-panel" style={{ animationDelay:'0.45s', marginTop: '20px', gridColumn: '1 / -1' }}>
-            <h3 className="panel-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <h2 className="panel-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <span>🚀</span> Tu Roadmap de Aprendizaje ({primary?.name})
-            </h3>
+            </h2>
             <p className="text-muted text-sm" style={{ marginBottom: '32px' }}>
               Sigue este camino estructurado para ir desde cero hasta maestro en tu rama ideal.
             </p>
@@ -461,7 +499,7 @@ export default function Results() {
                     </div>
                     <div className="course-info">
                       <span className="badge" style={{ alignSelf: 'flex-start', background: `${color}22`, color, border: `1px solid ${color}44` }}>{c.level}</span>
-                      <h4 className="course-title">{c.title}</h4>
+                      <h3 className="course-title">{c.title}</h3>
                       <div className="course-meta">
                         <span className={`badge ${c.price_model === 'Gratis' ? 'badge-success' : 'badge-secondary'}`}>{c.price_model}</span>
                         <span className="action-text text-xs" style={{ color, marginLeft: 'auto', fontWeight: 'bold' }}>Empezar Nivel →</span>
@@ -478,9 +516,9 @@ export default function Results() {
         {/* Bolsa de Empleo en Tiempo Real — Remotive API */}
         <div className="glass results-panel animate-fade job-panel" style={{ animationDelay:'0.55s', marginTop: '20px', gridColumn: '1 / -1' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, marginBottom: 8 }}>
-            <h3 className="panel-title" style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
+            <h2 className="panel-title" style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
               <span>💼</span> Empleos Reales en Tu Campo
-            </h3>
+            </h2>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#10B981', display: 'inline-block', boxShadow: '0 0 8px #10B981' }} />
               <span className="text-xs text-muted">En vivo · Remotive.com</span>
@@ -518,6 +556,8 @@ export default function Results() {
                       <img
                         src={j.company_logo}
                         alt={j.company_name}
+                        loading="lazy"
+                        decoding="async"
                         style={{ width: 40, height: 40, borderRadius: 8, objectFit: 'contain', background: '#fff', padding: 4 }}
                         onError={(e) => { e.target.style.display='none'; e.target.nextSibling.style.display='flex' }}
                       />
@@ -525,7 +565,7 @@ export default function Results() {
                     <span style={{ display: j.company_logo ? 'none' : 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.4rem' }}>🏢</span>
                   </div>
                   <div className="job-content" style={{ flex: 1, minWidth: 0 }}>
-                    <h4 className="job-title" style={{ marginBottom: 4 }}>{j.title}</h4>
+                    <h3 className="job-title" style={{ marginBottom: 4 }}>{j.title}</h3>
                     <div className="job-details">
                       <span className="job-company" style={{ fontWeight: 600 }}>{j.company_name}</span>
                       <span className="job-separator">•</span>
@@ -552,7 +592,7 @@ export default function Results() {
             </div>
           )}
           <p className="text-xs text-muted" style={{ marginTop: 16, textAlign: 'center' }}>
-            Fuente: <a href="https://remotive.com" target="_blank" rel="noopener noreferrer" style={{ color, textDecoration: 'none' }}>Remotive.com</a> · Empleos remotos verificados y actualizados diariamente
+            Fuente: <a href="https://remotive.com" target="_blank" rel="noopener noreferrer" style={{ color, textDecoration: 'underline', textUnderlineOffset: '2px' }}>Remotive.com</a> · Empleos remotos verificados y actualizados diariamente
           </p>
         </div>
 
@@ -597,9 +637,9 @@ export default function Results() {
           if (!plan) return null
           return (
             <div className="glass results-panel animate-fade" style={{ animationDelay: '0.65s', marginTop: 20, gridColumn: '1 / -1' }}>
-              <h3 className="panel-title" style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+              <h2 className="panel-title" style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
                 <span>🗺️</span> Plan de Acción Personalizado — ¿Qué hago ahora?
-              </h3>
+              </h2>
               <p className="text-muted text-sm" style={{ marginBottom: 24 }}>Pasos concretos basados en tu especialización. Sin excusas para empezar.</p>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(220px, 100%), 1fr))', gap: 16 }}>
                 {plan.map((step, i) => (

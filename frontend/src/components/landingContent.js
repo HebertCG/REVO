@@ -10,6 +10,7 @@ export const LANDING_PHASES = [
     example: 'Te dan un problema sin instrucciones claras. ¿Lo conviertes en datos, lo prototipas o lo conversas con el equipo?',
     outcome: 'El sistema conserva tus tres rutas más fuertes y descarta el ruido inicial.',
     accent: '#e10600',
+    accentTexto: '#ff554b',
   },
   {
     id: 'afina',
@@ -22,6 +23,7 @@ export const LANDING_PHASES = [
     example: 'Un modelo funciona bien en pruebas y falla en producción. ¿Qué revisarías primero?',
     outcome: 'Tus respuestas comparan tareas reales de las tres especializaciones finalistas.',
     accent: '#bd0c06',
+    accentTexto: '#ff7068',
   },
   {
     id: 'revela',
@@ -34,6 +36,7 @@ export const LANDING_PHASES = [
     example: 'Faltan dos días para la entrega y el módulo de otro compañero no compila. ¿Qué haces?',
     outcome: 'Tu estilo de trabajo ajusta la recomendación final sin reemplazar tus afinidades.',
     accent: '#970400',
+    accentTexto: '#ff8a84',
   },
 ]
 

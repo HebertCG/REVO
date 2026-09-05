@@ -41,6 +41,36 @@
 .rvl-a4:active { transform: none; }
 .rvl-h5:hover { border-color: #2f5fe8; color: #2f5fe8; }
 
+.revo-auth-recordar { min-height: 24px; }
+
+/* ── La pantalla ocupa la ventana y no genera scroll ──────────
+   El diseño llega con los tamaños en línea, así que el ajuste va
+   aquí con `!important`: es la única forma de pisar un `style`.
+
+   Solo se aplica desde 900px. Por debajo, las dos mitades se
+   apilan y el contenido deja de caber: bloquear el scroll ahí
+   recortaría el formulario de registro, que es más alto.        */
+@media (min-width: 900px) {
+  .revo-auth { height: 100dvh; overflow: hidden; }
+
+  .revo-auth > div {
+    height: 100%;
+    min-height: 0 !important;
+  }
+  .revo-auth > div > div {
+    height: 100%;
+    min-height: 0 !important;
+  }
+
+  /* Válvula de escape: si el registro no cabe, se desplaza la
+     columna del formulario por dentro, no la página entera. */
+  .revo-auth > div > div > div:last-child {
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+}
+
 /* El botón de envío se deshabilita mientras la petición está en curso. */
 .revo-auth button[type="submit"]:disabled {
   opacity: .62;

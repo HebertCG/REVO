@@ -10,10 +10,10 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
-import { useAuth } from '../context/AuthContext'
+import { useAuth } from '../context/contextoAuth'
 import { mlApi } from '../services/api'
 import { ESTADO, SERIE, fechaCorta, fechaLarga, specMeta } from '../theme/specs'
-import personaHistorial from '../assets/persona-historial-revo.png'
+import personaHistorial from '../assets/persona-historial-revo.webp'
 import { buildHistorySeries, buildHistorySummary } from './historyInsights'
 import '../theme/app.css'
 import './History.css'
@@ -87,7 +87,10 @@ export default function History() {
   useEffect(() => {
     if (!user) return
     mlApi.getHistory(user.id)
-      .then((response) => setHistory(response.data || []))
+      // `|| []` solo descarta null: una respuesta 200 con un cuerpo que no es
+      // JSON valido llega aqui como cadena, pasa el filtro y revienta en el
+      // primer `.reduce`. Lo que hace falta comprobar es que sea una lista.
+      .then((response) => setHistory(Array.isArray(response.data) ? response.data : []))
       .catch(() => setHistory([]))
       .finally(() => setLoading(false))
   }, [user])
@@ -166,8 +169,11 @@ export default function History() {
             <div className="hist-orbit hist-orbit-two" aria-hidden="true" />
             <img
               src={personaHistorial}
+              width={887}
+              height={1774}
               alt="Personaje REVO revisando los hitos de su trayectoria"
-              className="hist-mascot"
+              decoding="async"
+                  className="hist-mascot"
             />
             <div className="hist-live-signal">
               <span className="hist-live-dot" aria-hidden="true" />

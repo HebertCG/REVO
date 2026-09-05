@@ -4,7 +4,18 @@
  * iconografía, el mazo, los colores y los personajes pertenecen a REVO.
  */
 
-.quiz {
+/*
+ * La paleta se declara en las CUATRO raices del cuestionario y no solo en
+ * `.quiz`. Las pantallas de espera, el selector de minijuego y la
+ * introduccion son raices hermanas, no descendientes: mientras los tokens
+ * vivieron unicamente en `.quiz`, todas sus referencias a --mesa, --coral o
+ * --oro quedaban sin resolver y el navegador las descartaba en silencio (un
+ * fondo plano en vez del degradado, la etiqueta sin su color coral).
+ */
+.quiz,
+.quiz-espera,
+.quiz-selector,
+.quiz-intro {
   --mesa: #091226;
   --mesa-profunda: #050a16;
   --papel: #15213a;
@@ -13,6 +24,9 @@
   --coral: #ff675c;
   --azul-tinta: #2164db;
   --oro: #d9b35b;
+}
+
+.quiz {
   position: relative;
   isolation: isolate;
   min-height: 100dvh;
@@ -1284,6 +1298,27 @@
   font-size: .78rem;
   line-height: 1.45;
 }
+/* Sustituye a las cartas animadas cuando la partida no puede continuar: en
+   ese momento la animacion mentiria diciendo que algo se esta preparando. */
+.quiz-reintentar {
+  margin-top: 27px;
+  padding: 13px 26px;
+  min-height: 44px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--coral);
+  color: #16203a;
+  font-family: inherit;
+  font-size: .92rem;
+  font-weight: 800;
+  letter-spacing: .01em;
+  cursor: pointer;
+  transition: transform .18s ease, box-shadow .18s ease;
+}
+.quiz-reintentar:hover { transform: translateY(-2px); box-shadow: 0 12px 26px rgba(0,0,0,.32); }
+.quiz-reintentar:focus-visible { outline: 3px solid #f7f3e9; outline-offset: 3px; }
+.quiz-reintentar:active { transform: translateY(0); }
+
 .quiz-cargando { display: flex; align-items: flex-end; gap: 7px; height: 42px; margin-top: 27px; }
 .quiz-cargando span {
   width: 25px;
@@ -1520,7 +1555,7 @@
   text-transform: uppercase;
 }
 
-.quiz-selector-copy h1 {
+.quiz-selector-titular h1 {
   max-width: 10ch;
   margin-top: 18px;
   font-size: clamp(2.7rem, 5.6vw, 5.25rem);
@@ -1528,7 +1563,7 @@
   letter-spacing: -.065em;
 }
 
-.quiz-selector-copy > p {
+.quiz-selector-titular > p {
   max-width: 47ch;
   margin-top: 24px;
   color: #a8b5ca;
@@ -2618,20 +2653,64 @@
 @media (max-width: 700px) {
   .quiz-selector,
   .quiz-intro { padding: 90px 16px 28px; overflow-y: auto; }
-  .quiz-selector-lienzo { display: flex; min-height: calc(100dvh - 118px); flex-direction: column; gap: 6px; }
-  .quiz-selector-copy { z-index: 3; text-align: center; }
-  .quiz-selector-copy h1 { max-width: 11ch; margin: 12px auto 0; font-size: clamp(2.2rem, 12vw, 3.5rem); }
-  .quiz-selector-copy > p { margin: 14px auto 0; font-size: .86rem; }
-  .quiz-selector-opciones { width: min(420px, 100%); margin: 16px auto 0; grid-template-columns: 1fr; gap: 7px; }
-  .quiz-selector-opciones .quiz-selector-opcion { min-height: 78px; padding: 7px 8px; font-size: .67rem; text-align: left; }
-  .quiz-selector-opciones span b { width: 29px; margin-right: 7px; }
-  .quiz-selector-opcion > i { width: 40px; height: 54px; margin-right: 6px; }
-  .quiz-selector-opcion.ruta > i { width: 48px; }
-  .quiz-selector-opcion.arcade > i { width: 46px; }
-  .quiz-selector-jugar { margin: 18px auto 0; }
-  .quiz-selector-personaje { width: min(270px, 70vw); height: 365px; margin-top: -6px; }
-  .quiz-selector-pensamiento { top: 9%; right: -8%; }
-  .quiz-selector-ruleta { right: 50%; bottom: 38px; transform: translateX(50%); }
+  /* Titular arriba, personaje a la izquierda y las tres opciones a su
+     costado. Las fichas rectangulares apiladas ocupaban media pantalla
+     y dejaban el boton de Jugar fuera de la primera vista. */
+  .quiz-selector-lienzo {
+    display: grid;
+    min-height: calc(100dvh - 118px);
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "titular titular"
+      "persona opciones"
+      "jugar   jugar";
+    align-content: center;
+    align-items: center;
+    justify-items: center;
+    gap: 10px 16px;
+  }
+  /* Los hijos del bloque de texto se convierten en celdas del lienzo:
+     es lo que permite meter el personaje entre el titular y el boton
+     sin reordenar el marcado. */
+  .quiz-selector-copy { display: contents; }
+  .quiz-selector-titular { grid-area: titular; text-align: center; }
+  .quiz-selector-titular h1 { max-width: 11ch; margin: 10px auto 0; font-size: clamp(2rem, 10.5vw, 3.1rem); }
+  .quiz-selector-titular > p { max-width: 34ch; margin: 10px auto 0; font-size: .82rem; }
+
+  .quiz-selector-personaje { grid-area: persona; width: min(200px, 46vw); height: 250px; margin: 0; }
+  .quiz-selector-pensamiento { top: 4%; right: -6%; }
+
+  /* Ruleta al costado: circulos pequenos, sin numero ni etiqueta. El
+     nombre del elegido ya lo canta el titular. */
+  .quiz-selector-opciones {
+    grid-area: opciones;
+    display: flex;
+    width: auto;
+    max-width: none;
+    margin: 0;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .quiz-selector-opciones .quiz-selector-opcion {
+    display: grid;
+    width: 62px;
+    height: 62px;
+    min-height: 0;
+    padding: 0;
+    place-items: center;
+    border-radius: 50%;
+    text-align: center;
+  }
+  .quiz-selector-opciones span b,
+  .quiz-selector-opciones .quiz-selector-opcion em { display: none; }
+  .quiz-selector-opcion > i,
+  .quiz-selector-opcion.ruta > i,
+  .quiz-selector-opcion.arcade > i { width: 40px; height: 40px; margin: 0; }
+
+  .quiz-selector-jugar { grid-area: jugar; margin: 8px auto 0; }
+
+  /* La tira de "VS" sobra: las propias opciones ya son la ruleta. */
+  .quiz-selector-ruleta { display: none; }
   .quiz-selector-estado { right: 50%; bottom: 7px; width: 100%; transform: translateX(50%); text-align: center; }
   .quiz-intro-tablero { grid-template-columns: 1fr; align-items: start; }
   .quiz-intro-visual { width: min(520px, 100%); margin: 0 auto; border-radius: 17px; box-shadow: 8px 10px 0 #050914, 9px 11px 0 #293956; }
@@ -2666,8 +2745,11 @@
 }
 
 @media (max-width: 430px) {
-  .quiz-selector-personaje { height: 325px; }
-  .quiz-selector-opciones .quiz-selector-opcion { font-size: .61rem; }
+  .quiz-selector-personaje { width: min(170px, 44vw); height: 215px; }
+  .quiz-selector-opciones .quiz-selector-opcion { width: 54px; height: 54px; }
+  .quiz-selector-opcion > i,
+  .quiz-selector-opcion.ruta > i,
+  .quiz-selector-opcion.arcade > i { width: 34px; height: 34px; }
   .quiz-intro-visual { margin-top: 4px; }
   .quiz-intro-pasos li { min-height: 40px; font-size: .72rem; }
   .quiz-ruta { min-height: 475px; }

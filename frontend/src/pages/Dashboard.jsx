@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import personaDashboard from '../assets/persona-dashboard-revo.png'
-import { useAuth } from '../context/AuthContext'
+import personaDashboard from '../assets/persona-dashboard-revo.webp'
+import { useAuth } from '../context/contextoAuth'
 import { mlApi } from '../services/api'
 import {
   calcularScore, fechaCorta, nivelDe, siguienteNivel, specMeta,
@@ -18,7 +18,10 @@ export default function Dashboard() {
   useEffect(() => {
     if (!user) return
     mlApi.getHistory(user.id)
-      .then((response) => setHistorial(response.data || []))
+      // `|| []` solo descarta null: una respuesta 200 con un cuerpo que no es
+      // JSON valido llega aqui como cadena, pasa el filtro y revienta en el
+      // primer `.reduce`. Lo que hace falta comprobar es que sea una lista.
+      .then((response) => setHistorial(Array.isArray(response.data) ? response.data : []))
       .catch(() => setHistorial([]))
       .finally(() => setCargando(false))
   }, [user])
@@ -65,6 +68,8 @@ export default function Dashboard() {
             <img
               className="dash-vacio-imagen"
               src={personaDashboard}
+              width={1536}
+              height={1024}
               alt="Personaje REVO colocando la primera señal de una ruta profesional"
             />
             <div className="dash-vacio-sombra" aria-hidden="true" />
@@ -88,29 +93,27 @@ export default function Dashboard() {
               style={{ '--dash-spec-color': meta.color }}
               aria-labelledby="dash-resultado-titulo"
             >
-              <img
-                className="dash-heroe-imagen"
-                src={personaDashboard}
-                alt="Personaje REVO colocando una nueva señal sobre su recorrido profesional"
-              />
-              <div className="dash-heroe-sombra" aria-hidden="true" />
+              <div className="dash-heroe-copy">
+                <p className="dash-kicker">
+                  <span aria-hidden="true">◆</span>
+                  Actualizado el {fechaCorta(ultima.created_at)}
+                </p>
 
-              <div className="dash-heroe-txt">
-                <p className="dash-contexto">Actualizado el {fechaCorta(ultima.created_at)}</p>
-                <h1 className="dash-senal-titulo" id="dash-resultado-titulo">
-                  Lo que más encaja contigo hoy:
-                  <span className="dash-senal-ruta">
-                    <span className="dash-heroe-icono" aria-hidden="true">{meta.icon}</span>
-                    {ultima.specialization}
-                  </span>
-                </h1>
+                <h1 id="dash-resultado-titulo">Lo que más encaja contigo hoy.</h1>
 
-                <div className="dash-confianza">
-                  <p>
+                <p className="dash-senal-ruta">
+                  <span className="dash-heroe-icono" aria-hidden="true">{meta.icon}</span>
+                  {ultima.specialization}
+                </p>
+
+                <div className="dash-heroe-medida">
+                  <p className="dash-confianza">
                     <span className="rv-dato dash-cifra">{ultima.confidence_pct}</span>
                     <span className="rv-dato dash-cifra-pct">%</span>
                   </p>
-                  <span>Coincidencia estimada. Es una referencia, no una nota.</span>
+                  <span className="dash-confianza-nota">
+                    Coincidencia estimada. Es una referencia, no una nota.
+                  </span>
                 </div>
 
                 <div
@@ -133,6 +136,17 @@ export default function Dashboard() {
                   </Link>
                   <Link to="/history" className="rv-btn rv-btn-2">Comparar historial</Link>
                 </div>
+              </div>
+
+              <div className="dash-heroe-visual">
+                <img
+                  decoding="async"
+                  className="dash-mascota"
+                  src={personaDashboard}
+                  width={1536}
+                  height={1024}
+                  alt="Personaje REVO colocando una nueva señal sobre su recorrido profesional"
+                />
               </div>
             </section>
 

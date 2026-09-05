@@ -1,24 +1,24 @@
 import { useState, useEffect, useRef, useEffectEvent, useCallback, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
-import { useAuth } from '../context/AuthContext'
+import { useAuth } from '../context/contextoAuth'
 import { surveyApi } from '../services/api'
-import personaCelularGaming from '../assets/persona-celular-gaming.png'
-import personaDiferenciaGaming from '../assets/persona-diferencia-gaming.png'
-import personaRepartiendoGaming from '../assets/persona-repartiendo-gaming.png'
-import manoRepartiendoRevo from '../assets/mano-repartiendo-revo.png'
-import manoSueltaRevo from '../assets/mano-suelta-revo.png'
-import cartaRevoExplora from '../assets/carta-revo-explora.png'
-import cartaRevoConecta from '../assets/carta-revo-conecta.png'
-import cartaRevoAnaliza from '../assets/carta-revo-analiza.png'
-import cartaRevoConstruye from '../assets/carta-revo-construye.png'
-import cartaRevoVision from '../assets/carta-revo-vision.png'
-import personaSelectorMinijuego from '../assets/persona-selector-minijuego.png'
-import personaRutaGaming from '../assets/persona-ruta-gaming.png'
-import carritoRevo from '../assets/carrito-revo.png'
-import personaArcadeGaming from '../assets/persona-arcade-gaming.png'
-import naveRevo from '../assets/nave-revo.png'
-import enemigoRevo from '../assets/enemigo-revo.png'
+import personaCelularGaming from '../assets/persona-celular-gaming.webp'
+import personaDiferenciaGaming from '../assets/persona-diferencia-gaming.webp'
+import personaRepartiendoGaming from '../assets/persona-repartiendo-gaming.webp'
+import manoRepartiendoRevo from '../assets/mano-repartiendo-revo.webp'
+import manoSueltaRevo from '../assets/mano-suelta-revo.webp'
+import cartaRevoExplora from '../assets/carta-revo-explora.webp'
+import cartaRevoConecta from '../assets/carta-revo-conecta.webp'
+import cartaRevoAnaliza from '../assets/carta-revo-analiza.webp'
+import cartaRevoConstruye from '../assets/carta-revo-construye.webp'
+import cartaRevoVision from '../assets/carta-revo-vision.webp'
+import personaSelectorMinijuego from '../assets/persona-selector-minijuego.webp'
+import personaRutaGaming from '../assets/persona-ruta-gaming.webp'
+import carritoRevo from '../assets/carrito-revo.webp'
+import personaArcadeGaming from '../assets/persona-arcade-gaming.webp'
+import naveRevo from '../assets/nave-revo.webp'
+import enemigoRevo from '../assets/enemigo-revo.webp'
 import {
   getRemainingPhaseTransitionMs,
   shouldStartQuestionShuffle,
@@ -237,7 +237,18 @@ function PanelMazo({ fase, items, respuestas, actual, miniGame }) {
 }
 
 /** Pantalla completa para esperas y transiciones. */
-function Pantalla({ titulo, texto, aviso, imagen = personaRepartiendoGaming, etiqueta = 'Preparando la partida' }) {
+/**
+ * Pantalla de espera y de fallo.
+ *
+ * Con `onReintentar` deja de ser una espera: se quitan los puntos suspensivos
+ * (que prometen que algo esta pasando cuando no lo esta) y aparece el boton.
+ * El rol pasa a `alert` porque un fallo hay que anunciarlo, no dejarlo en la
+ * cola educada de `status`.
+ */
+function Pantalla({
+  titulo, texto, aviso, imagen = personaRepartiendoGaming,
+  etiqueta = 'Preparando la partida', onReintentar = null,
+}) {
   return (
     <div className="rv quiz-espera">
       <Ambiente />
@@ -245,14 +256,24 @@ function Pantalla({ titulo, texto, aviso, imagen = personaRepartiendoGaming, eti
         <figure className="quiz-espera-visual">
           <img src={imagen} alt="Personaje de REVO preparando las cartas del cuestionario" decoding="async" />
         </figure>
-        <div className="quiz-espera-caja" role="status" aria-live="polite">
+        <div
+          className="quiz-espera-caja"
+          role={onReintentar ? 'alert' : 'status'}
+          aria-live="polite"
+        >
           <span className="quiz-espera-etiq">{etiqueta}</span>
           <h2>{titulo}</h2>
           <p>{texto}</p>
           {aviso && <p className="quiz-aviso">{aviso}</p>}
-          <div className="quiz-cargando" aria-hidden="true">
-            <span /><span /><span /><span /><span />
-          </div>
+          {onReintentar ? (
+            <button type="button" className="quiz-reintentar" onClick={onReintentar}>
+              Intentar de nuevo
+            </button>
+          ) : (
+            <div className="quiz-cargando" aria-hidden="true">
+              <span /><span /><span /><span /><span />
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -301,11 +322,15 @@ function SelectorMinijuego({ reduceMotion, miniGame, loading, ready, error, onPl
       <Ambiente />
       <div className="quiz-selector-lienzo" role="status" aria-live="polite">
         <div className="quiz-selector-copy">
-          <span className="quiz-selector-etiq">{seleccionado ? 'Desafío seleccionado' : 'REVO está eligiendo'}</span>
-          <h1>{seleccionado ? seleccionado.etiqueta : '¿Qué desafío te toca hoy?'}</h1>
-          <p>{seleccionado
-            ? `¡Listo! REVO eligió ${seleccionado.etiqueta}. Presiona Jugar para conocer la dinámica.`
-            : 'Observa el sorteo: cartas, carrito y nave compiten por ser tu desafío de hoy.'}</p>
+          {/* El titular va agrupado para poder colocarlo como una sola
+              celda cuando en movil el personaje se mete entre medias. */}
+          <div className="quiz-selector-titular">
+            <span className="quiz-selector-etiq">{seleccionado ? 'Desafío seleccionado' : 'REVO está eligiendo'}</span>
+            <h1>{seleccionado ? seleccionado.etiqueta : '¿Qué desafío te toca hoy?'}</h1>
+            <p>{seleccionado
+              ? `¡Listo! REVO eligió ${seleccionado.etiqueta}. Presiona Jugar para conocer la dinámica.`
+              : 'Observa el sorteo: cartas, carrito y nave compiten por ser tu desafío de hoy.'}</p>
+          </div>
           <div className="quiz-selector-opciones" aria-hidden="true">
             <span className={`quiz-selector-opcion cartas ${miniGame === MINI_GAMES.CARDS ? 'ganadora' : ''}`}>
               <b>01</b>
@@ -805,6 +830,10 @@ export default function Questionnaire() {
   const [phase3Questions, setPhase3Questions] = useState(FASE3_RESERVA)
 
   const [loading, setLoading] = useState(true)
+  // Cambiarlo vuelve a lanzar el efecto de arranque. Es la unica forma de
+  // reintentar sin recargar la pagina entera, que perderia el minijuego ya
+  // sorteado y obligaria al alumno a ver otra vez los tres segundos de sorteo.
+  const [intentoArranque, setIntentoArranque] = useState(0)
   const [submitting, setSubmitting] = useState(false)
   const [transitioning, setTransitioning] = useState(false)
   const [error, setError] = useState('')
@@ -847,7 +876,7 @@ export default function Questionnaire() {
         const qRes = await surveyApi.getSessionQuestions(sid)
         if (active) setQuestions(qRes.data)
       } catch {
-        if (active) setError('No se pudo iniciar el cuestionario. Revisa tu conexión.')
+        if (active) setError('No se pudo iniciar el cuestionario.')
       } finally {
         await minimumDelay
         if (active) setLoading(false)
@@ -856,7 +885,7 @@ export default function Questionnaire() {
 
     iniciarPartida()
     return () => { active = false }
-  }, [user])
+  }, [user, intentoArranque])
 
   useEffect(() => {
     clearTimeout(miniGameTimerRef.current)
@@ -872,6 +901,16 @@ export default function Questionnaire() {
 
     return () => clearTimeout(miniGameTimerRef.current)
   }, [miniGameStage, reduceMotion])
+
+  const reintentarArranque = () => {
+    setError('')
+    setQuestions([])
+    setCurrent(0)
+    setPhase(1)
+    setAnswers({})
+    setLoading(true)
+    setIntentoArranque((n) => n + 1)
+  }
 
   const loadPhase2 = async (sid) => {
     const transitionStartedAt = Date.now()
@@ -1080,6 +1119,15 @@ export default function Questionnaire() {
     if (e.target.matches('input, textarea, select')) return
 
     if (!preguntaVisible) {
+      // Retroceder es lo unico que tiene sentido con la pregunta tapada: al
+      // avanzar, la siguiente SIEMPRE nace escondida tras el minijuego, asi
+      // que exigir destaparla antes de poder volver atras es pedir justo lo
+      // contrario de lo que el alumno quiere hacer.
+      if (e.key === 'ArrowLeft' && enFase12) {
+        e.preventDefault()
+        prev()
+        return
+      }
       if (miniGame === MINI_GAMES.CARDS && estadoActivoMano === 'lista' && e.key >= '1' && e.key <= '5') {
         e.preventDefault()
         elegirCartaPregunta(Number(e.key) - 1)
@@ -1110,9 +1158,21 @@ export default function Questionnaire() {
     miniGame,
     loading,
     hasQuestion: phase === 3 ? !!preguntaFase3 : !!q,
+    error,
+    busy: submitting || transitioning,
   })
 
   // ── Pantallas de espera ──────────────────────────────────
+  // El fallo va primero: mientras se comprobaba despues del selector, esta
+  // pantalla no se pintaba nunca y el alumno se quedaba ante un boton apagado.
+  if (entryView === 'error') {
+    return <Pantalla titulo="No pudimos repartir las cartas"
+      texto="Revisa tu conexión e inténtalo de nuevo. Si vuelve a fallar, recarga la página."
+      aviso={error || 'El cuestionario no recibió preguntas.'}
+      imagen={personaDiferenciaGaming} etiqueta="Partida interrumpida"
+      onReintentar={reintentarArranque} />
+  }
+
   if (entryView === 'selector' || entryView === 'selected') {
     return (
       <SelectorMinijuego
@@ -1157,13 +1217,6 @@ export default function Questionnaire() {
           : 'Ya encontramos señal. Ahora el mazo se concentra en tus tres ramas más prometedoras.'}
       imagen={miniGame === MINI_GAMES.ROAD ? personaRutaGaming : miniGame === MINI_GAMES.ARCADE ? personaArcadeGaming : personaCelularGaming}
       etiqueta="Fase 2: Afina" />
-  }
-
-  if (entryView === 'error' || (phase !== 3 && !q)) {
-    return <Pantalla titulo="No pudimos repartir las cartas"
-      texto="Revisa tu conexión y vuelve a cargar la página para intentarlo otra vez."
-      aviso={error || 'El cuestionario no recibió preguntas.'}
-      imagen={personaDiferenciaGaming} etiqueta="Partida interrumpida" />
   }
 
   // ── FASE 3: perfil profesional ───────────────────────────

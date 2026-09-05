@@ -103,6 +103,11 @@
 @media(max-width: 600px) {
   .results-page { padding-bottom: 40px; }
   .result-hero { padding: 24px 16px; margin-bottom: 16px; }
+  /* `min-width: 280px` impedia que el bloque encogiera por debajo de
+     ese ancho, asi que a 320px el titulo se salia de la ventana. En
+     flex hay que rebajarlo a 0 para que el elemento pueda ceder. */
+  .result-hero-left { min-width: 0; }
+  .result-conf-row { flex-wrap: wrap; }
   .result-hero-content { flex-direction: column-reverse; align-items: center; text-align: center; gap: 24px; }
   .result-conf-row { justify-content: center; }
   .career-paths { justify-content: center; }

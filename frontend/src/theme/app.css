@@ -92,12 +92,18 @@
 }
 
 /* ── Barras de progreso ─────────────────────────────────── */
+/* `display: block` no es decorativo: la barra se usa tanto con <div>
+   como con <span>, y un <span> es inline. Un elemento inline ignora
+   `width` y `height`, asi que el relleno del historial se pintaba con
+   su color correcto pero midiendo 0x0 px, es decir, invisible. */
 .rv-pista {
+  display: block;
   height: 6px; border-radius: 999px;
   background: var(--linea-sutil);
   overflow: hidden;
 }
 .rv-relleno {
+  display: block;
   height: 100%; border-radius: 999px;
   transition: width .7s cubic-bezier(0.22, 1, 0.36, 1);
 }

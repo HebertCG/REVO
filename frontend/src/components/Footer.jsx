@@ -12,7 +12,6 @@ export default function Footer() {
       <div className="footer-inner">
         <div className="footer-brand">
           <div className="footer-logo">
-            <span className="footer-logo-icon">⚡</span>
             <span className="footer-logo-text">REVO<span className="footer-logo-dot">.</span></span>
           </div>
           <p className="footer-tagline">

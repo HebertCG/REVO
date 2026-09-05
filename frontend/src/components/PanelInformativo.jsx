@@ -1,9 +1,9 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { useAuth } from '../context/AuthContext'
-import personaCelular from '../assets/persona-celular.png'
-import personaDiferencia from '../assets/persona-diferencia.png'
-import personaTrayectoria from '../assets/persona-historial-revo.png'
+import { useAuth } from '../context/contextoAuth'
+import personaCelular from '../assets/persona-celular.webp'
+import personaDiferencia from '../assets/persona-diferencia.webp'
+import personaTrayectoria from '../assets/persona-historial-revo.webp'
 import {
   LANDING_OUTCOMES,
   LANDING_PHASES,
@@ -56,6 +56,10 @@ export default function PanelInformativo() {
             <img
               className="lp-hero-person"
               src={personaTrayectoria}
+              fetchPriority="high"
+              decoding="async"
+              width={887}
+              height={1774}
               alt="Personaje REVO explorando una trayectoria de especialización"
             />
           </div>
@@ -111,7 +115,7 @@ export default function PanelInformativo() {
                     aria-selected={isActive}
                     aria-controls="landing-phase-detail"
                     className={isActive ? 'is-active' : ''}
-                    style={{ '--phase-accent': phase.accent }}
+                    style={{ '--phase-accent': phase.accent, '--phase-accent-texto': phase.accentTexto }}
                     onClick={() => setActivePhaseId(phase.id)}
                   >
                     <span className="lp-phase-number">{phase.number}</span>
@@ -129,7 +133,7 @@ export default function PanelInformativo() {
               className="lp-phase-detail"
               id="landing-phase-detail"
               role="tabpanel"
-              style={{ '--phase-accent': activePhase.accent }}
+              style={{ '--phase-accent': activePhase.accent, '--phase-accent-texto': activePhase.accentTexto }}
               aria-live="polite"
             >
               <span className="lp-phase-watermark" aria-hidden="true">{activePhase.number}</span>
@@ -177,6 +181,10 @@ export default function PanelInformativo() {
               <div className="lp-visual-grid" aria-hidden="true" />
               <img
                 src={personaCelular}
+                loading="lazy"
+                decoding="async"
+                width={920}
+                height={614}
                 alt="Personaje REVO analizando alternativas profesionales desde su computadora"
               />
               <figcaption>
@@ -216,6 +224,10 @@ export default function PanelInformativo() {
               <div className="lp-trust-orbit" aria-hidden="true" />
               <img
                 src={personaDiferencia}
+                loading="lazy"
+                decoding="async"
+                width={800}
+                height={800}
                 alt="Personaje REVO comparando distintas rutas profesionales"
               />
             </figure>

@@ -22,3 +22,10 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Playwright
+pruebas/.informe/
+pruebas/.resultados/
+pruebas/.capturas/
+test-results/
+playwright-report/

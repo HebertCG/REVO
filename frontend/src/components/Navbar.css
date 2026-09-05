@@ -86,13 +86,6 @@
 }
 .navbar-logo:hover { transform: translateY(-1px); }
 
-.logo-icon {
-  font-size: 1.4rem;
-  display: inline-block;
-  transition: transform 0.38s cubic-bezier(0.22, 1, 0.36, 1);
-}
-.navbar-shell.scrolled .logo-icon { transform: scale(0.9) rotate(-8deg); }
-
 .logo-text {
   font-family: 'Space Grotesk', sans-serif;
   font-size: 1.4rem; font-weight: 800; color: white; letter-spacing: -0.02em;
@@ -112,7 +105,7 @@
   transition: color 0.2s ease, background 0.2s ease;
 }
 .nav-link:hover { color: white; background: rgba(255, 255, 255, 0.06); }
-.nav-link.active { color: #6C63FF; }
+.nav-link.active { color: var(--purple-texto); }
 
 /* Subrayado que crece desde el centro en el enlace activo. */
 .nav-link.active::after {
@@ -199,7 +192,7 @@
    encoge y el menú se desliza igual para quien pidió no animar. */
 @media (prefers-reduced-motion: reduce) {
   .navbar-shell, .navbar, .navbar-inner, .navbar-logo,
-  .logo-icon, .logo-text, .nav-link, .user-avatar,
+  .logo-text, .nav-link, .user-avatar,
   .hamburger-bar, .navbar-right {
     transition-duration: 0.01ms !important;
     animation-duration: 0.01ms !important;

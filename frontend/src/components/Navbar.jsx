@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, startTransition } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
-import { useAuth } from '../context/AuthContext'
+import { useAuth } from '../context/contextoAuth'
 import './Navbar.css'
 
 // Distancia de scroll a partir de la cual la barra se contrae.
@@ -32,18 +32,44 @@ export default function Navbar() {
   }, [])
 
   // Cerrar el menú móvil al cambiar de ruta evita que quede abierto encima.
-  useEffect(() => { setIsOpen(false) }, [location.pathname])
+  // Se ajusta durante el pintado y no dentro de un efecto: con el efecto,
+  // React pintaba primero el menú abierto sobre la pantalla nueva y lo cerraba
+  // en un segundo render, que es el parpadeo que se veía al navegar en móvil.
+  const [rutaDelMenu, setRutaDelMenu] = useState(location.pathname)
+  if (rutaDelMenu !== location.pathname) {
+    setRutaDelMenu(location.pathname)
+    setIsOpen(false)
+  }
 
-  const handleLogout = () => { logout(); navigate('/'); setIsOpen(false) }
+  // Salir tiene que dejar al alumno en la portada, no en el formulario de
+  // acceso.
+  //
+  // No es cuestion de orden. React Router marca la navegacion como
+  // transicion, mientras que cerrar la sesion es una actualizacion normal:
+  // React confirma la segunda antes que la primera, y en ese render
+  // intermedio la ruta sigue siendo /dashboard con el usuario ya en null,
+  // asi que `PrivateRoute` pinta su <Navigate to="/login"> y ese redirigido
+  // gana la carrera.
+  //
+  // Metiendo las dos en la MISMA transicion, React las confirma juntas: en
+  // el unico render que se ve, la ruta ya es la portada y no hay ruta
+  // privada montada que redirija. `replace` evita ademas dejar la pantalla
+  // privada en el historial del navegador.
+  const handleLogout = () => {
+    startTransition(() => {
+      logout()
+      navigate('/', { replace: true })
+    })
+    setIsOpen(false)
+  }
   const isActive = (path) => location.pathname === path ? 'active' : ''
   const closeMenu = () => setIsOpen(false)
 
   return (
     <div className={`navbar-shell ${scrolled ? 'scrolled' : ''}`}>
-      <nav className="navbar">
+      <nav className="navbar" aria-label="Navegación principal">
         <div className="navbar-inner">
           <Link to="/" className="navbar-logo" onClick={closeMenu}>
-            <span className="logo-icon">⚡</span>
             <span className="logo-text">REVO<span className="logo-dot">.</span></span>
           </Link>
 

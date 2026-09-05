@@ -67,6 +67,12 @@
 }
 
 .rv-consent-enlaces button {
+  /* 24 px de alto minimo: es un objetivo tactil, no solo texto.
+     Sin esto quedaban en 16 px, por debajo del minimo de la
+     WCAG 2.5.8, y son los enlaces a los documentos legales. */
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
   padding: 0;
   border: 0;
   background: none;
@@ -93,7 +99,10 @@
   margin: 2px 0 0;
   font-size: 12px;
   line-height: 1.5;
-  color: #8a93a6;
+  /* 4,64:1 sobre blanco. Con #8a93a6 se quedaba en 3,09:1, y este
+     parrafo es el que explica que las dos casillas de abajo son
+     opcionales: es justo el texto que no puede costar leer. */
+  color: #6a758b;
 }
 
 .rv-consent-error {

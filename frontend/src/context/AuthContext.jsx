@@ -1,7 +1,6 @@
-import { createContext, useContext, useEffect, useState } from 'react'
-import { authApi, borrarToken, guardarToken, leerToken } from '../services/api'
-
-const AuthContext = createContext(null)
+import { useEffect, useState } from 'react'
+import { authApi, borrarToken, EVENTO_SESION_CADUCADA, guardarToken, leerToken } from '../services/api'
+import { AuthContext } from './contextoAuth'
 
 /**
  * Estado de sesion de la aplicacion.
@@ -35,6 +34,19 @@ export function AuthProvider({ children }) {
       .finally(() => setLoading(false))
   }, [])
 
+  // Cuando el interceptor recibe un 401 borra el token y lo anuncia. Aqui se
+  // completa el cierre: sin esto el objeto `user` sobrevivia al token y la
+  // aplicacion se comportaba como si la sesion siguiera abierta hasta la
+  // siguiente recarga completa de la pagina.
+  useEffect(() => {
+    const alCaducar = () => {
+      setUser(null)
+      setLoading(false)
+    }
+    window.addEventListener(EVENTO_SESION_CADUCADA, alCaducar)
+    return () => window.removeEventListener(EVENTO_SESION_CADUCADA, alCaducar)
+  }, [])
+
   const login = async (email, password) => {
     const { data } = await authApi.login({ email, password })
     guardarToken(data.access_token)
@@ -60,5 +72,3 @@ export function AuthProvider({ children }) {
     </AuthContext.Provider>
   )
 }
-
-export const useAuth = () => useContext(AuthContext)

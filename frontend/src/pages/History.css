@@ -160,6 +160,9 @@
 .hist-primary-action:hover { background: #ff7a72; }
 
 .hist-text-link {
+  min-height: 24px;
+  display: inline-flex;
+  align-items: center;
   color: var(--tinta-2);
   font-size: .86rem;
   font-weight: 700;
@@ -519,9 +522,11 @@
 }
 
 @media (max-width: 740px) {
+  /* Igual que en el panel: apilado, la ilustracion solo restaba
+     sitio al dato. Se retira y el bloque queda de una pantalla. */
   .hist-hero { grid-template-columns: 1fr; }
-  .hist-hero-copy { padding: 30px 24px 12px; }
-  .hist-hero-visual { min-height: 330px; overflow: hidden; }
+  .hist-hero-copy { padding: 30px 24px; }
+  .hist-hero-visual { display: none; }
   .hist-mascot { width: min(370px, 86vw); right: 50%; bottom: -45%; transform: translateX(50%); animation: none; }
   .hist-orbit-one { right: 50%; transform: translateX(50%) rotate(-18deg); }
   .hist-orbit-two { right: 50%; transform: translateX(50%) rotate(-18deg); }
@@ -544,7 +549,7 @@
   .hist-hero-stats > div:last-child { grid-column: 1 / -1; padding: 14px 0 0; border-top: 1px solid var(--linea); }
   .hist-hero-actions { width: 100%; }
   .hist-primary-action { width: 100%; }
-  .hist-text-link { width: 100%; text-align: center; }
+  .hist-text-link { width: 100%; justify-content: center; text-align: center; }
   .hist-hero-visual { min-height: 300px; }
   .hist-mascot { width: min(340px, 94vw); bottom: -48%; }
   .hist-section-heading { align-items: center; }

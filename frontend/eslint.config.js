@@ -26,4 +26,22 @@ export default defineConfig([
       'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]' }],
     },
   },
+  {
+    /**
+     * Las pruebas de interfaz corren en Node, no en el navegador: necesitan
+     * `process` y no tienen nada que ver con React.
+     *
+     * La regla de los hooks hay que apagarla aqui porque los fixtures de
+     * Playwright reciben una funcion llamada `use`, y el plugin la confunde
+     * con el hook `use` de React 19.
+     */
+    files: ['playwright.config.js', 'pruebas/**/*.{js,mjs}'],
+    languageOptions: {
+      globals: { ...globals.node },
+    },
+    rules: {
+      'react-hooks/rules-of-hooks': 'off',
+      'react-refresh/only-export-components': 'off',
+    },
+  },
 ])

@@ -20,6 +20,24 @@ export const guardarToken = (token) => sessionStorage.setItem(CLAVE_TOKEN, token
 export const leerToken = () => sessionStorage.getItem(CLAVE_TOKEN)
 export const borrarToken = () => sessionStorage.removeItem(CLAVE_TOKEN)
 
+/**
+ * Aviso de sesion caducada.
+ *
+ * El interceptor no puede llamar a `AuthContext` (es un modulo, no un
+ * componente), asi que anuncia el hecho y el proveedor decide que hacer. Sin
+ * este puente, borrar el token dejaba el objeto `user` vivo en memoria: el
+ * alumno seguia viendo su nombre en la barra y navegando entre pantallas
+ * mientras TODAS las peticiones respondian 401, asi que cada pantalla se
+ * caia a su estado vacio y parecia que no tenia datos, no que su sesion
+ * habia terminado.
+ */
+export const EVENTO_SESION_CADUCADA = 'revo:sesion-caducada'
+
+const anunciarSesionCaducada = () => {
+  borrarToken()
+  window.dispatchEvent(new Event(EVENTO_SESION_CADUCADA))
+}
+
 const cliente = axios.create({
   baseURL: BASE,
   timeout: 30000,
@@ -52,7 +70,7 @@ cliente.interceptors.response.use(
       error.mensajeUsuario = `Demasiadas peticiones. Vuelve a intentarlo en ${segundos} segundos.`
       error.reintentarEn = segundos
     } else if (estado === 401) {
-      borrarToken()
+      anunciarSesionCaducada()
       error.mensajeUsuario = 'Tu sesion expiro. Vuelve a entrar.'
     } else if (estado === 403) {
       error.mensajeUsuario = 'No tienes permiso para hacer esto.'

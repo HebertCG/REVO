@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { mlApi, authApi } from '../services/api'
+import { mlApi } from '../services/api'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Cell, ResponsiveContainer, LineChart, Line, Legend, PieChart, Pie } from 'recharts'
 import './Admin.css'
 
@@ -46,15 +46,27 @@ export default function Admin() {
   const [training, setTraining] = useState(false)
   const [trainResult, setTrainResult] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [fallo, setFallo] = useState('')
   const [activeModal, setActiveModal] = useState(null)
   const [exportingCsv, setExportingCsv] = useState(false)
 
   const fetchData = () => {
+    // Sin `.catch` esta cadena dejaba un rechazo sin capturar por vuelta. Con
+    // el refresco de cada 5 s eso son 12 por minuto y por administrador con la
+    // pantalla abierta: en produccion, una alerta cada cinco segundos. Y en
+    // pantalla no se notaba nada, solo paneles vacios sin explicacion.
     Promise.all([mlApi.overview(), mlApi.trainingHistory()])
-      .then(([o, t]) => { setOverview(o.data); setTrainHistory(t.data) })
+      .then(([o, t]) => {
+        setOverview(o.data)
+        setTrainHistory(Array.isArray(t.data) ? t.data : [])
+        setFallo('')
+      })
+      .catch((e) => setFallo(e.mensajeUsuario || 'No se pudieron leer las estadisticas del modelo.'))
       .finally(() => setLoading(false))
 
-    mlApi.importances().then(i => setImportances(i.data.slice(0, 5))).catch(() => { })
+    mlApi.importances()
+      .then(i => setImportances(Array.isArray(i.data) ? i.data.slice(0, 5) : []))
+      .catch(() => { })
   }
 
   useEffect(() => { 
@@ -89,7 +101,11 @@ export default function Admin() {
     }
   }
 
-  const dist = overview?.specialization_dist || []
+  // `/stats/overview` calcula esta distribucion con un GROUP BY sobre
+  // predictions en cada refresco. Antes se guardaba aqui y no se leia en
+  // ningun sitio: 12 consultas por minuto para nada. Ahora se pinta.
+  const dist = Array.isArray(overview?.specialization_dist) ? overview.specialization_dist : []
+  const distTotal = dist.reduce((suma, item) => suma + (item.total || 0), 0)
 
   // Data for LineChart (Accuracy over time)
   const historyChartData = [...trainHistory].reverse().map((t, idx) => ({
@@ -132,6 +148,20 @@ export default function Admin() {
         )}
         {trainResult?.error && (
           <div className="admin-alert error animate-scale"><strong>Error en Backpropagation/Traning:</strong> {trainResult.error}</div>
+        )}
+
+        {/* El servicio de estadisticas puede caerse mientras la pantalla esta
+            abierta. Antes el fallo era mudo: los paneles se quedaban a cero y
+            parecia que el modelo no tenia datos. */}
+        {fallo && (
+          <div className="admin-alert error animate-scale" role="alert">
+            <strong>No hay lectura del modelo:</strong> {fallo} Se reintenta solo cada 5 segundos.
+          </div>
+        )}
+        {loading && !fallo && (
+          <div className="admin-alert animate-scale" role="status">
+            <strong>Leyendo el estado del modelo…</strong>
+          </div>
         )}
 
         {/* Ciclo de Auto-Aprendizaje (Nuevas Muestras) */}
@@ -235,6 +265,42 @@ export default function Admin() {
               </ResponsiveContainer>
             ) : (
               <div style={{ height: '260px', display: 'flex', alignItems: 'center', justifyContent: 'center' }} className="text-muted">Cargando métricas de explicabilidad...</div>
+            )}
+          </div>
+
+          {/* Distribucion por especializacion */}
+          <div className="glass admin-panel">
+            <h3 className="panel-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              🗂️ Reparto de Predicciones por Especialización
+            </h3>
+            <p className="text-muted text-xs" style={{ marginBottom: '20px' }}>
+              Cuántas veces ha recomendado el árbol cada rama. Es la foto del perfilado masivo del alumnado.
+            </p>
+            {dist.length > 0 ? (
+              <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: 14 }}>
+                {dist.map((spec) => {
+                  const pct = distTotal ? Math.round((spec.total / distTotal) * 100) : 0
+                  return (
+                    <li key={spec.name}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, marginBottom: 6 }}>
+                        <span className="text-sm" style={{ color: '#F1F5F9', fontWeight: 700 }}>
+                          <span aria-hidden="true">{spec.icon} </span>{spec.name}
+                        </span>
+                        <span className="text-sm" style={{ color: spec.color || '#94A3B8', fontWeight: 800, whiteSpace: 'nowrap' }}>
+                          {spec.total} <span style={{ color: '#64748B', fontWeight: 400 }}>({pct}%)</span>
+                        </span>
+                      </div>
+                      <div style={{ height: 8, borderRadius: 999, background: 'rgba(255,255,255,0.05)', overflow: 'hidden' }}>
+                        <div style={{ width: `${pct}%`, height: '100%', background: spec.color || '#6C63FF', transition: 'width .6s cubic-bezier(0.4,0,0.2,1)' }} />
+                      </div>
+                    </li>
+                  )
+                })}
+              </ul>
+            ) : (
+              <p className="text-muted text-sm" style={{ margin: 0 }}>
+                Todavía no hay predicciones registradas.
+              </p>
             )}
           </div>
 

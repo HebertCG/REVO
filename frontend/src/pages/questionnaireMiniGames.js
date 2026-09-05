@@ -26,10 +26,32 @@ export function chooseQuestionnaireMiniGame(randomValue = Math.random(), previou
   return QUESTIONNAIRE_MINI_GAMES[(selectedIndex + 1) % QUESTIONNAIRE_MINI_GAMES.length]
 }
 
-export function resolveQuestionnaireEntryView({ stage, miniGame, loading, hasQuestion }) {
+/**
+ * Decide que pantalla de entrada se pinta.
+ *
+ * El orden importa y antes estaba mal. La vista de error se comprobaba
+ * despues del sorteo del minijuego, y a las dos ramas anteriores se llega
+ * siempre que la partida no arranco: con un fallo al crear la sesion el
+ * alumno se quedaba en el selector con el boton apagado, y con una sesion
+ * sin preguntas se quedaba para siempre ante un boton que decia "Preparando
+ * preguntas...". La pantalla de error existia, estaba maquetada, y no habia
+ * forma de llegar a ella.
+ *
+ * Ahora el error va primero, con dos excepciones que van antes que el:
+ *
+ * - `busy` (enviando respuestas o cambiando de fase) pinta su propia
+ *   pantalla y usa `error` para avisos temporales de reintento
+ *   ("Reintentando en 10s"), que no son un final de partida.
+ * - Mientras `loading` siga en pie no hay fallo que declarar: todavia no ha
+ *   llegado la respuesta.
+ */
+export function resolveQuestionnaireEntryView({
+  stage, miniGame, loading, hasQuestion, error = '', busy = false,
+}) {
+  if (busy) return 'ocupado'
+  if (error || (!loading && !hasQuestion)) return 'error'
   if (stage === 'selecting' || !miniGame) return 'selector'
   if (stage === 'selected' || loading) return 'selected'
-  if (!hasQuestion) return 'error'
   if (stage === 'intro') return 'intro'
   return 'game'
 }

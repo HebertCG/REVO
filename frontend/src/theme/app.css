@@ -3,25 +3,25 @@
 
    Público objetivo: estudiantes de 18 a 24 años. La dirección es
    "instrumento de medición nocturno": superficies profundas, un
-   acento frío, y el dato siempre por encima de la decoración.
+   acento rojo preciso, y el dato siempre por encima de la decoración.
 
    Regla que atraviesa todo: el texto lleva color de texto, nunca el
    color de la serie. El acento de color va en una marca al lado.
    ════════════════════════════════════════════════════════════ */
 
 .rv {
-  --plano:      #0B1020;   /* fondo de página */
-  --sup:        #131A2E;   /* superficie de tarjeta */
-  --sup-alta:   #1A2440;   /* superficie elevada / hover */
-  --linea:      #24304D;
-  --linea-sutil:#1B2440;
+  --plano:      #0B0B0D;   /* fondo de página */
+  --sup:        #151517;   /* superficie de tarjeta */
+  --sup-alta:   #202024;   /* superficie elevada / hover */
+  --linea:      #343438;
+  --linea-sutil:#29292D;
 
-  --tinta:      #EEF2FB;   /* texto principal */
-  --tinta-2:    #A9B6D0;   /* texto secundario */
-  --tinta-3:    #6E7C99;   /* texto atenuado */
+  --tinta:      #FFFFFF;   /* texto principal */
+  --tinta-2:    #C4C4CA;   /* texto secundario */
+  --tinta-3:    #85858D;   /* texto atenuado */
 
-  --acento:     #7AA7F0;
-  --acento-alto:#9DC0FA;
+  --acento:     #E10600;
+  --acento-alto:#FF554B;
 
   --r-s: 10px;
   --r-m: 16px;
@@ -29,8 +29,8 @@
 
   --paso: clamp(14px, 2.2vw, 22px);
 
-  --f-titulo: 'Space Grotesk', 'Plus Jakarta Sans', system-ui, sans-serif;
-  --f-texto:  'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  --f-titulo: 'Geist', Arial, sans-serif;
+  --f-texto:  'Geist', Arial, sans-serif;
   --f-dato:   'JetBrains Mono', ui-monospace, 'SF Mono', monospace;
 
   background: var(--plano);
@@ -115,7 +115,7 @@
 .rv-btn:active { transform: none; }
 .rv-btn:disabled { opacity: .45; cursor: not-allowed; transform: none; }
 
-.rv-btn-1 { background: var(--acento); color: #0B1020; }
+.rv-btn-1 { background: var(--acento); color: #FFFFFF; }
 .rv-btn-1:hover:not(:disabled) { background: var(--acento-alto); }
 .rv-btn-2 { background: transparent; color: var(--tinta); border-color: var(--linea); }
 .rv-btn-2:hover:not(:disabled) { background: var(--sup-alta); border-color: var(--acento); }

@@ -1,0 +1,176 @@
+@import url('https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800;900&display=swap');
+
+/*
+ * Identidad cromática REVO — Rosso
+ * Unifica marca y producto sin cambiar la estructura de las vistas internas.
+ * Los verdes y amarillos quedan reservados exclusivamente para estados.
+ */
+:root {
+  --bg-primary: #0b0b0d;
+  --bg-secondary: #151517;
+  --bg-card: rgba(255, 255, 255, .045);
+  --bg-card-hover: rgba(255, 255, 255, .075);
+  --border: rgba(255, 255, 255, .11);
+  --border-active: rgba(225, 6, 0, .62);
+  --purple: #e10600;
+  --purple-texto: #ff817a;
+  --purple-light: #ff554b;
+  --cyan: #ffffff;
+  --pink: #ff554b;
+  --red: #ff554b;
+  --text-primary: #ffffff;
+  --text-secondary: #b9b9bf;
+  --text-muted: #77777f;
+  --gradient-main: linear-gradient(135deg, #b80400 0%, #e10600 58%, #ff554b 100%);
+  --gradient-card: linear-gradient(135deg, rgba(225, 6, 0, .18), rgba(255, 255, 255, .025));
+  --glow-purple: 0 0 40px rgba(225, 6, 0, .28);
+  --glow-cyan: 0 0 40px rgba(255, 255, 255, .1);
+  --transition: color .25s ease, background-color .25s ease, border-color .25s ease, transform .25s cubic-bezier(.4, 0, .2, 1), box-shadow .25s ease;
+}
+
+body {
+  background: var(--bg-primary);
+  font-family: 'Geist', Arial, sans-serif;
+}
+
+::-webkit-scrollbar-track { background: #151517; }
+::-webkit-scrollbar-thumb { background: #e10600; }
+
+body .glass {
+  background: rgba(21, 21, 23, .92);
+  border-color: rgba(255, 255, 255, .1);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+body .glass:hover { border-color: rgba(225, 6, 0, .5); }
+body .btn-primary { color: #fff; box-shadow: 0 5px 24px rgba(225, 6, 0, .34); }
+body .btn-secondary:hover { border-color: #e10600; color: #ff817a; }
+body .btn-ghost { background: rgba(225, 6, 0, .15); color: #ff817a; }
+body .btn-ghost:hover { background: rgba(225, 6, 0, .25); }
+body .form-input:focus { border-color: #e10600; box-shadow: 0 0 0 3px rgba(225, 6, 0, .18); }
+body .badge-purple,
+body .badge-cyan { background: rgba(225, 6, 0, .14); color: #ff817a; border-color: rgba(225, 6, 0, .4); }
+
+/* Navegación y pie */
+body .navbar-shell { background: rgba(11, 11, 13, .94); border-bottom-color: rgba(255, 255, 255, .08); }
+body .navbar-shell.scrolled { background: transparent; }
+body .navbar-shell.scrolled .navbar { background: rgba(16, 16, 18, .92); border-color: rgba(255, 255, 255, .13); }
+body .logo-dot,
+body .footer-logo-dot { color: #e10600; }
+body .nav-link { color: #aaaab1; }
+body .nav-link.active { color: #fff; }
+body .nav-link.active::after { background: #e10600; }
+body .user-avatar { background: #e10600; color: #fff; }
+body .user-avatar:hover { box-shadow: 0 0 0 3px rgba(225, 6, 0, .28); }
+body .navbar-right { background-color: rgba(11, 11, 13, .98); }
+body .site-footer { background: #0b0b0d; color: #c4c4ca; }
+body .footer-col a::before { background: #e10600; }
+body .footer-tagline,
+body .footer-col a,
+body .footer-rama { color: #aaaab1; }
+body .footer-meta,
+body .footer-rama-mas,
+body .footer-bottom p { color: #77777f; }
+
+/* Dashboard */
+body .rv.dash {
+  background: radial-gradient(circle at 82% 8%, rgba(225, 6, 0, .12), transparent 28rem), var(--plano);
+}
+body .dash::before { background-image: radial-gradient(rgba(225, 6, 0, .28) 1px, transparent 1px); }
+body .dash-contexto,
+body .dash-senal-ruta { color: #ff817a; }
+body .dash-heroe-sombra { background: linear-gradient(90deg, var(--plano), rgba(11, 11, 13, .98) 29%, rgba(11, 11, 13, .72) 48%, transparent 72%); }
+body .dash-vacio-sombra { background: linear-gradient(90deg, #111113, rgba(17, 17, 19, .96) 35%, rgba(17, 17, 19, .7) 55%, transparent 82%); }
+body .dash-vacio { background: #111113; border-color: rgba(225, 6, 0, .26); }
+body .dash-heroe .rv-btn-2 { background: rgba(11, 11, 13, .3); backdrop-filter: none; }
+body .dash-fila:hover { background: rgba(225, 6, 0, .07); }
+body .dash-enlace:hover { color: #ff817a; }
+
+/* Historial */
+body .rv.hist {
+  background: radial-gradient(circle at 73% 12%, rgba(225, 6, 0, .15), transparent 28rem), var(--plano);
+}
+body .hist-atmosphere { background-image: radial-gradient(rgba(225, 6, 0, .28) 1px, transparent 1px); }
+body .hist-hero {
+  border-color: rgba(225, 6, 0, .3);
+  background: linear-gradient(116deg, #202024 0%, #151517 58%, #0b0b0d 100%);
+}
+body .hist-hero::before { background: linear-gradient(to bottom, #ff554b, var(--hist-spec), #8f0300); }
+body .hist-kicker { color: #ff817a; }
+body .hist-kicker span { color: #e10600; }
+body .hist-primary-action { background: #e10600; color: #fff; box-shadow: 0 12px 28px rgba(225, 6, 0, .25); }
+body .hist-primary-action:hover { background: #ff3428; }
+body .hist-orbit { border-color: rgba(225, 6, 0, .3); }
+body .hist-orbit::after,
+body .hist-orbit-two::after { background: #e10600; box-shadow: 0 0 18px #e10600; }
+body .hist-live-signal { background: rgba(11, 11, 13, .88); backdrop-filter: none; }
+
+/* Resultados y administración */
+body .results-page,
+body .admin-page { background: #0b0b0d; }
+body .results-panel,
+body .admin-panel { border-color: rgba(255, 255, 255, .1); }
+body .course-card,
+body .job-card { background: #19191c; }
+body .roadmap-node { background: #0b0b0d; }
+body .btn-apply { background: #e10600 !important; }
+body .admin-title,
+body .panel-title,
+body .result-main-name { color: #fff; }
+
+/* Acceso: prevalece sobre la portada en línea sin alterar su composición. */
+body .revo-auth { background: #0b0b0d; font-family: 'Geist', Arial, sans-serif; }
+body .revo-auth a { color: #b80400; }
+body .revo-auth a:hover { color: #e10600; }
+body .revo-auth > div:last-child { background: #f4f4f2 !important; }
+body .revo-auth > div:last-child > div { background: #fff !important; }
+body .revo-auth > div:last-child > div > div:first-child { background: #e10600 !important; }
+body .revo-auth > div:last-child > div > div:first-child > div:first-child { background: #8f0300 !important; }
+body .revo-auth > div:last-child > div > div:first-child > div:nth-child(2) { background: #ff554b !important; }
+body .revo-auth > div:last-child > div > div:first-child > div:nth-child(3) > span:first-child { color: #e10600 !important; }
+body .revo-auth > div:last-child > div > div:first-child > div:nth-child(3) span span { color: #fff !important; }
+body .revo-auth .rvl-f1:focus { border-color: #e10600 !important; box-shadow: 0 0 0 3px rgba(225, 6, 0, .15) !important; }
+body .revo-auth .rvl-a4 { background: #e10600 !important; box-shadow: 0 8px 20px rgba(225, 6, 0, .28) !important; }
+body .revo-auth .rvl-a4:hover { background: #b80400 !important; }
+body .revo-auth .rvl-h5:hover { border-color: #e10600; color: #b80400; }
+body .revo-auth input[type='checkbox'] { accent-color: #e10600 !important; }
+
+/* Cuestionario: mismo juego, nueva iluminación de marca. */
+body .rv.quiz,
+body .rv.quiz-espera,
+body .rv.quiz-selector,
+body .rv.quiz-intro {
+  --mesa: #111113;
+  --mesa-profunda: #08080a;
+  --coral: #e10600;
+  --azul-tinta: #b80400;
+  --oro: #ff817a;
+  --cat: #e10600;
+  background-color: #0b0b0d;
+}
+body .quiz-ambiente { background: radial-gradient(circle at 18% 16%, rgba(225, 6, 0, .18), transparent 30rem), #0b0b0d; }
+body .quiz-hud { background: rgba(11, 11, 13, .94); border-color: #343438; }
+body .quiz-selector-opcion.road,
+body .quiz-selector-elegido-road .quiz-selector-jugar,
+body .quiz-intro-road .quiz-intro-pasos b,
+body .quiz-intro-road .quiz-intro-boton { background: #fff !important; color: #0b0b0d !important; }
+body .quiz-selector-opcion.arcade,
+body .quiz-selector-elegido-arcade .quiz-selector-jugar,
+body .quiz-intro-arcade .quiz-intro-boton { background: #ff554b !important; color: #0b0b0d !important; }
+body .quiz-selector-elegido-road .quiz-selector-opcion.road,
+body .quiz-selector-elegido-arcade .quiz-selector-opcion.arcade { border-color: #e10600; box-shadow: 0 0 0 1px rgba(225, 6, 0, .24), 0 15px 34px rgba(225, 6, 0, .16); }
+body .quiz-intro-road,
+body .quiz-intro-arcade { --cat: #e10600; }
+body .quiz-arcade-progreso i { background: linear-gradient(90deg, #8f0300, #e10600, #ff817a); }
+body .quiz-controles-arcade button.disparar { border-color: #e10600; background: #e10600; color: #fff; }
+
+@media (max-width: 820px) {
+  body .dash-heroe-sombra { background: linear-gradient(0deg, var(--plano), rgba(11, 11, 13, .98) 43%, rgba(11, 11, 13, .15) 70%, transparent 90%); }
+  body .dash-vacio-sombra { background: linear-gradient(0deg, #111113, rgba(17, 17, 19, .95) 42%, rgba(17, 17, 19, .16) 82%); }
+}
+
+@media (max-width: 620px) {
+  body .dash-heroe-sombra { background: linear-gradient(0deg, var(--plano), var(--plano) 50%, rgba(11, 11, 13, .08) 78%); }
+  body .dash-vacio-sombra { background: linear-gradient(0deg, #111113, #111113 48%, rgba(17, 17, 19, .08) 78%); }
+}

@@ -6,16 +6,16 @@ import { RadarChart, PolarGrid, PolarAngleAxis, Radar, ResponsiveContainer, BarC
 import './Results.css'
 
 const CAREERS = {
-  'Desarrollo de Software':               { paths: ['Frontend Developer', 'Backend Developer', 'Full Stack Developer', 'Mobile Developer', 'Software Architect'], color:'#3B82F6' },
-  'Data Science & IA':                    { paths: ['Data Scientist', 'Machine Learning Engineer', 'Data Analyst', 'AI Engineer', 'Computer Vision Engineer'], color:'#10B981' },
-  'Infraestructura & Cloud':              { paths: ['DevOps Engineer', 'Cloud Engineer', 'SysAdmin', 'Network Engineer', 'SRE'], color:'#8B5CF6' },
-  'Ciberseguridad':                       { paths: ['Ethical Hacker / Pentester', 'Security Analyst (SOC)', 'Digital Forensics', 'Security Engineer'], color:'#EF4444' },
-  'Soporte Técnico & IT Ops':             { paths: ['IT Support Specialist', 'Soporte Técnico', 'Field Support Technician', 'IT Operations'], color:'#F59E0B' },
-  'QA & Testing':                         { paths: ['QA Automation Engineer', 'Performance Tester', 'SDET', 'QA Analyst'], color:'#EC4899' },
-  'Gestión y Producto':                   { paths: ['Product Manager', 'Scrum Master', 'Project Manager (PM)', 'Product Owner'], color:'#6366F1' },
-  'Diseño UX/UI':                         { paths: ['UX Designer', 'UI Designer', 'Product Designer', 'UX Researcher'], color:'#F43F5E' },
-  'Sistemas Empresariales':               { paths: ['ERP Consultant (SAP/Oracle)', 'CRM Specialist', 'Business Intelligence', 'IT Consultant'], color:'#14B8A6' },
-  'Investigación e Innovación':           { paths: ['Blockchain Developer', 'IoT Engineer', 'AR/VR Developer', 'Investigador en IA'], color:'#64748B' },
+  'Desarrollo de Software':               { paths: ['Frontend Developer', 'Backend Developer', 'Full Stack Developer', 'Mobile Developer', 'Software Architect'], color:'#E10600' },
+  'Data Science & IA':                    { paths: ['Data Scientist', 'Machine Learning Engineer', 'Data Analyst', 'AI Engineer', 'Computer Vision Engineer'], color:'#FF4438' },
+  'Infraestructura & Cloud':              { paths: ['DevOps Engineer', 'Cloud Engineer', 'SysAdmin', 'Network Engineer', 'SRE'], color:'#B80400' },
+  'Ciberseguridad':                       { paths: ['Ethical Hacker / Pentester', 'Security Analyst (SOC)', 'Digital Forensics', 'Security Engineer'], color:'#FF6B61' },
+  'Soporte Técnico & IT Ops':             { paths: ['IT Support Specialist', 'Soporte Técnico', 'Field Support Technician', 'IT Operations'], color:'#8F0300' },
+  'QA & Testing':                         { paths: ['QA Automation Engineer', 'Performance Tester', 'SDET', 'QA Analyst'], color:'#D5231C' },
+  'Gestión y Producto':                   { paths: ['Product Manager', 'Scrum Master', 'Project Manager (PM)', 'Product Owner'], color:'#FF817A' },
+  'Diseño UX/UI':                         { paths: ['UX Designer', 'UI Designer', 'Product Designer', 'UX Researcher'], color:'#A30A05' },
+  'Sistemas Empresariales':               { paths: ['ERP Consultant (SAP/Oracle)', 'CRM Specialist', 'Business Intelligence', 'IT Consultant'], color:'#F1362D' },
+  'Investigación e Innovación':           { paths: ['Blockchain Developer', 'IoT Engineer', 'AR/VR Developer', 'Investigador en IA'], color:'#C75B56' },
 }
 
 // Mapeo REVO → categoría slug de Remotive API
@@ -98,10 +98,10 @@ const ACTION_PLAN = {
 
 // Arquetipos profesionales (usados por Fase 3 del cuestionario)
 const ARCHETYPES = {
-  A: { name: 'El Arquitecto Analítico', icon: '🏗️', desc: 'Piensas antes de actuar. Diseñas sistemas robustos y documentados. Ideal para roles de Arquitectura de Software, Data Engineering o Security.', color: '#3B82F6' },
-  B: { name: 'El Ejecutor Pragmático',  icon: '⚡', desc: 'Tu prioridad es entregar resultados rápidos. Sobresales bajo presión. Altamente compatible con roles de DevOps, Soporte Crítico o Desarrollo Ágil.', color: '#F59E0B' },
-  C: { name: 'El Colaborador Creativo', icon: '🎨', desc: 'Aprendes mejor en equipo y con proyectos reales. Tu perfil encaja perfectamente en UX/UI, Gestión de Producto y roles de comunicación técnica.', color: '#EC4899' },
-  D: { name: 'El Perfeccionista Técnico', icon: '🔬', desc: 'La calidad es tu obsesión. Revisas todo antes de publicar. Este perfil es el núcleo de QA, Investigación y Ciberseguridad.', color: '#10B981' },
+  A: { name: 'El Arquitecto Analítico', icon: '🏗️', desc: 'Piensas antes de actuar. Diseñas sistemas robustos y documentados. Ideal para roles de Arquitectura de Software, Data Engineering o Security.', color: '#E10600' },
+  B: { name: 'El Ejecutor Pragmático',  icon: '⚡', desc: 'Tu prioridad es entregar resultados rápidos. Sobresales bajo presión. Altamente compatible con roles de DevOps, Soporte Crítico o Desarrollo Ágil.', color: '#FF554B' },
+  C: { name: 'El Colaborador Creativo', icon: '🎨', desc: 'Aprendes mejor en equipo y con proyectos reales. Tu perfil encaja perfectamente en UX/UI, Gestión de Producto y roles de comunicación técnica.', color: '#C75B56' },
+  D: { name: 'El Perfeccionista Técnico', icon: '🔬', desc: 'La calidad es tu obsesión. Revisas todo antes de publicar. Este perfil es el núcleo de QA, Investigación y Ciberseguridad.', color: '#B80400' },
 }
 
 // Matriz de Fusión: Especialidad Técnica (ML) + Arquetipo Psicométrico -> Rol Definitivo
@@ -311,7 +311,7 @@ export default function Results() {
   if (!data) return <div className="page"><div className="container"><p className="text-muted">Resultado no encontrado.</p></div></div>
 
   const primary = data.primary
-  const color = primary?.color || CAREERS[primary?.name]?.color || '#6C63FF'
+  const color = CAREERS[primary?.name]?.color || '#E10600'
   const careers = CAREERS[primary?.name]?.paths || []
   const predictionId = data.prediction_id || id
 
@@ -326,7 +326,7 @@ export default function Results() {
   const barData = Object.entries(data.all_probabilities || {}).map(([name, val]) => ({
     name: name.split(' ')[0],
     value: val,
-    color: CAREERS[name]?.color || '#6C63FF',
+    color: CAREERS[name]?.color || '#E10600',
   })).sort((a, b) => b.value - a.value)
 
   return (
@@ -380,7 +380,7 @@ export default function Results() {
           <div className="glass results-panel animate-fade" style={{ animationDelay:'0.1s' }}>
             <h3 className="panel-title">Top 3 Especializaciones</h3>
             {(data.top3 || []).map((s, i) => {
-              const c = s.color || CAREERS[s.name]?.color || '#6C63FF'
+              const c = CAREERS[s.name]?.color || '#E10600'
               return (
                 <div key={i} className="top3-item">
                   <div className="top3-rank" style={{ color: c }}>#{i+1}</div>
@@ -443,28 +443,28 @@ export default function Results() {
               Sigue este camino estructurado para ir desde cero hasta maestro en tu rama ideal.
             </p>
             <div className="roadmap-timeline">
-              <div className="roadmap-line" style={{ background: `linear-gradient(to bottom, ${primary?.color}88, rgba(255,255,255,0.1))` }}></div>
+              <div className="roadmap-line" style={{ background: `linear-gradient(to bottom, ${color}88, rgba(255,255,255,0.1))` }}></div>
               {courses.map((c, idx) => (
                 <div key={c.id} className="roadmap-step">
-                  <div className="roadmap-node" style={{ borderColor: primary?.color }}>
-                    <div className="roadmap-dot" style={{ background: primary?.color }}>{idx + 1}</div>
+                  <div className="roadmap-node" style={{ borderColor: color }}>
+                    <div className="roadmap-dot" style={{ background: color }}>{idx + 1}</div>
                   </div>
-                  <a href={c.url} target="_blank" rel="noopener noreferrer" className="course-card glass-hover roadmap-card" style={{ '--card-color': primary?.color || '#3B82F6' }}>
+                  <a href={c.url} target="_blank" rel="noopener noreferrer" className="course-card glass-hover roadmap-card" style={{ '--card-color': color }}>
                     <div className="course-thumb" style={{ 
-                        background: `linear-gradient(135deg, ${primary?.color}33 0%, rgba(15,23,42,1) 100%)`,
-                        borderBottom: `2px solid ${primary?.color}44`
+                        background: `linear-gradient(135deg, ${color}33 0%, rgba(15,15,17,1) 100%)`,
+                        borderBottom: `2px solid ${color}44`
                     }}>
                       <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '3rem', opacity: 0.15 }}>
                         {primary?.icon || '🎓'}
                       </div>
-                      <span className="course-platform" style={{ boxShadow: `0 4px 12px ${primary?.color}33` }}>{c.platform}</span>
+                      <span className="course-platform" style={{ boxShadow: `0 4px 12px ${color}33` }}>{c.platform}</span>
                     </div>
                     <div className="course-info">
-                      <span className="badge" style={{ alignSelf: 'flex-start', background: `${primary?.color}22`, color: primary?.color, border: `1px solid ${primary?.color}44` }}>{c.level}</span>
+                      <span className="badge" style={{ alignSelf: 'flex-start', background: `${color}22`, color, border: `1px solid ${color}44` }}>{c.level}</span>
                       <h4 className="course-title">{c.title}</h4>
                       <div className="course-meta">
                         <span className={`badge ${c.price_model === 'Gratis' ? 'badge-success' : 'badge-secondary'}`}>{c.price_model}</span>
-                        <span className="action-text text-xs" style={{ color: primary?.color, marginLeft: 'auto', fontWeight: 'bold' }}>Empezar Nivel →</span>
+                        <span className="action-text text-xs" style={{ color, marginLeft: 'auto', fontWeight: 'bold' }}>Empezar Nivel →</span>
                       </div>
                     </div>
                   </a>

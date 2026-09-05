@@ -10,28 +10,26 @@
  */
 
 export const SPECS = {
-  'Desarrollo de Software':     { color: '#3B82F6', icon: '💻', short: 'Desarrollo' },
-  'Data Science & IA':          { color: '#10B981', icon: '🧠', short: 'Data & IA' },
-  'Infraestructura & Cloud':    { color: '#8B5CF6', icon: '☁️', short: 'Infra & Cloud' },
-  'Ciberseguridad':             { color: '#EF4444', icon: '🔐', short: 'Ciberseguridad' },
-  'Soporte Técnico & IT Ops':   { color: '#F59E0B', icon: '🛠️', short: 'Soporte IT' },
-  'QA & Testing':               { color: '#EC4899', icon: '🧪', short: 'QA & Testing' },
-  'Gestión y Producto':         { color: '#6366F1', icon: '📈', short: 'Gestión' },
-  'Diseño UX/UI':               { color: '#F43F5E', icon: '🎨', short: 'UX/UI' },
-  'Sistemas Empresariales':     { color: '#14B8A6', icon: '🏢', short: 'Sist. Empresariales' },
-  // #64748B leía como gris puro sobre el fondo oscuro (croma 0.04);
-  // se le subió el croma conservando el matiz pizarra.
-  'Investigación e Innovación': { color: '#7C8CF8', icon: '🔬', short: 'Investigación' },
+  'Desarrollo de Software':     { color: '#E10600', icon: '💻', short: 'Desarrollo' },
+  'Data Science & IA':          { color: '#FF4438', icon: '🧠', short: 'Data & IA' },
+  'Infraestructura & Cloud':    { color: '#B80400', icon: '☁️', short: 'Infra & Cloud' },
+  'Ciberseguridad':             { color: '#FF6B61', icon: '🔐', short: 'Ciberseguridad' },
+  'Soporte Técnico & IT Ops':   { color: '#8F0300', icon: '🛠️', short: 'Soporte IT' },
+  'QA & Testing':               { color: '#D5231C', icon: '🧪', short: 'QA & Testing' },
+  'Gestión y Producto':         { color: '#FF817A', icon: '📈', short: 'Gestión' },
+  'Diseño UX/UI':               { color: '#A30A05', icon: '🎨', short: 'UX/UI' },
+  'Sistemas Empresariales':     { color: '#F1362D', icon: '🏢', short: 'Sist. Empresariales' },
+  'Investigación e Innovación': { color: '#C75B56', icon: '🔬', short: 'Investigación' },
 }
 
-const POR_DEFECTO = { color: '#6C63FF', icon: '🎓', short: '' }
+const POR_DEFECTO = { color: '#E10600', icon: '🎓', short: '' }
 
 export const specMeta = (nombre) => SPECS[nombre] || POR_DEFECTO
 export const specColor = (nombre) => specMeta(nombre).color
 export const specIcon = (nombre) => specMeta(nombre).icon
 
 /** Color único de serie para los gráficos. Un solo trazo, sin leyenda. */
-export const SERIE = '#7AA7F0'
+export const SERIE = '#E10600'
 
 /** Estados semánticos. Nunca se reutilizan como color de serie. */
 export const ESTADO = {
@@ -43,10 +41,10 @@ export const ESTADO = {
 
 /** Niveles de progreso del REVO Score. */
 export const NIVELES = [
-  { min: 0,   label: 'Explorador',    icon: '🌱', color: '#94A3B8' },
-  { min: 201, label: 'Emergente',     icon: '🔥', color: '#FBBF24' },
-  { min: 501, label: 'Consolidado',   icon: '⚡', color: '#7AA7F0' },
-  { min: 801, label: 'Élite',         icon: '🏆', color: '#34D399' },
+  { min: 0,   label: 'Explorador',    icon: '🌱', color: '#A3A3A8' },
+  { min: 201, label: 'Emergente',     icon: '🔥', color: '#E10600' },
+  { min: 501, label: 'Consolidado',   icon: '⚡', color: '#FF554B' },
+  { min: 801, label: 'Élite',         icon: '🏆', color: '#FFFFFF' },
 ]
 
 export function nivelDe(score) {

@@ -13,12 +13,6 @@ import {
 } from './landingContent'
 import './PanelInformativo.css'
 
-const RESULT_BARS = [
-  { name: 'Data Science e IA', value: 82 },
-  { name: 'Desarrollo de Software', value: 61 },
-  { name: 'Investigación', value: 44 },
-]
-
 function ArrowIcon() {
   return <span aria-hidden="true">→</span>
 }
@@ -83,28 +77,6 @@ export default function PanelInformativo() {
               src={personaTrayectoria}
               alt="Personaje REVO explorando una trayectoria de especialización"
             />
-
-            <div className="lp-result-preview" aria-label="Ejemplo de una recomendación REVO">
-              <div className="lp-result-head">
-                <span>Ejemplo de resultado</span>
-                <strong>82%</strong>
-              </div>
-              <h2>Tu señal apunta a datos.</h2>
-              <div className="lp-result-bars">
-                {RESULT_BARS.map((result, index) => (
-                  <div key={result.name}>
-                    <span><b>{String(index + 1).padStart(2, '0')}</b>{result.name}</span>
-                    <i><span style={{ width: `${result.value}%` }} /></i>
-                  </div>
-                ))}
-              </div>
-              <p>No es una sentencia. Es una dirección con contexto.</p>
-            </div>
-
-            <div className="lp-live-note">
-              <span aria-hidden="true" />
-              Perfil en construcción
-            </div>
           </div>
         </div>
       </section>

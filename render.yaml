@@ -10,8 +10,9 @@
 # servicio), asi que la primera peticion despues de un rato puede tardar
 # bastante y parecer que la aplicacion esta rota.
 #
-# Para una sustentacion: entra unos minutos antes y navega una pantalla de
-# cada servicio para dejarlos despiertos.
+# Para una sustentacion, diez minutos antes:
+#     bash infraestructura/render/calentar.sh https://TU-PASARELA.onrender.com
+# Despierta los cuatro y dice cuales estan en pie.
 #
 # La base de datos va en Supabase, no en Render.
 # ============================================================
@@ -24,11 +25,14 @@
 # secreto de pasarela (REQUIRE_GATEWAY + GATEWAY_SECRET). Por eso aqui es
 # obligatorio, no opcional.
 #
-# Antes de desplegar hay que crear a mano en el panel de Render:
-#   1. Un PostgreSQL gestionado.
-#   2. Un Redis (o una instancia de Upstash) para los cupos de peticiones.
-#   3. Aplicar TODAS las migraciones de database/ en orden y dar contrasena
-#      a los roles que crean: revo_auth, revo_survey, revo_ml y revo_service.
+# La base de datos NO se crea en Render: esta en Supabase, con el esquema y
+# los cuatro roles ya instalados. Tampoco hace falta Redis: con REDIS_URL
+# vacia, los cupos de peticiones se cuentan en memoria del proceso, y con
+# una sola instancia por servicio eso es correcto.
+#
+# Lo unico que hay que escribir a mano en el panel son los valores marcados
+# con `sync: false`, y las tres URL de la pasarela, que no existen hasta que
+# Render crea los servicios.
 #
 # IMPORTANTE: cada servicio usa SU PROPIO rol en DATABASE_URL, no uno
 # compartido. Es lo que impide que el cuestionario pueda leer la tabla de
@@ -167,11 +171,17 @@ services:
         value: "2"
       - key: CORS_ORIGINS
         sync: false
-      # El modelo entrenado necesita sobrevivir a los reinicios: sin disco,
-      # cada despliegue vuelve a entrenar desde cero al arrancar.
+      # El modelo viaja versionado en el repositorio, asi que al arrancar
+      # existe y se carga sin reentrenar (ver preparar_modelo en main.py).
+      #
+      # Antes habia aqui un disco de 1 GB en /var/data/modelo para que un
+      # modelo REENTRENADO sobreviviera a los reinicios. El plan gratuito
+      # de Render no admite discos y el Blueprint se niega a crearse con
+      # uno, asi que se quito: un reentrenamiento lanzado desde el panel
+      # de administracion dura lo que dure esa instancia y se pierde al
+      # reiniciarse. El modelo del repositorio siempre vuelve.
+      #
+      # Si el reentrenamiento pasa a usarse de verdad, el sitio del modelo
+      # no es el disco local sino un almacenamiento externo.
       - key: MODEL_PATH
-        value: /var/data/modelo/decision_tree.pkl
-    disk:
-      name: modelo
-      mountPath: /var/data/modelo
-      sizeGB: 1
+        value: model/saved/decision_tree.pkl

@@ -53,3 +53,14 @@ htmlcov/
 # Copias de seguridad de la base de datos (contienen datos personales)
 copias/
 *.sql.gz
+
+# Contexto de herramientas de diseno (local, no es parte del sistema)
+.impeccable/
+
+# Documentos de trabajo academico en binario
+docs/*.docx
+docs/*.pdf
+
+# Documentos de trabajo interno (no describen el sistema publicado)
+PRD.md
+PRODUCT.md

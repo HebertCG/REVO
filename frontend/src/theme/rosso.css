@@ -1,5 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800;900&display=swap');
-
 /*
  * Identidad cromática REVO — Rosso
  * Unifica marca y producto sin cambiar la estructura de las vistas internas.
@@ -71,7 +69,7 @@ body .footer-col a,
 body .footer-rama { color: #aaaab1; }
 body .footer-meta,
 body .footer-rama-mas,
-body .footer-bottom p { color: #77777f; }
+body .footer-bottom p { color: #8d8d95; }
 
 /* Dashboard */
 body .rv.dash {
@@ -113,6 +111,7 @@ body .results-panel,
 body .admin-panel { border-color: rgba(255, 255, 255, .1); }
 body .course-card,
 body .job-card { background: #19191c; }
+body .results-page .course-info .badge { color: #fff !important; }
 body .roadmap-node { background: #0b0b0d; }
 body .btn-apply { background: #e10600 !important; }
 body .admin-title,

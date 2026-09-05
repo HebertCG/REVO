@@ -146,7 +146,7 @@ Los servicios Python se prueban con `pytest` desde `services/`.
 |---|---|
 | [`docs/DESPLIEGUE.md`](docs/DESPLIEGUE.md) | Despliegue con Docker Compose |
 | [`docs/DESPLIEGUE_NUBE.md`](docs/DESPLIEGUE_NUBE.md) | Postgres gestionado y verificación remota |
-| [`docs/DESPLIEGUE_SUPABASE.md`](docs/DESPLIEGUE_SUPABASE.md) | Base de datos gratuita en Supabase |
+| [`docs/DESPLIEGUE_SUPABASE.md`](docs/DESPLIEGUE_SUPABASE.md) | Base de datos gratuita en Supabase, con instalador de un solo fichero |
 | [`docs/SEGURIDAD.md`](docs/SEGURIDAD.md) | Modelo de amenazas y decisiones de seguridad |
 | [`render.yaml`](render.yaml) | Definición de servicios para Render |
 | [`frontend/vercel.json`](frontend/vercel.json) | Frontend en Vercel — ver nota abajo |

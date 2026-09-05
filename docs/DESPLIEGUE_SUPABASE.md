@@ -31,56 +31,63 @@ contraseña del rol `postgres`: solo se muestra una vez.
 Elige la región más cercana a tus usuarios. Con Render en Oregon, `us-west`
 evita cruzar el continente en cada consulta.
 
-## 2. Aplicar las migraciones
+## 2. Ejecutar la instalación
 
-En el panel, **SQL Editor**. Pega y ejecuta el contenido de `database/`
-**en orden numérico**, uno por uno:
+En el panel, **SQL Editor** -> **New query**. Pega entero el contenido de
+[`database/INSTALAR_SUPABASE.sql`](../database/INSTALAR_SUPABASE.sql) y pulsa
+**Run**.
 
-```
-01_init.sql
-01b_schema_sync.sql
-02_seed_specializations.sql
-03_seed_questions.sql
-04_seed_training_data.sql
-05_seed_users.sql
-06_fix_passwords.sql
-07_seed_courses.sql
-08_seed_jobs.sql
-09_psychometric_questions.sql
-10_rls.sql
-12_consentimiento.sql
-13_registro.sql
-14_cuentas.sql
-15_roles_por_servicio.sql
-```
+Ese fichero reúne las 17 migraciones en el orden correcto. El orden no es
+alfabético y no es decorativo: `01b_schema_sync` va después de `01_init`
+porque toca tablas que aquel crea, y `18_compatibilidad_gestionado` cierra.
 
-El orden no es decorativo: `10_rls.sql` crea los roles que `15` reparte, y
-las políticas dependen de tablas que crean los anteriores.
+Ese último es **imprescindible aquí**. En un Postgres local el dueño de la
+base es superusuario y se salta RLS; en Supabase no lo es, y sin la
+migración 18 las funciones `SECURITY DEFINER` devuelven cero filas. El
+síntoma es que **nadie puede iniciar sesión**, sin error y sin traza:
+simplemente ninguna contraseña funciona.
 
-## 3. Dar contraseña a los cuatro roles
+### Antes de pulsar Run
 
-Las migraciones **crean** los roles pero los dejan sin contraseña. Genera
-cuatro distintas y ejecútalas en el SQL Editor:
+Baja al bloque **PASO FINAL** del fichero y sustituye las cuatro contraseñas
+de ejemplo. El script se niega a terminar si no lo haces, si repites alguna
+o si alguna baja de 20 caracteres.
 
-```sql
-ALTER ROLE revo_auth    WITH PASSWORD 'una-larga-y-distinta-1';
-ALTER ROLE revo_survey  WITH PASSWORD 'una-larga-y-distinta-2';
-ALTER ROLE revo_ml      WITH PASSWORD 'una-larga-y-distinta-3';
-ALTER ROLE revo_service WITH PASSWORD 'una-larga-y-distinta-4';
-```
+Para generarlas, en tu terminal:
 
-**Distintas de verdad, una por rol.** Si las cuatro son la misma, el
-aislamiento entre servicios se cae: cualquiera que consiga una credencial
-las tiene todas, y toda la separación de `15_roles_por_servicio.sql` deja de
-significar nada.
+    python -c "import secrets; print(secrets.token_urlsafe(36))"
 
-Para generarlas:
+Tienen que ser **cuatro distintas**. Si repites la misma, quien consiga una
+credencial las tiene todas y la separación de `15_roles_por_servicio.sql`
+deja de significar nada.
 
-```bash
-python -c "import secrets; print(secrets.token_urlsafe(36))"
-```
+### Se puede volver a ejecutar
 
-## 4. Construir las cadenas de conexión
+Todo el fichero es idempotente: crea lo que falta y respeta lo que ya
+existe. Si algo falla a mitad, corrige y vuelve a lanzarlo entero.
+
+### Probado antes de publicarlo
+
+El fichero se ejecutó contra un PostgreSQL 16 limpio en Docker:
+
+| Comprobación | Resultado |
+|---|---|
+| Instalación completa sobre base vacía | código de salida 0 |
+| Tablas con RLS activo | 18 de 18 |
+| Roles sin superusuario ni `BYPASSRLS` | 5 de 5 |
+| `revo_app` sin poder conectarse | correcto |
+| Segunda ejecución seguida | 0 errores |
+| `revo_survey` leyendo `users` | `permission denied` |
+| `revo_survey` leyendo `courses` | `permission denied` |
+| `revo_ml` leyendo `courses` | 30 filas |
+| Bloque final con las contraseñas sin editar | se niega a terminar |
+
+Lo único que no se puede reproducir fuera de Supabase es `CREATE EXTENSION`
+con un dueño que no sea superusuario: en un Postgres vanilla hace falta
+serlo, y en Supabase `uuid-ossp` y `pgcrypto` están permitidas para el rol
+`postgres`.
+
+## 3. Construir las cadenas de conexión
 
 **Settings → Database → Connection string.** Supabase muestra tres modos;
 copia la plantilla del que elijas y sustituye el usuario y la contraseña por
@@ -105,7 +112,7 @@ dueño de las tablas y **se salta las políticas RLS**: con ella, el
 cuestionario podría leer la tabla de usuarios y el aislamiento entre alumnos
 desaparecería sin que nada fallara de forma visible.
 
-## 5. Pegarlas en Render
+## 4. Pegarlas en Render
 
 En cada servicio, **Environment**, la variable `DATABASE_URL` con la cadena
 que le corresponde. `render.yaml` las declara con `sync: false` justamente
@@ -121,7 +128,7 @@ Añade también, si no están:
 | `REQUIRE_GATEWAY` | `true` |
 | `CORS_ORIGINS` | la URL de tu frontend en Vercel |
 
-## 6. Redis: no hace falta
+## 5. Redis: no hace falta
 
 `REDIS_URL` vacía deja el control de cupos **en memoria del proceso**. Con
 una sola instancia por servicio funciona correctamente.

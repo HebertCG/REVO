@@ -104,7 +104,15 @@ http {
 
     # ── Cabeceras hacia los servicios ────────────────────────
     proxy_http_version 1.1;
-    proxy_set_header Host              $host;
+    # $proxy_host, NO $host. $host es el nombre por el que entro el cliente
+    # (el de la pasarela), y detras de estos servicios hay un enrutador que
+    # decide a que aplicacion va cada peticion LEYENDO esta cabecera: con el
+    # nombre de la pasarela, no encuentra a quien entregarsela y responde 404
+    # a todo. $proxy_host es el host del proxy_pass, que es el destino real.
+    #
+    # $host solo seria correcto si el backend estuviera en una red privada y
+    # necesitara saber por que dominio entro el usuario.
+    proxy_set_header Host              $proxy_host;
     proxy_set_header X-Real-IP         $remote_addr;
     proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
     proxy_set_header X-Forwarded-Proto $scheme;
@@ -252,12 +260,12 @@ http {
 
         location /api/courses/ {
             limit_req zone=general burst=60 nodelay;
-            proxy_pass ${URL_SURVEY}/courses/;
+            proxy_pass ${URL_ML}/courses/;
         }
 
         location /api/jobs/ {
             limit_req zone=general burst=60 nodelay;
-            proxy_pass ${URL_SURVEY}/jobs/;
+            proxy_pass ${URL_ML}/jobs/;
         }
 
         location /api/psychometric/ {

@@ -9,7 +9,7 @@
       "destination": "https://revo-pasarela.onrender.com/api/$1"
     },
     {
-      "source": "/((?!api/|assets/).*)",
+      "source": "/((?!api/|assets/|favicon).*)",
       "destination": "/index.html"
     }
   ],

@@ -143,7 +143,14 @@ http {
     # No hay red interna: cada servicio es una URL publica de HTTPS. Se
     # necesita un resolvedor DNS explicito porque nginx resuelve los nombres
     # una sola vez al arrancar, y las IP de Render cambian.
-    resolver 127.0.0.11 8.8.8.8 valid=30s ipv6=off;
+    #
+    # SOLO resolvedores publicos. Aqui estaba 127.0.0.11, que es el DNS
+    # interno de Docker Compose y en Render no existe: nginx alterna entre
+    # los resolvedores configurados, y cada vez que le tocaba ese esperaba
+    # los 5 s de resolver_timeout y devolvia 502. Como el proxy_pass usa
+    # variables, el nombre se resuelve en CADA peticion, asi que fallaba
+    # de forma intermitente y con una latencia sospechosamente constante.
+    resolver 8.8.8.8 1.1.1.1 valid=30s ipv6=off;
     resolver_timeout 5s;
 
     # Las variables se resuelven en cada peticion, no al cargar la config.

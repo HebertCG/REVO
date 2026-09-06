@@ -6,7 +6,7 @@
   "rewrites": [
     {
       "source": "/api/:ruta*",
-      "destination": "https://CAMBIAME-pasarela.onrender.com/api/:ruta*"
+      "destination": "https://revo-pasarela.onrender.com/api/:ruta*"
     },
     {
       "source": "/((?!assets/).*)",

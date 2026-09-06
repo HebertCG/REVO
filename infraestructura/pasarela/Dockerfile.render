@@ -17,6 +17,12 @@ COPY nginx.render.conf.template /etc/nginx/templates/nginx.conf.template
 
 ENV NGINX_ENVSUBST_OUTPUT_DIR=/etc/nginx
 
+# Un espacio o un salto de linea pegado sin querer en una variable rompe
+# el arranque de nginx o hace que el backend devuelva 403 a todo, y en
+# ninguno de los dos casos el error menciona los espacios.
+COPY limpiar_variables.envsh /docker-entrypoint.d/16-limpiar-variables.envsh
+RUN chmod +x /docker-entrypoint.d/16-limpiar-variables.envsh
+
 # La plantilla usa ${PORT} en el `listen`. Si la variable no existe,
 # envsubst la sustituye por vacio y nginx muere con "invalid port".
 # Render pisa este valor con el suyo; el compose se queda en 80.

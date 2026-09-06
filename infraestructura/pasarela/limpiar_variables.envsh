@@ -1,0 +1,44 @@
+#!/bin/sh
+# ============================================================================
+#  Quita los espacios y saltos de linea de las variables antes de envsubst
+# ============================================================================
+#
+#  POR QUE EXISTE
+#      Los campos de variables de entorno de los paneles son cajas de texto, y
+#      pegar una URL o un secreto arrastrando un salto de linea invisible es
+#      trivial. El resultado no es un aviso, son dos fallos que no se parecen
+#      entre si:
+#
+#      - En un proxy_pass, el valor con espacio se convierte en DOS argumentos
+#        y nginx ni arranca: "invalid number of arguments in proxy_pass".
+#      - En el secreto de pasarela, el backend compara "secreto\n" con
+#        "secreto", no coinciden, y devuelve 403 a todo. Ahi no hay ningun
+#        error: parece que el secreto esta mal puesto.
+#
+#      Ninguno de los dos menciona los espacios, que es lo que los hace caros
+#      de encontrar.
+#
+#  COMO SE EJECUTA
+#      La imagen oficial de nginx hace `source` de los .envsh de
+#      /docker-entrypoint.d/ al arrancar, asi que lo exportado aqui llega al
+#      envsubst. El 16 lo situa despues de los scripts propios de la imagen y
+#      antes del 20-envsubst-on-templates.sh.
+# ============================================================================
+
+revo_limpiar() {
+    eval "revo_valor=\${$1-}"
+    revo_limpio=$(printf '%s' "$revo_valor" | tr -d ' \t\r\n')
+
+    if [ "$revo_valor" != "$revo_limpio" ]; then
+        # Sin mostrar el valor: GATEWAY_SECRET pasa por aqui.
+        echo "limpiar_variables: se quitaron espacios o saltos de linea de $1"
+    fi
+
+    eval "$1=\$revo_limpio"
+    export "$1"
+}
+
+revo_limpiar URL_AUTH
+revo_limpiar URL_SURVEY
+revo_limpiar URL_ML
+revo_limpiar GATEWAY_SECRET

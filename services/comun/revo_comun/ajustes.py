@@ -92,6 +92,28 @@ class AjustesBase(BaseSettings):
     model_config = {"env_file": ".env", "extra": "ignore"}
 
     # ── Validaciones ─────────────────────────────────────────
+    @field_validator("*", mode="before")
+    @classmethod
+    def sin_espacios_alrededor(cls, valor):
+        """
+        Recorta los espacios y saltos de linea de cualquier ajuste de texto.
+
+        Los paneles de las plataformas usan cajas de texto para las variables
+        de entorno, y pegar un secreto arrastrando un salto de linea invisible
+        es trivial. El fallo que produce no menciona nunca los espacios:
+
+        - Con GATEWAY_SECRET, el servicio compara "secreto
+" contra "secreto",
+          no coinciden, y responde 403 a TODO el trafico de la pasarela. No hay
+          error ni traza; parece que el secreto esta mal escrito.
+        - Con DATABASE_URL, el driver intenta resolver un host que termina en
+          salto de linea y falla por una razon que no lo sugiere.
+
+        Un espacio al principio o al final de estos valores nunca es
+        intencionado, asi que recortarlo no puede tapar nada legitimo.
+        """
+        return valor.strip() if isinstance(valor, str) else valor
+
     @field_validator("ENVIRONMENT")
     @classmethod
     def entorno_conocido(cls, valor: str) -> str:

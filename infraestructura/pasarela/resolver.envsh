@@ -1,0 +1,35 @@
+#!/bin/sh
+# ============================================================================
+#  Averigua el resolvedor DNS del contenedor y lo deja en NGINX_RESOLVER
+# ============================================================================
+#
+#  POR QUE EXISTE
+#      La pasarela usa variables en proxy_pass, y eso obliga a nginx a
+#      resolver los nombres en cada peticion con la directiva `resolver`.
+#      Nginx no lee /etc/resolv.conf: hay que darle la IP a mano.
+#
+#      Ponerla fija no funciona en todas partes. Estaba 127.0.0.11, que es el
+#      DNS de Docker Compose y en Render no existe; cambiarlo por 8.8.8.8
+#      tampoco basta si la plataforma bloquea el DNS publico. En los dos casos
+#      el sintoma es identico: 502 exactamente a los `resolver_timeout`
+#      segundos, en todas las rutas.
+#
+#      Asi que no se elige: se lee del propio contenedor, que es quien sabe.
+#
+#  COMO SE EJECUTA
+#      La imagen oficial de nginx recorre /docker-entrypoint.d/ al arrancar y
+#      hace `source` de los ficheros .envsh, asi que lo exportado aqui llega
+#      al envsubst que rellena la plantilla. El 15 del nombre lo coloca antes
+#      del 20-envsubst-on-templates.sh.
+# ============================================================================
+NGINX_RESOLVER=$(awk '/^nameserver/ { printf "%s ", $2 } END { print "" }' /etc/resolv.conf 2>/dev/null)
+
+# Sin resolvedor no arranca nginx, asi que hay red de seguridad.
+if [ -z "$(echo "$NGINX_RESOLVER" | tr -d ' ')" ]; then
+    NGINX_RESOLVER="8.8.8.8 1.1.1.1"
+    echo "resolver.envsh: /etc/resolv.conf no dio nameservers, se usa $NGINX_RESOLVER"
+else
+    echo "resolver.envsh: usando el resolvedor del contenedor: $NGINX_RESOLVER"
+fi
+
+export NGINX_RESOLVER

@@ -17,6 +17,13 @@ COPY nginx.render.conf.template /etc/nginx/templates/nginx.conf.template
 
 ENV NGINX_ENVSUBST_OUTPUT_DIR=/etc/nginx
 
+# Averigua el DNS del contenedor antes de rellenar la plantilla. El 15 lo
+# coloca antes del 20-envsubst-on-templates.sh de la imagen oficial, y la
+# extension .envsh hace que se ejecute con `source`, para que el export
+# llegue al envsubst.
+COPY resolver.envsh /docker-entrypoint.d/15-resolver.envsh
+RUN chmod +x /docker-entrypoint.d/15-resolver.envsh
+
 # La plantilla usa ${PORT} en el `listen`. Si la variable no existe,
 # envsubst la sustituye por vacio y nginx muere con "invalid port".
 # Render pisa este valor con el suyo; el compose se queda en 80.

@@ -150,7 +150,7 @@ http {
     # los 5 s de resolver_timeout y devolvia 502. Como el proxy_pass usa
     # variables, el nombre se resuelve en CADA peticion, asi que fallaba
     # de forma intermitente y con una latencia sospechosamente constante.
-    resolver 8.8.8.8 1.1.1.1 valid=30s ipv6=off;
+    resolver ${NGINX_RESOLVER} valid=30s ipv6=off;
     resolver_timeout 5s;
 
     # Las variables se resuelven en cada peticion, no al cargar la config.

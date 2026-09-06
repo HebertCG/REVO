@@ -140,23 +140,23 @@ http {
     }
 
     # ── Servicios en Render ──────────────────────────────────
-    # No hay red interna: cada servicio es una URL publica de HTTPS. Se
-    # necesita un resolvedor DNS explicito porque nginx resuelve los nombres
-    # una sola vez al arrancar, y las IP de Render cambian.
+    # No hay red interna: cada servicio es una URL publica de HTTPS, que
+    # envsubst mete literal en cada proxy_pass al arrancar el contenedor.
     #
-    # SOLO resolvedores publicos. Aqui estaba 127.0.0.11, que es el DNS
-    # interno de Docker Compose y en Render no existe: nginx alterna entre
-    # los resolvedores configurados, y cada vez que le tocaba ese esperaba
-    # los 5 s de resolver_timeout y devolvia 502. Como el proxy_pass usa
-    # variables, el nombre se resuelve en CADA peticion, asi que fallaba
-    # de forma intermitente y con una latencia sospechosamente constante.
-    resolver ${NGINX_RESOLVER} valid=30s ipv6=off;
-    resolver_timeout 5s;
-
-    # Las variables se resuelven en cada peticion, no al cargar la config.
-    map $host $destino_auth   { default "${URL_AUTH}"; }
-    map $host $destino_survey { default "${URL_SURVEY}"; }
-    map $host $destino_ml     { default "${URL_ML}"; }
+    # Literal, NO en una variable. Con `proxy_pass $variable`, nginx resuelve
+    # el nombre en cada peticion usando la directiva `resolver`, que lanza
+    # consultas DNS crudas contra una IP y NO usa el resolvedor del sistema.
+    # En Render eso devuelve 502: primero con el DNS de Docker (127.0.0.11,
+    # inexistente alli), despues con DNS publico, y despues incluso leyendo
+    # el nameserver de /etc/resolv.conf.
+    #
+    # Con el destino literal, nginx resuelve al arrancar con getaddrinfo:
+    # el mismo camino que usa survey-service en Python para llamar a
+    # ml-service, que si funciona en Render.
+    #
+    # El coste es que la IP se fija al arrancar. Detras de estos nombres hay
+    # un CDN con direcciones estables, y el contenedor se reinicia a menudo
+    # en el plan gratuito, asi que es un precio menor que no funcionar.
 
     # Al hablar TLS con un servicio de Render hay que mandar el SNI y validar
     # el certificado; sin esto la conexion o falla o va sin verificar.
@@ -218,62 +218,62 @@ http {
         # Login y registro: cupo estricto, son las rutas que se atacan.
         location = /api/auth/login {
             limit_req zone=acceso burst=20 nodelay;
-            proxy_pass $destino_auth/auth/login;
+            proxy_pass ${URL_AUTH}/auth/login;
         }
 
         location = /api/auth/register {
             limit_req zone=acceso burst=20 nodelay;
-            proxy_pass $destino_auth/auth/register;
+            proxy_pass ${URL_AUTH}/auth/register;
         }
 
         # Resto de autenticacion y perfil.
         location /api/auth/ {
             limit_req zone=general burst=60 nodelay;
-            proxy_pass $destino_auth/auth/;
+            proxy_pass ${URL_AUTH}/auth/;
         }
 
         # Documentos legales. Publicos a proposito: hay que poder leerlos
         # antes de tener cuenta, porque se aceptan durante el registro.
         location /api/legal/ {
             limit_req zone=general burst=60 nodelay;
-            proxy_pass $destino_auth/legal/;
+            proxy_pass ${URL_AUTH}/legal/;
         }
 
         # ── Cuestionario ─────────────────────────────────────
         location /api/sessions/ {
             limit_req zone=general burst=60 nodelay;
-            proxy_pass $destino_survey/sessions/;
+            proxy_pass ${URL_SURVEY}/sessions/;
         }
 
         location /api/questions/ {
             limit_req zone=general burst=60 nodelay;
-            proxy_pass $destino_survey/questions/;
+            proxy_pass ${URL_SURVEY}/questions/;
         }
 
         location /api/courses/ {
             limit_req zone=general burst=60 nodelay;
-            proxy_pass $destino_survey/courses/;
+            proxy_pass ${URL_SURVEY}/courses/;
         }
 
         location /api/jobs/ {
             limit_req zone=general burst=60 nodelay;
-            proxy_pass $destino_survey/jobs/;
+            proxy_pass ${URL_SURVEY}/jobs/;
         }
 
         location /api/psychometric/ {
             limit_req zone=general burst=60 nodelay;
-            proxy_pass $destino_survey/psychometric/;
+            proxy_pass ${URL_SURVEY}/psychometric/;
         }
 
         # ── Modelo ───────────────────────────────────────────
         location /api/predict/ {
             limit_req zone=general burst=60 nodelay;
-            proxy_pass $destino_ml/predict/;
+            proxy_pass ${URL_ML}/predict/;
         }
 
         location /api/stats/ {
             limit_req zone=general burst=60 nodelay;
-            proxy_pass $destino_ml/stats/;
+            proxy_pass ${URL_ML}/stats/;
         }
 
         # Cualquier otra cosa no existe. No se revela que hay detras.

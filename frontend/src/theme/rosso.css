@@ -53,7 +53,10 @@ body .badge-cyan { background: rgba(225, 6, 0, .14); color: #ff817a; border-colo
 /* Navegación y pie */
 body .navbar-shell { background: rgba(11, 11, 13, .94); border-bottom-color: rgba(255, 255, 255, .08); }
 body .navbar-shell.scrolled { background: transparent; }
-body .navbar-shell.scrolled .navbar { background: rgba(16, 16, 18, .92); border-color: rgba(255, 255, 255, .13); }
+/* Casi opaca a proposito: con .92 el corte de color de la portada se
+   marcaba dentro de la pildora. El desenfoque de Navbar.css lo suaviza,
+   pero el margen que queda lo cierra la opacidad. */
+body .navbar-shell.scrolled .navbar { background: rgba(16, 16, 18, .985); border-color: rgba(255, 255, 255, .13); }
 body .logo-dot,
 body .footer-logo-dot { color: #e10600; }
 body .nav-link { color: #aaaab1; }

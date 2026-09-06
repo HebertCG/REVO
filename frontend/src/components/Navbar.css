@@ -56,7 +56,12 @@
 }
 
 .navbar-shell.scrolled .navbar {
-  max-width: 100%;
+  /* Se estrecha de verdad. Antes se quedaba en 100%, asi que la pildora
+     ocupaba casi toda la ventana (1384 px de 1440) mientras su contenido
+     seguia centrado en 1200: el logo quedaba pegado a un extremo y los
+     botones al otro, con un hueco muerto en medio. Ahora la pildora ajusta
+     al contenido y se lee como una sola pieza. */
+  max-width: 1240px;
   height: 60px;
   border-radius: 999px;
   border-color: rgba(255, 255, 255, 0.1);
@@ -64,6 +69,10 @@
   box-shadow:
     0 10px 30px rgba(0, 0, 0, 0.35),
     0 1px 0 rgba(255, 255, 255, 0.05) inset;
+
+  /* Sin desenfoque a proposito. El fondo de la pildora es casi opaco (ver
+     rosso.css), asi que un backdrop-filter no cambiaria nada visible y si
+     costaria una capa de composicion en cada repintado del scroll. */
 }
 
 .navbar-inner {

@@ -1,9 +1,10 @@
-import { lazy, Suspense } from 'react'
+import { lazy, Suspense, useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { AuthProvider } from './context/AuthContext'
 import { useAuth } from './context/contextoAuth'
 import LimiteDeError from './components/LimiteDeError'
 import Navbar from './components/Navbar'
+import { despertarServicios } from './services/api'
 
 const Landing = lazy(() => import('./pages/Landing'))
 const Login = lazy(() => import('./pages/Login'))
@@ -59,6 +60,16 @@ function AppRoutes() {
   // el aviso de fallo puesto y las siguientes navegaciones no pintan nada,
   // aunque la pantalla a la que se va este perfectamente.
   const { pathname } = useLocation()
+
+  // Los servicios del plan gratuito de Render duermen a los 15 minutos, y
+  // levantarlos tarda entre 30 y 45 segundos. Esto lanza una lectura barata
+  // contra cada uno nada mas abrir la aplicacion, sea cual sea la pantalla,
+  // para que terminen de arrancar mientras el alumno lee o teclea.
+  //
+  // Va aqui y no en una pantalla concreta porque el problema no era de una
+  // pantalla: el cuestionario y el historial se estrellaban igual que el
+  // login, cada uno contra su servicio.
+  useEffect(() => { despertarServicios() }, [])
 
   return (
     <>

@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useEffectEvent, useCallback, useMemo } fro
 import { useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { useAuth } from '../context/contextoAuth'
-import { surveyApi } from '../services/api'
+import { surveyApi, despertarCuestionario } from '../services/api'
 import personaCelularGaming from '../assets/persona-celular-gaming.webp'
 import personaDiferenciaGaming from '../assets/persona-diferencia-gaming.webp'
 import personaRepartiendoGaming from '../assets/persona-repartiendo-gaming.webp'
@@ -868,6 +868,11 @@ export default function Questionnaire() {
 
     const iniciarPartida = async () => {
       try {
+        // La partida empieza con un POST, y un POST no se reintenta solo:
+        // si survey-service esta dormido, el alumno recibe "no pudimos
+        // repartir las cartas" por algo que solo necesitaba medio minuto.
+        // El despertador si se reintenta, asi que se le espera.
+        await despertarCuestionario()
         const sRes = await surveyApi.createSession()
         if (!active) return
 
@@ -875,8 +880,10 @@ export default function Questionnaire() {
         setSessionId(sid)
         const qRes = await surveyApi.getSessionQuestions(sid)
         if (active) setQuestions(qRes.data)
-      } catch {
-        if (active) setError('No se pudo iniciar el cuestionario.')
+      } catch (err) {
+        // El mensaje del cliente distingue "esta arrancando" de "esta roto".
+        // El de reserva solo se usa cuando no hay nada mas concreto.
+        if (active) setError(err?.mensajeUsuario || 'No se pudo iniciar el cuestionario.')
       } finally {
         await minimumDelay
         if (active) setLoading(false)

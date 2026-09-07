@@ -277,6 +277,27 @@ test.describe('Arranque en frio', () => {
     expect(lecturas.length, '/login tiene que despertar al servicio al abrirse').toBeGreaterThan(0)
   })
 
+  test('el cuestionario no reparte hasta que su servicio contesta', async ({ page }) => {
+    const { registro } = await instalarApiSimulada(page, {
+      reglas: [reglaArranqueEnFrio(/\/api\/questions\/categories\/list$/, 'GET', ['programming', 'data'])],
+    })
+    await iniciarSesion(page)
+    await page.goto('/questionnaire')
+
+    // Con survey-service dormido salia "No pudimos repartir las cartas".
+    await expect(page.getByRole('button', { name: 'Jugar' })).toBeEnabled({ timeout: 30_000 })
+
+    // El fondo del arreglo: la partida es un POST y no se reintenta sola,
+    // asi que no puede salir antes de que el despertador haya contestado.
+    const orden = registro.llamadas.map((l) => `${l.metodo} ${l.ruta}`)
+    const despertador = orden.lastIndexOf('GET /api/questions/categories/list')
+    const partida = orden.indexOf('POST /api/sessions/')
+
+    expect(despertador, 'el despertador de survey tiene que salir').toBeGreaterThan(-1)
+    expect(partida, 'la partida tiene que crearse').toBeGreaterThan(-1)
+    expect(partida, 'la partida no puede salir antes que el despertador').toBeGreaterThan(despertador)
+  })
+
   test('no reintenta para siempre: acaba rindiendose y diciendolo', async ({ page }) => {
     await instalarApiSimulada(page, {
       // Nunca despierta. Es el caso de un servicio de verdad caido.

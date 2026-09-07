@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/contextoAuth'
-import { EVENTO_DESPERTANDO, EVENTO_DESPIERTO, despertarAutenticacion } from '../services/api'
+import { EVENTO_DESPERTANDO, EVENTO_DESPIERTO, despertarAutenticacion, hayEsperaEnCurso } from '../services/api'
 import CasillasConsentimiento from '../components/consentimiento/CasillasConsentimiento'
 import personaImg from '../assets/login-persona.webp'
 import './Auth.css'
@@ -35,7 +35,7 @@ export default function Auth({ modoInicial = 'login', mostrarSSO = false }) {
   const [errorConsent, setErrorConsent] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-  const [despertando, setDespertando] = useState(false)
+  const [despertando, setDespertando] = useState(hayEsperaEnCurso)
 
   // La ruta manda: si el usuario llega por /register o pulsa atras,
   // la pestana se sincroniza sola.
@@ -66,6 +66,9 @@ export default function Auth({ modoInicial = 'login', mostrarSSO = false }) {
 
     window.addEventListener(EVENTO_DESPERTANDO, empezar)
     window.addEventListener(EVENTO_DESPIERTO, terminar)
+
+    // La espera pudo empezar mientras esta pantalla todavia se descargaba.
+    setDespertando(hayEsperaEnCurso())
 
     // El despertador va aqui y no en las casillas de consentimiento, que
     // solo se montan en la pestana de registro: puesto alli, la pantalla de

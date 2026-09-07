@@ -81,6 +81,17 @@ const terminarEspera = () => {
   if (esperasEnCurso === 0) window.dispatchEvent(new Event(EVENTO_DESPIERTO))
 }
 
+/**
+ * Estado actual de la espera, para quien llegue tarde al evento.
+ *
+ * Los eventos no tienen memoria: quien se suscribe despues de que se hayan
+ * lanzado no se entera. Y eso pasa siempre, porque el despertador sale al
+ * arrancar la aplicacion mientras las pantallas todavia se estan
+ * descargando (van en diferido, con lazy). Sin esto, la pantalla montaba
+ * cuando el aviso ya se habia dado y se quedaba sin pintarlo.
+ */
+export const hayEsperaEnCurso = () => esperasEnCurso > 0
+
 const dormir = (ms) => new Promise((listo) => setTimeout(listo, ms))
 
 const cliente = axios.create({
@@ -203,19 +214,56 @@ export const legalApi = {
  * monten a la vez no pidan lo mismo dos veces, y se suelta al terminar para
  * que un montaje posterior pueda volver a intentarlo.
  */
-let despertarEnCurso = null
+const enVuelo = new Map()
 
-export const despertarAutenticacion = () => {
-  if (!despertarEnCurso) {
+const despertarRuta = (ruta) => {
+  if (!enVuelo.has(ruta)) {
     // El fallo se traga a proposito: quien llama solo necesita que la
     // peticion haya salido, y dejarlo sin capturar seria un rechazo suelto
     // en la consola cada vez que el servicio tarda de mas.
-    despertarEnCurso = legalApi
-      .documentos()
-      .catch(() => null)
-      .finally(() => { despertarEnCurso = null })
+    enVuelo.set(
+      ruta,
+      cliente.get(ruta).catch(() => null).finally(() => { enVuelo.delete(ruta) }),
+    )
   }
-  return despertarEnCurso
+  return enVuelo.get(ruta)
+}
+
+/** auth-service. La reutilizan las casillas de consentimiento, que ademas
+ *  necesitan el contenido y no solo el efecto de despertar. */
+export const despertarAutenticacion = () => despertarRuta('/legal/documents')
+
+/** survey-service. El cuestionario la espera antes de crear la partida.
+ *
+ *  La lista de categorias, NO /questions/: esa devuelve el banco entero de
+ *  100 preguntas, y bajarlo en cada carga es justo lo que evita la seleccion
+ *  por sesion. Aqui solo hace falta que el servicio conteste. */
+export const despertarCuestionario = () => despertarRuta('/questions/categories/list')
+
+/**
+ * Despierta los TRES servicios al abrir la aplicacion.
+ *
+ * El primer arreglo solo desperto auth-service, y desde la pantalla de
+ * acceso. Servia para entrar, pero el alumno se estrellaba en la siguiente
+ * pantalla: survey-service y ml-service seguian dormidos, y el cuestionario
+ * empieza con un POST, que no se reintenta solo. Medido en produccion:
+ * survey tarda 32s en levantarse y ml 41s.
+ *
+ * Lanzarlo al arrancar la aplicacion les da esa ventaja. Mientras el alumno
+ * escribe su contrasena y mira el panel, los tres terminan de arrancar.
+ *
+ * Las tres rutas son la lectura publica mas barata de cada servicio: 902,
+ * 312 y 657 bytes medidos en produccion. Ninguna pide sesion, porque esto
+ * sale antes de que el alumno haya entrado.
+ *
+ * Tienen que responder 200. Una ruta que devuelva 404 despertaria igual al
+ * servicio, pero dejaria un error rojo en la consola del navegador en cada
+ * carga, indistinguible de un fallo de verdad.
+ */
+export const despertarServicios = () => {
+  despertarAutenticacion()
+  despertarCuestionario()
+  despertarRuta('/courses/specialization/1')
 }
 
 // ── Cuestionario ──────────────────────────────────────────

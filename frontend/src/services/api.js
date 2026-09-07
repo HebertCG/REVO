@@ -181,6 +181,43 @@ export const legalApi = {
   documento: (tipo) => cliente.get(`/legal/documents/${tipo}`),
 }
 
+/**
+ * Despierta el servicio de autenticacion sin esperar al formulario.
+ *
+ * POR QUE HACE FALTA
+ *
+ * El registro y el login son POST, y un POST no se reintenta solo (ver
+ * arranqueEnFrio.js). Si la primera peticion que sale de la pantalla es el
+ * envio del formulario, el alumno se come el arranque en frio entero: pulsa,
+ * espera medio minuto y recibe un error, aunque el sistema este sano.
+ *
+ * Esto le da la vuelta. Al abrir la pantalla se lanza una lectura publica y
+ * barata contra el MISMO servicio que atendera el formulario, y esa si se
+ * reintenta sola. Mientras el alumno teclea su contrasena, el servicio
+ * termina de levantarse.
+ *
+ * Se elige /legal/documents porque no pide sesion, no cuesta nada y la
+ * pasarela la enruta a auth-service, que es justo el que hay que despertar.
+ *
+ * La promesa se comparte mientras esta en vuelo para que dos componentes que
+ * monten a la vez no pidan lo mismo dos veces, y se suelta al terminar para
+ * que un montaje posterior pueda volver a intentarlo.
+ */
+let despertarEnCurso = null
+
+export const despertarAutenticacion = () => {
+  if (!despertarEnCurso) {
+    // El fallo se traga a proposito: quien llama solo necesita que la
+    // peticion haya salido, y dejarlo sin capturar seria un rechazo suelto
+    // en la consola cada vez que el servicio tarda de mas.
+    despertarEnCurso = legalApi
+      .documentos()
+      .catch(() => null)
+      .finally(() => { despertarEnCurso = null })
+  }
+  return despertarEnCurso
+}
+
 // ── Cuestionario ──────────────────────────────────────────
 export const surveyApi = {
   getQuestions: () => cliente.get('/questions/'),

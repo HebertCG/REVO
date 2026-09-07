@@ -252,6 +252,31 @@ test.describe('Arranque en frio', () => {
     expect(vigilante.excepciones, 'el reintento no puede dejar excepciones sueltas').toEqual([])
   })
 
+  test('la pantalla de login despierta al servicio antes de que el alumno envie nada', async ({ page }) => {
+    const { registro } = await instalarApiSimulada(page, {
+      reglas: [reglaArranqueEnFrio(/\/api\/legal\/documents$/, 'GET', datos.DOCUMENTOS_LEGALES)],
+    })
+
+    await page.goto('/login')
+
+    // Mientras el servicio arranca, el boton no deja gastar un intento en
+    // balde: el POST del login no se reintenta solo, asi que pulsarlo ahora
+    // solo sirve para recibir un error de algo que esta sano.
+    const boton = page.locator('form button[type="submit"]')
+    await expect(boton).toBeDisabled()
+    await expect(boton).toContainText(/despertando/i)
+
+    // Y se suelta cuando el servicio contesta.
+    await expect(boton).toBeEnabled({ timeout: 20000 })
+    await expect(boton).toContainText(/iniciar sesion|iniciar sesión/i)
+
+    // La clave del arreglo: la lectura sale sola al abrir la pantalla, sin
+    // que el alumno toque nada. Antes solo ocurria en /register, porque la
+    // disparaban las casillas de consentimiento.
+    const lecturas = registro.llamadas.filter((l) => l.ruta.endsWith('/legal/documents'))
+    expect(lecturas.length, '/login tiene que despertar al servicio al abrirse').toBeGreaterThan(0)
+  })
+
   test('no reintenta para siempre: acaba rindiendose y diciendolo', async ({ page }) => {
     await instalarApiSimulada(page, {
       // Nunca despierta. Es el caso de un servicio de verdad caido.

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/contextoAuth'
-import { EVENTO_DESPERTANDO, EVENTO_DESPIERTO } from '../services/api'
+import { EVENTO_DESPERTANDO, EVENTO_DESPIERTO, despertarAutenticacion } from '../services/api'
 import CasillasConsentimiento from '../components/consentimiento/CasillasConsentimiento'
 import personaImg from '../assets/login-persona.webp'
 import './Auth.css'
@@ -66,6 +66,13 @@ export default function Auth({ modoInicial = 'login', mostrarSSO = false }) {
 
     window.addEventListener(EVENTO_DESPERTANDO, empezar)
     window.addEventListener(EVENTO_DESPIERTO, terminar)
+
+    // El despertador va aqui y no en las casillas de consentimiento, que
+    // solo se montan en la pestana de registro: puesto alli, la pantalla de
+    // login se quedaba sin ninguna peticion previa y el alumno se comia el
+    // arranque en frio al pulsar "Iniciar sesion".
+    despertarAutenticacion()
+
     return () => {
       window.removeEventListener(EVENTO_DESPERTANDO, empezar)
       window.removeEventListener(EVENTO_DESPIERTO, terminar)
@@ -281,8 +288,8 @@ export default function Auth({ modoInicial = 'login', mostrarSSO = false }) {
                       {textoCheck}
                     </label>
                   )}
-                  <button className="rvl-h3 rvl-a4" type="submit" disabled={loading} style={{display: "flex", alignItems: "center", justifyContent: "center", gap: "10px", width: "100%", padding: "16px", border: "0", borderRadius: "12px", background: "#2f5fe8", color: "#fff", fontFamily: "inherit", fontSize: "15px", fontWeight: "700", cursor: "pointer", boxShadow: "0 8px 20px rgba(47,95,232,.28)", transition: "background .15s ease,transform .15s ease"}}>
-                    {loading ? textoCargando : textoBoton}
+                  <button className="rvl-h3 rvl-a4" type="submit" disabled={loading || despertando} style={{display: "flex", alignItems: "center", justifyContent: "center", gap: "10px", width: "100%", padding: "16px", border: "0", borderRadius: "12px", background: "#2f5fe8", color: "#fff", fontFamily: "inherit", fontSize: "15px", fontWeight: "700", cursor: "pointer", boxShadow: "0 8px 20px rgba(47,95,232,.28)", transition: "background .15s ease,transform .15s ease"}}>
+                    {despertando ? 'Despertando el servidor…' : loading ? textoCargando : textoBoton}
                     <span style={{display: "inline-flex", alignItems: "center", justifyContent: "center", width: "22px", height: "22px", borderRadius: "999px", background: "rgba(255,255,255,.2)", fontSize: "13px"}}>
                       →
                     </span>

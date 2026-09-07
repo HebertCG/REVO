@@ -280,6 +280,27 @@ test.describe('Registro y consentimiento', () => {
 
     await expect(page.getByRole('alert')).toContainText('Ese correo ya tiene cuenta')
   })
+
+  test('un servicio dormido no hace que el registro se repita solo', async ({ page }) => {
+    const { registro } = await instalarApiSimulada(page, {
+      reglas: [reglaError(/\/api\/auth\/register$/, 'POST', 502, { detail: 'Bad Gateway' })],
+    })
+
+    await irARegistro(page)
+    await rellenarRegistro(page)
+    await page.locator('#consent-terms').check()
+    await botonEnviar(page).click()
+
+    // El mensaje explica la espera en vez del generico "no esta disponible":
+    // aqui no hay nada roto, hay que volver a intentarlo en unos segundos.
+    await expect(page.getByRole('alert')).toContainText(/despertando/i)
+
+    // Lo importante es lo que NO pasa. Repetir el POST podria crear la
+    // cuenta dos veces, o dejar al alumno con un "ese correo ya existe"
+    // provocado por nuestro propio reintento.
+    const intentos = registro.llamadas.filter((l) => l.ruta.endsWith('/auth/register'))
+    expect(intentos.length, 'el registro no se puede reintentar solo').toBe(1)
+  })
 })
 
 test.describe('Sesion caducada', () => {

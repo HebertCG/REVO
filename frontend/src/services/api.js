@@ -1,5 +1,12 @@
 import axios from 'axios'
 
+import {
+  MENSAJE_ARRANQUE,
+  esArranqueEnFrio,
+  esReintentable,
+  esperaAntesDeReintentar,
+} from './arranqueEnFrio'
+
 /**
  * Cliente HTTP de REVO.
  *
@@ -38,9 +45,51 @@ const anunciarSesionCaducada = () => {
   window.dispatchEvent(new Event(EVENTO_SESION_CADUCADA))
 }
 
+/**
+ * Aviso de servicio dormido.
+ *
+ * Cuando una peticion se reintenta por arranque en frio, la pantalla tiene
+ * que poder decirlo. Sin esto el alumno ve un boton girando durante un
+ * minuto sin ninguna explicacion, que es indistinguible de una pagina rota.
+ *
+ * Se avisa una sola vez por episodio, no en cada reintento: lo que le
+ * interesa a la interfaz es "estamos esperando" y "se acabo la espera", no
+ * la cuenta de intentos.
+ *
+ * EVENTO_DESPIERTO significa que la espera termino, no que saliera bien:
+ * tambien se lanza al agotar los reintentos, para que el aviso se quite y
+ * deje sitio al mensaje de error.
+ */
+export const EVENTO_DESPERTANDO = 'revo:despertando'
+export const EVENTO_DESPIERTO = 'revo:despierto'
+
+// Se cuentan las esperas en curso en vez de guardar un si/no. Con un
+// booleano, cualquier respuesta correcta apagaba el aviso aunque otra
+// peticion siguiera reintentando: basta que la pantalla pida dos cosas a
+// la vez y una viaje al servicio ya despierto para que el cartel
+// desaparezca mientras todavia se esta esperando a la otra.
+let esperasEnCurso = 0
+
+const empezarEspera = () => {
+  esperasEnCurso += 1
+  if (esperasEnCurso === 1) window.dispatchEvent(new Event(EVENTO_DESPERTANDO))
+}
+
+const terminarEspera = () => {
+  if (esperasEnCurso === 0) return
+  esperasEnCurso -= 1
+  if (esperasEnCurso === 0) window.dispatchEvent(new Event(EVENTO_DESPIERTO))
+}
+
+const dormir = (ms) => new Promise((listo) => setTimeout(listo, ms))
+
 const cliente = axios.create({
   baseURL: BASE,
-  timeout: 30000,
+  // Por encima de los ~30s que espera el proxy de Vercel, a proposito. Con
+  // 30 justos los dos relojes vencen a la vez y gana el nuestro: axios
+  // aborta con un error de red generico y perdemos el 502, que es la unica
+  // pista de que el servicio estaba arrancando y no caido.
+  timeout: 35000,
   headers: { 'Content-Type': 'application/json' },
 })
 
@@ -62,8 +111,30 @@ cliente.interceptors.request.use((config) => {
  */
 cliente.interceptors.response.use(
   (respuesta) => respuesta,
-  (error) => {
+  async (error) => {
     const estado = error.response?.status
+    const config = error.config
+
+    // Arranque en frio: se repite la peticion en vez de darla por perdida.
+    // El intento que acaba de fallar no fue en balde: desperto al servicio.
+    if (config && esReintentable(error, config.revoReintentos || 0)) {
+      const hechos = config.revoReintentos || 0
+      config.revoReintentos = hechos + 1
+
+      // La espera se abre y se cierra en el primer reintento de esta
+      // peticion. Los siguientes vuelven a entrar aqui por recursion, y
+      // contar cada uno dejaria el contador descuadrado; el `finally` de
+      // este marco es el que ve terminar la cadena entera.
+      const abreLaEspera = hechos === 0
+      if (abreLaEspera) empezarEspera()
+
+      await dormir(esperaAntesDeReintentar(hechos))
+      try {
+        return await cliente(config)
+      } finally {
+        if (abreLaEspera) terminarEspera()
+      }
+    }
 
     if (estado === 429) {
       const segundos = Number(error.response.headers['retry-after']) || 60
@@ -74,6 +145,12 @@ cliente.interceptors.response.use(
       error.mensajeUsuario = 'Tu sesion expiro. Vuelve a entrar.'
     } else if (estado === 403) {
       error.mensajeUsuario = 'No tienes permiso para hacer esto.'
+    } else if (esArranqueEnFrio(error)) {
+      // Se separa del 5xx generico porque no es lo mismo: aqui no hay nada
+      // roto, hay que esperar. Cae por aqui el registro y el login, que no
+      // se reintentan solos por no ser idempotentes.
+      error.mensajeUsuario = MENSAJE_ARRANQUE
+      error.esArranqueEnFrio = true
     } else if (estado >= 500) {
       error.mensajeUsuario = 'El servicio no esta disponible ahora mismo.'
     } else if (!error.response) {

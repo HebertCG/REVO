@@ -1,5 +1,5 @@
 import { test, expect, RUTAS, esperarEstable } from './utiles/fixtures.js'
-import { instalarApiSimulada, iniciarSesion, reglaError, reglaSinRed } from './utiles/apiSimulada.js'
+import { instalarApiSimulada, iniciarSesion, reglaArranqueEnFrio, reglaError, reglaSinRed } from './utiles/apiSimulada.js'
 import * as datos from './utiles/datos.js'
 
 /**
@@ -213,5 +213,56 @@ test.describe('Sin errores de consola en el recorrido feliz', () => {
       registro.noReconocidas,
       `Rutas pedidas que no existen en el contrato simulado: ${JSON.stringify(registro.noReconocidas)}`,
     ).toEqual([])
+  })
+})
+
+/**
+ * Arranque en frio de Render.
+ *
+ * El plan gratuito duerme los servicios tras 15 minutos sin trafico, y en
+ * REVO hay dos escalones dormidos en serie (pasarela y servicio). Delante
+ * de los dos esta el proxy de Vercel, que corta a los ~30 segundos y
+ * devuelve 502 antes de que ninguno termine de arrancar.
+ *
+ * Ese 502 no significa "roto", significa "espera". Lo que se comprueba
+ * aqui es que la aplicacion sepa distinguirlo.
+ */
+test.describe('Arranque en frio', () => {
+  test('avisa de la espera y repite la lectura hasta que el servicio despierta', async ({ page, vigilante }) => {
+    const { registro } = await instalarApiSimulada(page, {
+      reglas: [reglaArranqueEnFrio(/\/api\/legal\/documents$/, 'GET', datos.DOCUMENTOS_LEGALES)],
+    })
+
+    await page.goto('/register')
+
+    // Sin este aviso, el alumno ve una pantalla quieta durante un minuto y
+    // no puede saber si esperar o recargar.
+    const aviso = page.locator('.revo-auth-espera')
+    await expect(aviso).toContainText(/despertando el servidor/i)
+
+    // Y se retira solo cuando el servicio contesta.
+    await expect(aviso).toBeHidden({ timeout: 20000 })
+
+    // Mayor que uno, no igual a dos: en desarrollo React monta el arbol dos
+    // veces a proposito, asi que el numero exacto de lecturas depende del
+    // modo de compilacion y clavarlo haria fragil la prueba. Lo que importa
+    // es que despues del 502 se volvio a preguntar.
+    const lecturas = registro.llamadas.filter((l) => l.ruta.endsWith('/legal/documents'))
+    expect(lecturas.length, 'la lectura tiene que repetirse tras el 502').toBeGreaterThan(1)
+    expect(vigilante.excepciones, 'el reintento no puede dejar excepciones sueltas').toEqual([])
+  })
+
+  test('no reintenta para siempre: acaba rindiendose y diciendolo', async ({ page }) => {
+    await instalarApiSimulada(page, {
+      // Nunca despierta. Es el caso de un servicio de verdad caido.
+      reglas: [reglaError(/\/api\/auth\/login$/, 'POST', 502, { detail: 'Bad Gateway' })],
+    })
+
+    await page.goto('/login')
+    await page.getByRole('textbox', { name: /correo institucional/i }).fill('ana@universidad.edu.pe')
+    await page.locator('input[type="password"], input[placeholder*="Mínimo"]').first().fill('contrasena-larga-123')
+    await page.locator('form button[type="submit"]').click()
+
+    await expect(page.getByRole('alert')).toContainText(/despertando/i)
   })
 })

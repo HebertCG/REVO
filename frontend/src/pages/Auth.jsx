@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/contextoAuth'
+import { EVENTO_DESPERTANDO, EVENTO_DESPIERTO } from '../services/api'
 import CasillasConsentimiento from '../components/consentimiento/CasillasConsentimiento'
 import personaImg from '../assets/login-persona.webp'
 import './Auth.css'
@@ -34,6 +35,7 @@ export default function Auth({ modoInicial = 'login', mostrarSSO = false }) {
   const [errorConsent, setErrorConsent] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [despertando, setDespertando] = useState(false)
 
   // La ruta manda: si el usuario llega por /register o pulsa atras,
   // la pestana se sincroniza sola.
@@ -42,6 +44,33 @@ export default function Auth({ modoInicial = 'login', mostrarSSO = false }) {
     setError('')
     setErrorConsent('')
   }, [location.pathname])
+
+  /**
+   * Aviso de servicio dormido.
+   *
+   * Render duerme los servicios gratuitos tras 15 minutos sin trafico, y
+   * levantarlos tarda casi un minuto. El cliente HTTP reintenta solo, pero
+   * mientras tanto la pantalla se queda quieta, y una pantalla quieta
+   * durante un minuto se lee como una pantalla rota.
+   *
+   * El aviso no lo dispara esta pantalla sino la primera peticion que se
+   * topa con el servicio dormido, que aqui es la de los documentos legales
+   * al montar las casillas de consentimiento. Esa llamada hace de
+   * despertador: mientras el alumno rellena el formulario, el servicio de
+   * autenticacion termina de arrancar, y al pulsar "Crear cuenta" ya
+   * responde.
+   */
+  useEffect(() => {
+    const empezar = () => setDespertando(true)
+    const terminar = () => setDespertando(false)
+
+    window.addEventListener(EVENTO_DESPERTANDO, empezar)
+    window.addEventListener(EVENTO_DESPIERTO, terminar)
+    return () => {
+      window.removeEventListener(EVENTO_DESPERTANDO, empezar)
+      window.removeEventListener(EVENTO_DESPIERTO, terminar)
+    }
+  }, [])
 
   const cambiarConsent = (clave, valor) => {
     setConsent((c) => ({ ...c, [clave]: valor }))
@@ -136,6 +165,11 @@ export default function Auth({ modoInicial = 'login', mostrarSSO = false }) {
   return (
     <div className="revo-auth">
       {error && <div className="revo-auth-error" role="alert">{error}</div>}
+      {!error && despertando && (
+        <div className="revo-auth-espera" role="status">
+          Despertando el servidor. La primera visita del dia tarda hasta un minuto.
+        </div>
+      )}
         <div style={{fontFamily: "'Plus Jakarta Sans',system-ui,-apple-system,sans-serif", color: "#0d1220", minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: "68px 0 0", background: "#eef2fb"}}>
           <div style={{position: "relative", width: "100%", minHeight: "calc(100vh - 68px)", display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(420px,100%),1fr))", background: "#fff", borderRadius: "0", overflow: "hidden", boxShadow: "none"}}>
             <div style={{position: "relative", overflow: "hidden", background: "#2f5fe8", color: "#fff", padding: "clamp(26px,3.4vw,44px)", display: "flex", flexDirection: "column", justifyContent: "space-between", gap: "26px", minHeight: "clamp(330px,38vw,620px)", borderRadius: "0 30% 30% 0 / 0 50% 50% 0", zIndex: "1"}}>

@@ -184,6 +184,32 @@ export const reglaError = (patron, metodo, status, cuerpo = {}, headers = {}) =>
   }),
 ]
 
+/**
+ * Regla que simula un servicio dormido de Render.
+ *
+ * Responde 502 las primeras `fallos` veces y despues contesta bien, que es
+ * exactamente lo que hace la cadena en produccion: el proxy de Vercel se
+ * cansa de esperar el arranque y devuelve 502, pero ese intento fallido si
+ * desperto al servicio, asi que el siguiente ya funciona.
+ *
+ * El cuerpo del 502 es HTML a proposito: el que devuelve un intermediario
+ * no es JSON de la aplicacion, y conviene que la prueba use lo mismo.
+ */
+export const reglaArranqueEnFrio = (patron, metodo, cuerpoDespierto, fallos = 1) => {
+  let vistas = 0
+  return [
+    patron,
+    metodo,
+    (route) => {
+      vistas += 1
+      if (vistas <= fallos) {
+        return route.fulfill({ status: 502, contentType: 'text/html', body: 'Bad Gateway' })
+      }
+      return json(route, cuerpoDespierto)
+    },
+  ]
+}
+
 /** Regla que corta la conexion, como si no hubiera red. */
 export const reglaSinRed = (patron, metodo) => [
   patron,

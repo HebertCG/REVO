@@ -1,0 +1,121 @@
+name: CI REVO
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  unitarias-frontend:
+    name: Unitarias - Frontend
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Descargar repositorio
+        uses: actions/checkout@v7
+
+      - name: Configurar Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Instalar dependencias
+        working-directory: frontend
+        run: npm ci
+
+      - name: Ejecutar unitarias
+        working-directory: frontend
+        run: npm run prueba:unidad
+
+  unitarias-backend:
+    name: Unitarias - ${{ matrix.name }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: comun
+            directory: services/comun
+            requirements: none
+
+          - name: auth
+            directory: services/auth-service
+            requirements: services/auth-service/requirements.txt
+
+          - name: survey
+            directory: services/survey-service
+            requirements: services/survey-service/requirements.txt
+
+          - name: ml
+            directory: services/ml-service
+            requirements: services/ml-service/requirements.txt
+
+    steps:
+      - name: Descargar repositorio
+        uses: actions/checkout@v7
+
+      - name: Configurar Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Actualizar pip
+        run: python -m pip install --upgrade pip
+
+      - name: Instalar libreria comun
+        run: python -m pip install -e "./services/comun[test]"
+
+      - name: Instalar dependencias del servicio
+        if: matrix.requirements != 'none'
+        run: python -m pip install -r "${{ matrix.requirements }}"
+
+      - name: Ejecutar unitarias
+        working-directory: ${{ matrix.directory }}
+        run: python -m pytest -q
+
+  e2e-frontend:
+    name: E2E - Frontend
+    needs:
+      - unitarias-frontend
+      - unitarias-backend
+
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Descargar repositorio
+        uses: actions/checkout@v7
+
+      - name: Configurar Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Instalar dependencias
+        working-directory: frontend
+        run: npm ci
+
+      - name: Instalar Chromium
+        working-directory: frontend
+        run: npx playwright install --with-deps chromium
+
+      - name: Ejecutar E2E
+        working-directory: frontend
+        run: npm run prueba:e2e

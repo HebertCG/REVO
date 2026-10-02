@@ -57,6 +57,18 @@ Hay dos niveles diferentes:
 La puerta E2E del despliegue debe ejecutar ambos niveles. El segundo necesita
 la pasarela, los tres microservicios, PostgreSQL y Redis activos.
 
+## 4. Construccion de imagenes
+
+El job `construccion-docker` solo comienza cuando terminaron correctamente las
+unitarias, el E2E de frontend y las pruebas de integracion. Construye cinco
+imagenes: pasarela con el frontend incluido, auth, survey, ML y PostgreSQL con
+pgvector. Las imagenes de los servicios Python tambien se inspeccionan para
+comprobar que su usuario de ejecucion sea `revo` y no `root`.
+
+Esta puerta valida que el artefacto desplegable se puede crear, pero todavia no
+lo publica ni lo instala en el VPS. La publicacion, el E2E contra la pila real y
+la observacion de dos horas en staging pertenecen a los bloques siguientes.
+
 ## Fuera de estas puertas
 
 Las pruebas de carga permanecen en `infraestructura/carga/`. No son unitarias

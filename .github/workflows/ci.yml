@@ -202,3 +202,58 @@ jobs:
       - name: Ejecutar pruebas de integracion
         working-directory: ${{ matrix.directory }}
         run: python -m pytest pruebas/integracion -q -ra
+
+  construccion-docker:
+    name: Docker - ${{ matrix.name }}
+    needs:
+      - integracion-backend
+
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: pasarela
+            context: .
+            dockerfile: infraestructura/pasarela/Dockerfile
+            runtime_user: ""
+
+          - name: auth
+            context: services
+            dockerfile: services/auth-service/Dockerfile
+            runtime_user: revo
+
+          - name: survey
+            context: services
+            dockerfile: services/survey-service/Dockerfile
+            runtime_user: revo
+
+          - name: ml
+            context: services
+            dockerfile: services/ml-service/Dockerfile
+            runtime_user: revo
+
+          - name: postgres
+            context: infraestructura/postgres
+            dockerfile: infraestructura/postgres/Dockerfile
+            runtime_user: ""
+
+    steps:
+      - name: Descargar repositorio
+        uses: actions/checkout@v7
+
+      - name: Construir imagen
+        run: >-
+          docker build --pull
+          --tag "revo-${{ matrix.name }}:ci"
+          --file "${{ matrix.dockerfile }}"
+          "${{ matrix.context }}"
+
+      - name: Verificar usuario sin privilegios
+        if: matrix.runtime_user != ''
+        env:
+          IMAGEN: revo-${{ matrix.name }}:ci
+          USUARIO_ESPERADO: ${{ matrix.runtime_user }}
+        run: test "$(docker image inspect --format '{{.Config.User}}' "$IMAGEN")" = "$USUARIO_ESPERADO"

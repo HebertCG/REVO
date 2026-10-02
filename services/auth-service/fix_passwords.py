@@ -2,12 +2,16 @@
 fix_passwords.py — Actualiza hashes de contraseñas en revo_db
 Compatible con bcrypt 4.0.1 + passlib 1.7.4
 """
+import os
 import sys
 sys.path.insert(0, '.')
 
 from sqlalchemy import create_engine, text
 
-DATABASE_URL = "postgresql://postgres:Hebertjose89@localhost:5432/revo_db"
+DATABASE_URL = os.environ.get("DATABASE_URL")
+if not DATABASE_URL:
+    raise SystemExit("Falta DATABASE_URL en el entorno.")
+
 engine = create_engine(DATABASE_URL)
 
 # Hashes generados con bcrypt 4.0.1

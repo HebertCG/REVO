@@ -152,6 +152,15 @@ fuera del repositorio público.
 
 ---
 
+### Opcion VPS con Docker
+
+La imagen `infraestructura/pasarela/Dockerfile` compila el frontend y lo sirve
+desde Nginx junto con la pasarela `/api`. En un VPS, `docker compose up -d`
+levanta asi toda la aplicacion con un solo puerto publico. GitHub Actions valida
+la construccion de las cinco imagenes despues de superar las puertas de pruebas;
+la publicacion y el despliegue automatico se habilitaran en los siguientes
+bloques del pipeline.
+
 ## Estado
 
 Proyecto académico de Ingeniería de Sistemas. El motor de recomendación es funcional y está en uso de prueba; la ficha del proyecto menciona instrumentos (RIASEC, Big Five, explicabilidad del modelo) que todavía **no** están implementados en el código.

@@ -29,7 +29,7 @@ events {
 
 http {
     include       /etc/nginx/mime.types;
-    default_type  application/json;
+    default_type  application/octet-stream;
 
     # ── Registro ─────────────────────────────────────────────
     # Se registra la IP real y el estado. No se registran cabeceras: la
@@ -95,7 +95,7 @@ http {
 
     # ── Compresion ───────────────────────────────────────────
     gzip on;
-    gzip_types application/json text/plain;
+    gzip_types application/json text/plain text/css application/javascript image/svg+xml;
     gzip_min_length 1024;
     # gzip desactivado para respuestas con datos del alumno seria lo ideal
     # frente a BREACH, pero aqui no hay cookies de sesion ni CSRF token en
@@ -171,6 +171,7 @@ http {
     server {
         listen 80;
         server_name _;
+        root /usr/share/nginx/html;
 
         limit_conn conexiones 100;
 
@@ -180,7 +181,7 @@ http {
         add_header X-Content-Type-Options "nosniff" always;
         add_header X-Frame-Options "DENY" always;
         add_header Referrer-Policy "no-referrer" always;
-        add_header Content-Security-Policy "default-src 'none'; frame-ancestors 'none'" always;
+        add_header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https://remotive.com; font-src 'self' data:; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'" always;
 
         # ── Metodos permitidos ───────────────────────────────
         # TRACE y TRACK habilitan Cross-Site Tracing. No se usan aqui.
@@ -191,6 +192,7 @@ http {
         # ── Sonda de salud de la propia pasarela ─────────────
         location = /health {
             access_log off;
+            default_type application/json;
             return 200 '{"status":"ok"}';
         }
 
@@ -294,9 +296,16 @@ http {
             proxy_pass $servicio_ml;
         }
 
-        # Cualquier otra cosa no existe. No se revela que hay detras.
-        location / {
+        # Una ruta de API no declarada nunca debe terminar en el frontend.
+        location /api/ {
+            default_type application/json;
             return 404 '{"detail":"No encontrado"}';
+        }
+
+        # React es una SPA: las rutas del navegador vuelven a index.html y
+        # el enrutador del cliente decide que pantalla mostrar.
+        location / {
+            try_files $uri $uri/ /index.html;
         }
     }
 }

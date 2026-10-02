@@ -27,6 +27,10 @@ htmlcov/
 # Pruebas: no hacen falta en la imagen de produccion.
 */pruebas/
 
+# Utilidades manuales de mantenimiento: no forman parte del servicio que se
+# ejecuta y no deben quedar disponibles dentro de la imagen de produccion.
+auth-service/fix_passwords.py
+
 # Los modelos entrenados NO entran en la imagen. El volumen de modelos se
 # monta en /app/model/saved, y cuando esta vacio Docker lo rellena con lo que
 # trae la imagen en esa ruta: el decision_tree.pkl versionado en git acababa

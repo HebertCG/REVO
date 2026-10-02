@@ -22,18 +22,23 @@
 #                 quedaria atado a la CPU de la maquina que construyo la
 #                 imagen y podria fallar en el VPS.
 # ============================================================
-FROM postgres:16-alpine
+FROM postgres:16-alpine AS construccion
 
 # Version fijada: una imagen que se reconstruye con "la ultima" puede cambiar
 # de comportamiento sin que nadie haya tocado el proyecto.
 ARG PGVECTOR_VERSION=v0.8.6
 
-RUN apk add --no-cache --virtual .construccion git build-base \
-    && git clone --branch "${PGVECTOR_VERSION}" --depth 1 \
-         https://github.com/pgvector/pgvector.git /tmp/pgvector \
+RUN apk add --no-cache git build-base
+
+RUN git clone --branch "${PGVECTOR_VERSION}" --depth 1 \
+        https://github.com/pgvector/pgvector.git /tmp/pgvector \
     && cd /tmp/pgvector \
     && make with_llvm=no OPTFLAGS="" \
-    && make install with_llvm=no \
-    && cd / \
-    && rm -rf /tmp/pgvector \
-    && apk del .construccion
+    && make install with_llvm=no
+
+
+# La imagen final no contiene git, compiladores ni el codigo fuente.
+FROM postgres:16-alpine
+
+COPY --from=construccion /usr/local/lib/postgresql/vector.so /usr/local/lib/postgresql/vector.so
+COPY --from=construccion /usr/local/share/postgresql/extension/vector* /usr/local/share/postgresql/extension/

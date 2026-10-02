@@ -46,17 +46,28 @@ def retrain_model(
     """
     metrics = train_model(db, trained_by_id=quien.user_id)
     return TrainResponse(
-        model_version      = metrics["model_version"],
-        accuracy           = metrics["accuracy"],
-        precision          = metrics["precision"],
-        recall             = metrics["recall"],
-        f1                 = metrics["f1"],
-        baseline_accuracy  = metrics["baseline_accuracy"],
-        lift_over_baseline = metrics["lift_over_baseline"],
-        training_samples   = metrics["training_samples"],
-        test_samples       = metrics["test_samples"],
-        tree_depth         = metrics["tree_depth"],
-        n_leaves           = metrics["n_leaves"],
+        model_version       = metrics["model_version"],
+        accuracy            = metrics["accuracy"],
+        precision           = metrics["precision"],
+        recall              = metrics["recall"],
+        f1                  = metrics["f1"],
+        baseline_accuracy   = metrics["baseline_accuracy"],
+        lift_over_baseline  = metrics["lift_over_baseline"],
+        training_samples    = metrics["training_samples"],
+        calibration_samples = metrics["calibration_samples"],
+        test_samples        = metrics["test_samples"],
+        algorithm           = metrics["algorithm"],
+        n_iterations        = metrics["n_iterations"],
+        n_coefficients      = metrics["n_coefficients"],
+        converged           = metrics["converged"],
+        calibracion         = metrics["calibracion"],
+        conformal           = metrics["conformal"],
+        lineas_base         = metrics["lineas_base"],
+        # Entrenar ya no implica desplegar: si el candidato no pasa la puerta
+        # de promocion, sigue sirviendo el anterior y esto lo dice.
+        promovido           = metrics["promovido"],
+        motivo              = metrics["motivo"],
+        avisos              = metrics["avisos"],
     )
 
 
@@ -95,6 +106,11 @@ def get_overview(
             "f1":           float(last_log.f1_score) if last_log.f1_score else None,
             "trained_at":   last_log.trained_at.isoformat() if last_log.trained_at else None,
             "samples":      last_log.training_samples,
+            # El panel mostraba "Prof. 8" escrito a mano, que era la
+            # profundidad de un arbol que ya no se entrena. Con estos dos
+            # campos la tarjeta puede decir que algoritmo corrio de verdad.
+            "algorithm":    last_log.algorithm,
+            "n_iterations": last_log.n_iterations,
         }
 
     # Promedio de confianza
@@ -109,12 +125,19 @@ def get_overview(
     else:
         new_preds = total_preds
 
-    # ── Sintético vs Humano ──────────────────────────────────
+    # ── Procedencia de las muestras ──────────────────────────
+    # 'corrected' se cuenta aparte y no dentro de 'human': son las filas que
+    # vienen de un DESACUERDO del alumno, las unicas que corrigen al modelo.
+    # Mezclarlas impediria responder a "¿cuantas veces se equivoca el modelo
+    # segun los propios alumnos?".
     synthetic_count = db.query(MLTrainingData).filter(
         MLTrainingData.source == "synthetic"
     ).count()
     human_count = db.query(MLTrainingData).filter(
         MLTrainingData.source == "human"
+    ).count()
+    corrected_count = db.query(MLTrainingData).filter(
+        MLTrainingData.source == "human_corrected"
     ).count()
 
     # ── Métricas de Feedback (Afinidad y Descubrimiento) ────
@@ -124,6 +147,10 @@ def get_overview(
     ).count()
     discovery_yes  = db.query(PredictionFeedback).filter(
         PredictionFeedback.discovery_level == "new"
+    ).count()
+    # Desacuerdos en los que el alumno ademas dijo cual era su rama.
+    corregidos = db.query(PredictionFeedback).filter(
+        PredictionFeedback.corrected_specialization_id.isnot(None)
     ).count()
 
     return {
@@ -135,12 +162,28 @@ def get_overview(
         "data_sources": {
             "synthetic": synthetic_count,
             "human":     human_count,
-            "total":     synthetic_count + human_count,
+            "corrected": corrected_count,
+            "total":     synthetic_count + human_count + corrected_count,
+            "aviso": (
+                "Las filas 'human' son confirmaciones: refuerzan lo que el "
+                "modelo ya acertaba. Solo 'corrected' lo corrige. Si "
+                "corrected se queda en cero mientras human crece, el dataset "
+                "se esta volviendo un espejo del modelo."
+            ),
         },
         "feedback": {
             "total":         total_feedback,
             "affinity_rate": round((affinity_yes / total_feedback * 100), 1) if total_feedback else 0,
             "discovery_rate": round((discovery_yes / total_feedback * 100), 1) if total_feedback else 0,
+            "desacuerdos":   total_feedback - affinity_yes,
+            "desacuerdos_con_correccion": corregidos,
+            # El nombre importa: NO es "accuracy en produccion". Mide si el
+            # alumno esta de acuerdo con el diagnostico, que no es lo mismo
+            # que si el diagnostico es una buena decision de carrera.
+            "aviso": (
+                "affinity_rate mide ACUERDO del alumno con el diagnostico, "
+                "no acierto. No reportarlo como accuracy."
+            ),
         }
     }
 
@@ -162,7 +205,8 @@ def get_training_history(
             "accuracy":         float(l.accuracy) if l.accuracy else None,
             "f1":               float(l.f1_score) if l.f1_score else None,
             "training_samples": l.training_samples,
-            "tree_depth":       l.max_depth,
+            "algorithm":        l.algorithm,
+            "n_iterations":     l.n_iterations,
             "trained_at":       l.trained_at.isoformat() if l.trained_at else None,
         }
         for l in logs

@@ -23,6 +23,7 @@ from sqlalchemy.orm import Session
 
 from config import settings
 from database import Answer, Question, QuestionnaireSession
+from motor_adaptativo import sombra
 from revo_comun.seguridad.pasarela import GATEWAY_HEADER
 from revo_comun.seguridad.tokens import Principal
 from schemas import (
@@ -87,6 +88,26 @@ def _spec_totals(db: Session, session_id: int) -> dict[int, dict]:
         if spec_id in totales:
             totales[spec_id] = {"sum": float(total or 0), "count": int(cnt or 0)}
     return totales
+
+
+def _respuestas_en_orden(db: Session, session_id: int) -> list[tuple[int, float]]:
+    """
+    Las respuestas de la sesion, en el orden en que se contestaron.
+
+    El orden importa para la etapa sombra: el descuento por rama repetida
+    del modelo de creencia depende de cuantas preguntas de esa rama se
+    llevaban ya. Cargarlas desordenadas daria una posterior distinta.
+
+    Se ordena por `answered_at` y se desempata por `id`: dos respuestas
+    guardadas en el mismo lote comparten marca de tiempo, y sin el segundo
+    criterio el orden lo decidiria PostgreSQL.
+    """
+    filas = db.execute(
+        select(Answer.question_id, Answer.value)
+        .where(Answer.session_id == session_id)
+        .order_by(Answer.answered_at, Answer.id)
+    ).all()
+    return [(int(qid), float(valor)) for qid, valor in filas]
 
 
 def _sesion_activa(db: Session, session_id: int, user_id: int) -> QuestionnaireSession:
@@ -175,7 +196,16 @@ def preguntas_de_la_sesion(
             db.scalars(
                 select(Question)
                 .distinct(Question.specialization_id)
-                .where(Question.specialization_id.in_(list(SPEC_IDS)))
+                # is_active NO es opcional aqui. La migracion 28 jubilo los
+                # 100 items del banco viejo marcandolos inactivos, y este
+                # `select` no lo miraba: el cuestionario seguia sirviendo
+                # "Me considero extremadamente hábil para..." mezclado con
+                # los nuevos. Se detecto ejecutando una sesion completa y
+                # viendo que 16 de 25 respuestas eran del banco retirado.
+                .where(
+                    Question.specialization_id.in_(list(SPEC_IDS)),
+                    Question.is_active.is_(True),
+                )
                 .order_by(Question.specialization_id, func.random())
             )
         )
@@ -190,7 +220,10 @@ def preguntas_de_la_sesion(
 
         preguntas = []
         for spec_id in top3:
-            consulta = select(Question).where(Question.specialization_id == spec_id)
+            consulta = select(Question).where(
+                Question.specialization_id == spec_id,
+                Question.is_active.is_(True),
+            )
             if respondidas:
                 consulta = consulta.where(Question.id.notin_(respondidas))
             preguntas.extend(
@@ -307,8 +340,43 @@ def cerrar_fase(
             for spec_id in SPEC_IDS
         }
 
+        # ETAPA SOMBRA: el motor adaptativo corre en paralelo sobre estas
+        # mismas respuestas y se anota que habria concluido. El alumno no lo
+        # nota, y `registrar` no puede lanzar (ver motor_adaptativo/sombra.py).
+        #
+        # Va ANTES de cerrar la sesion a proposito: si se hiciera despues del
+        # commit que la marca completada, un fallo dejaria la sesion cerrada
+        # y la sombra a medias, y al reintentar no habria forma de saber cual
+        # de las dos cosas falto.
+        sombra.registrar(
+            db, session_id,
+            respuestas=_respuestas_en_orden(db, session_id),
+            puntuaciones_actuales={i: t["sum"] for i, t in totales.items()},
+        )
+
         sesion.status = "completed"
         sesion.completed_at = func.now()
+
+        # duration_seconds llevaba desde 01_init.sql declarada y vacia: ni
+        # una sola linea le asignaba valor, pero salia en SessionOut como si
+        # midiera algo. Se rellena aqui, que es el unico momento en que la
+        # sesion tiene principio y final.
+        #
+        # El calculo va en SQL y no en Python para que las dos marcas de
+        # tiempo salgan del MISMO reloj. started_at lo puso el servidor de
+        # base de datos; restarle un datetime.now() del contenedor de la
+        # aplicacion mete la diferencia entre ambos relojes dentro del dato.
+        #
+        # greatest(0, ...) porque un ajuste de hora hacia atras entre el
+        # inicio y el final daria una duracion negativa, y una sesion que
+        # dura -3 segundos es peor que una sesion sin duracion.
+        sesion.duration_seconds = func.greatest(
+            0,
+            func.round(
+                func.extract("epoch", func.now() - QuestionnaireSession.started_at)
+            ),
+        )
+
         db.commit()
         db.refresh(sesion)
 

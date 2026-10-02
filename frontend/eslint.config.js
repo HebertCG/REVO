@@ -5,7 +5,17 @@ import reactRefresh from 'eslint-plugin-react-refresh'
 import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
-  globalIgnores(['dist']),
+  // Ademas de `dist`, las carpetas que genera Playwright: el informe HTML
+  // trae dentro su propio paquete de JavaScript de terceros (minificado, con
+  // `define`, expresiones regulares raras y bloques vacios). Sin ignorarlas,
+  // `npm run lint` termina con cientos de errores que no son del proyecto y
+  // el resultado deja de servir para nada.
+  globalIgnores([
+    'dist',
+    'pruebas/.informe',
+    'pruebas/.resultados',
+    'pruebas/.capturas',
+  ]),
   {
     files: ['**/*.{js,jsx}'],
     extends: [

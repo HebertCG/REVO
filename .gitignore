@@ -67,7 +67,7 @@ PRODUCT.md
 
 # Copia local del instalador con las contrasenas reales dentro.
 # Se genera con database/rellenar_instalador.py y nunca se sube.
-database/INSTALAR_SUPABASE.privado.sql
+database/supabase/INSTALAR_SUPABASE.privado.sql
 
 # Fuera del repositorio publico.
 #
@@ -78,3 +78,6 @@ database/INSTALAR_SUPABASE.privado.sql
 # docs/ son las guias de despliegue y el modelo de amenazas.
 docs/
 database/
+
+# Salida de las mediciones de rendimiento (se regenera, no se versiona).
+frontend/pruebas/.medidas/

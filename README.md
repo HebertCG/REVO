@@ -127,16 +127,13 @@ npm run dev                 # http://localhost:5173
 ```bash
 cd frontend
 npm run prueba:unidad       # lógica pura (node:test)
-npm run prueba              # interfaz completa (Playwright)
-npm run prueba:responsivo   # de 320px a 1920px
-npm run prueba:movil        # Pixel 7
+npm run prueba:e2e          # navegador en escritorio y móvil (Playwright)
+npm run prueba              # unitarias + E2E del frontend
 ```
 
-La batería de interfaz **no necesita el backend**: habla con una API simulada. Una suite que solo pasa cuando los microservicios están arriba no mide el frontend, mide el estado del laboratorio.
+La batería Playwright del frontend usa una API simulada. El recorrido E2E de sistema contra la pila real está separado en `pruebas/e2e/sistema/`.
 
-Cubre accesibilidad (axe-core contra WCAG 2.1 AA), contraste real de cada elemento pintado, resiliencia con el backend caído y sin red, y que ninguna pantalla se salga de la ventana entre 320 y 1920 px.
-
-Los servicios Python se prueban con `pytest` desde `services/`.
+Las pruebas Python están separadas por servicio en `pruebas/unitarias/` y `pruebas/integracion/`. La estructura y todos los comandos están documentados en [`pruebas/README.md`](pruebas/README.md).
 
 ---
 

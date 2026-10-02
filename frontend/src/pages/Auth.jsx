@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/contextoAuth'
-import { EVENTO_DESPERTANDO, EVENTO_DESPIERTO, despertarAutenticacion, hayEsperaEnCurso } from '../services/api'
 import CasillasConsentimiento from '../components/consentimiento/CasillasConsentimiento'
 import personaImg from '../assets/login-persona.webp'
 import './Auth.css'
@@ -35,7 +34,6 @@ export default function Auth({ modoInicial = 'login', mostrarSSO = false }) {
   const [errorConsent, setErrorConsent] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-  const [despertando, setDespertando] = useState(hayEsperaEnCurso)
 
   // La ruta manda: si el usuario llega por /register o pulsa atras,
   // la pestana se sincroniza sola.
@@ -45,42 +43,10 @@ export default function Auth({ modoInicial = 'login', mostrarSSO = false }) {
     setErrorConsent('')
   }, [location.pathname])
 
-  /**
-   * Aviso de servicio dormido.
-   *
-   * Render duerme los servicios gratuitos tras 15 minutos sin trafico, y
-   * levantarlos tarda casi un minuto. El cliente HTTP reintenta solo, pero
-   * mientras tanto la pantalla se queda quieta, y una pantalla quieta
-   * durante un minuto se lee como una pantalla rota.
-   *
-   * El aviso no lo dispara esta pantalla sino la primera peticion que se
-   * topa con el servicio dormido, que aqui es la de los documentos legales
-   * al montar las casillas de consentimiento. Esa llamada hace de
-   * despertador: mientras el alumno rellena el formulario, el servicio de
-   * autenticacion termina de arrancar, y al pulsar "Crear cuenta" ya
-   * responde.
-   */
-  useEffect(() => {
-    const empezar = () => setDespertando(true)
-    const terminar = () => setDespertando(false)
-
-    window.addEventListener(EVENTO_DESPERTANDO, empezar)
-    window.addEventListener(EVENTO_DESPIERTO, terminar)
-
-    // La espera pudo empezar mientras esta pantalla todavia se descargaba.
-    setDespertando(hayEsperaEnCurso())
-
-    // El despertador va aqui y no en las casillas de consentimiento, que
-    // solo se montan en la pestana de registro: puesto alli, la pantalla de
-    // login se quedaba sin ninguna peticion previa y el alumno se comia el
-    // arranque en frio al pulsar "Iniciar sesion".
-    despertarAutenticacion()
-
-    return () => {
-      window.removeEventListener(EVENTO_DESPERTANDO, empezar)
-      window.removeEventListener(EVENTO_DESPIERTO, terminar)
-    }
-  }, [])
+  // Aqui habia un efecto que escuchaba dos eventos de ventana para pintar
+  // "Despertando el servidor" y lanzaba una peticion de cortesia a
+  // auth-service. Ambas cosas eran para el arranque en frio de Render: con
+  // los servicios siempre en pie no hay nada que anunciar ni que despertar.
 
   const cambiarConsent = (clave, valor) => {
     setConsent((c) => ({ ...c, [clave]: valor }))
@@ -167,6 +133,8 @@ export default function Auth({ modoInicial = 'login', mostrarSSO = false }) {
   const tabLoginStyle = tab(esLogin)
   const tabRegistroStyle = tab(esRegistro)
   const tipoPassword = verPass ? 'text' : 'password'
+  const longitudMinimaPassword = esRegistro ? 10 : undefined
+  const placeholderPassword = esRegistro ? 'Mínimo 10 caracteres' : 'Tu contraseña'
   const labelPassword = verPass ? 'Ocultar' : 'Ver'
   const fuerzaPct = ['0%', '34%', '67%', '100%'][nivel]
   const fuerzaColor = ['#e6eaf3', '#e2574c', '#f2a93b', '#2f9e5e'][nivel]
@@ -175,11 +143,6 @@ export default function Auth({ modoInicial = 'login', mostrarSSO = false }) {
   return (
     <div className="revo-auth">
       {error && <div className="revo-auth-error" role="alert">{error}</div>}
-      {!error && despertando && (
-        <div className="revo-auth-espera" role="status">
-          Despertando el servidor. La primera visita del dia tarda hasta un minuto.
-        </div>
-      )}
         <div style={{fontFamily: "'Plus Jakarta Sans',system-ui,-apple-system,sans-serif", color: "#0d1220", minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: "68px 0 0", background: "#eef2fb"}}>
           <div style={{position: "relative", width: "100%", minHeight: "calc(100vh - 68px)", display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(420px,100%),1fr))", background: "#fff", borderRadius: "0", overflow: "hidden", boxShadow: "none"}}>
             <div style={{position: "relative", overflow: "hidden", background: "#2f5fe8", color: "#fff", padding: "clamp(26px,3.4vw,44px)", display: "flex", flexDirection: "column", justifyContent: "space-between", gap: "26px", minHeight: "clamp(330px,38vw,620px)", borderRadius: "0 30% 30% 0 / 0 50% 50% 0", zIndex: "1"}}>
@@ -261,7 +224,7 @@ export default function Auth({ modoInicial = 'login', mostrarSSO = false }) {
                       )}
                     </span>
                     <span style={{position: "relative", display: "block"}}>
-                      <input className="rvl-f1" type={tipoPassword} value={form.password} onChange={(e) => set("password", e.target.value)} required minLength={10} autoComplete={esRegistro ? "new-password" : "current-password"} placeholder="Mínimo 10 caracteres" style={{width: "100%", boxSizing: "border-box", padding: "14px 62px 14px 15px", borderRadius: "11px", border: "1.5px solid #e2e6ef", background: "#fff", fontFamily: "inherit", fontSize: "14.5px", color: "#0d1220", transition: "border-color .15s ease,box-shadow .15s ease"}} />
+                      <input className="rvl-f1" type={tipoPassword} value={form.password} onChange={(e) => set("password", e.target.value)} required minLength={longitudMinimaPassword} autoComplete={esRegistro ? "new-password" : "current-password"} placeholder={placeholderPassword} style={{width: "100%", boxSizing: "border-box", padding: "14px 62px 14px 15px", borderRadius: "11px", border: "1.5px solid #e2e6ef", background: "#fff", fontFamily: "inherit", fontSize: "14.5px", color: "#0d1220", transition: "border-color .15s ease,box-shadow .15s ease"}} />
                       <button className="rvl-h2" type="button" onClick={togglePassword} style={{position: "absolute", right: "8px", top: "50%", transform: "translateY(-50%)", padding: "6px 9px", border: "0", borderRadius: "8px", background: "#f2f4f9", color: "#3b465c", fontFamily: "inherit", fontSize: "11.5px", fontWeight: "700", cursor: "pointer"}}>
                         {labelPassword}
                       </button>
@@ -291,8 +254,8 @@ export default function Auth({ modoInicial = 'login', mostrarSSO = false }) {
                       {textoCheck}
                     </label>
                   )}
-                  <button className="rvl-h3 rvl-a4" type="submit" disabled={loading || despertando} style={{display: "flex", alignItems: "center", justifyContent: "center", gap: "10px", width: "100%", padding: "16px", border: "0", borderRadius: "12px", background: "#2f5fe8", color: "#fff", fontFamily: "inherit", fontSize: "15px", fontWeight: "700", cursor: "pointer", boxShadow: "0 8px 20px rgba(47,95,232,.28)", transition: "background .15s ease,transform .15s ease"}}>
-                    {despertando ? 'Despertando el servidor…' : loading ? textoCargando : textoBoton}
+                  <button className="rvl-h3 rvl-a4" type="submit" disabled={loading} style={{display: "flex", alignItems: "center", justifyContent: "center", gap: "10px", width: "100%", padding: "16px", border: "0", borderRadius: "12px", background: "#2f5fe8", color: "#fff", fontFamily: "inherit", fontSize: "15px", fontWeight: "700", cursor: "pointer", boxShadow: "0 8px 20px rgba(47,95,232,.28)", transition: "background .15s ease,transform .15s ease"}}>
+                    {loading ? textoCargando : textoBoton}
                     <span style={{display: "inline-flex", alignItems: "center", justifyContent: "center", width: "22px", height: "22px", borderRadius: "999px", background: "rgba(255,255,255,.2)", fontSize: "13px"}}>
                       →
                     </span>

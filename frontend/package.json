@@ -8,15 +8,12 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "prueba": "playwright test",
-    "prueba:responsivo": "playwright test --project=responsivo",
-    "prueba:carga": "playwright test --project=carga --workers=6",
-    "prueba:movil": "playwright test --project=movil",
-    "prueba:escritorio": "playwright test --project=escritorio",
+    "prueba": "npm run prueba:unidad && npm run prueba:e2e",
+    "prueba:e2e": "node pruebas/ejecutar-e2e.mjs",
+    "prueba:e2e:movil": "node pruebas/ejecutar-e2e.mjs --project=movil",
+    "prueba:e2e:escritorio": "node pruebas/ejecutar-e2e.mjs --project=escritorio",
     "prueba:informe": "playwright show-report pruebas/.informe",
-    "prueba:unidad": "node --test src/**/*.test.mjs",
-    "prueba:fallos": "playwright test --reporter=json && node pruebas/utiles/resumirFallos.mjs",
-    "prueba:capturas": "playwright test --project=capturas"
+    "prueba:unidad": "node --test src/**/*.test.mjs"
   },
   "dependencies": {
     "axios": "^1.14.0",

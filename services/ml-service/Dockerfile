@@ -36,6 +36,20 @@ FROM python:3.11-slim
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1
 
+# Un solo hilo para la libreria numerica (OpenBLAS, via numpy/scikit-learn).
+#
+# Medido en la prueba de carga del 2026-09-21: con el valor por defecto,
+# OpenBLAS abre un hilo por nucleo y un reentrenamiento costaba 23 s de CPU
+# en 6 s de reloj; con un hilo, 5 s de CPU en 5 s de reloj. Las matrices del
+# modelo son pequenas (10 afinidades x 10 ramas) y los hilos se pasaban el
+# tiempo coordinandose. Bajo carga era peor: 35-55 s de CPU por
+# reentrenamiento, robandosela a las peticiones de los alumnos. En un VPS de
+# pocos nucleos es la diferencia entre que un reentrenamiento pase
+# desapercibido o congele el servicio.
+ENV OMP_NUM_THREADS=1 \
+    OPENBLAS_NUM_THREADS=1 \
+    MKL_NUM_THREADS=1
+
 # libpq5 es la biblioteca en tiempo de ejecucion; libpq-dev y gcc se quedan
 # en la etapa anterior.
 RUN apt-get update && apt-get install -y --no-install-recommends \

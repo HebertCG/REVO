@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { despertarAutenticacion } from '../../services/api'
+import { legalApi } from '../../services/api'
 import ModalDocumentoLegal from './ModalDocumentoLegal'
 import './consentimiento.css'
 
@@ -29,15 +29,16 @@ export default function CasillasConsentimiento({ valores, onCambio, error }) {
 
   useEffect(() => {
     let vivo = true
-    // La misma lectura que usa la pantalla de acceso para despertar al
-    // servicio: se comparte en vez de pedirla dos veces. Ya trae dentro el
-    // reintento por arranque en frio y devuelve null si acaba fallando.
+    // Antes esto reutilizaba la peticion de "despertar" que lanzaba la
+    // pantalla de acceso. Ese despertador ya no existe, asi que el catalogo
+    // se pide directamente, que es lo que siempre quiso hacer.
     //
-    // Si el catalogo no carga, se usan los textos de reserva de abajo: el
-    // registro no puede quedarse bloqueado porque falle una llamada
-    // secundaria, pero el alumno tiene que ver siempre que esta aceptando.
-    despertarAutenticacion()
+    // Si no carga, se usan los textos de reserva de abajo: el registro no
+    // puede quedarse bloqueado porque falle una llamada secundaria, pero el
+    // alumno tiene que ver siempre que esta aceptando.
+    legalApi.documentos()
       .then((respuesta) => { if (vivo) setDocumentos(respuesta?.data ?? []) })
+      .catch(() => { /* se usan los textos de reserva */ })
     return () => { vivo = false }
   }, [])
 

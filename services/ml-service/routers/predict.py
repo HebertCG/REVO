@@ -10,13 +10,18 @@ cambia aqui es infraestructura:
     leer el dataset completo sin hacerse pasar por administrador.
 """
 import logging
+import threading
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Path
-from sqlalchemy import select
+from sqlalchemy import insert, select, text
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+import catalogo
+import consultas_vectoriales
 from config import settings
 from database import MLTrainingData, ModelTrainingLog, Prediction, PredictionFeedback
+from model import conformal, incertidumbre
 from model.predictor import get_feature_importances, predict
 from model.trainer import train_model
 from revo_comun.seguridad.tokens import Principal
@@ -28,9 +33,66 @@ logger = logging.getLogger("revo.ml.predict")
 router = APIRouter(prefix="/predict", tags=["Prediccion"])
 
 
+#: Clave del cerrojo consultivo de PostgreSQL que serializa los
+#: reentrenamientos entre workers y procesos. Cualquier entero fijo vale; se
+#: deja escrito para que nadie la reutilice para otra cosa.
+CLAVE_CERROJO_REENTRENAMIENTO = 7_361_001
+
+#: Y dentro de un mismo proceso, entre hilos de BackgroundTasks.
+_reentrenando = threading.Lock()
+
+
 def check_and_retrain():
     """
-    Reentrena si han llegado suficientes muestras nuevas.
+    Reentrena si han llegado suficientes muestras nuevas, UNA vez a la vez.
+
+    DEFECTO QUE ESTO CORRIGE, medido en la prueba de carga (2026-09-21): cada
+    prediccion programa esta funcion en segundo plano, y en cuanto habia 50
+    nuevas TODAS las siguientes veian el umbral superado y arrancaban su
+    propio entrenamiento, hasta que el primero terminaba y lo registraba. Con
+    135 alumnos a la vez hubo 12 entrenamientos en paralelo: la CPU por alumno
+    paso de 0,8 s a 4,2 s y la prediccion tardo 8,9 s en el percentil 95.
+
+    Dos cerrojos, porque hay dos niveles de concurrencia:
+
+      proceso   un Lock: los hilos de BackgroundTasks de este worker
+      sistema   pg_try_advisory_lock: los demas workers y servicios. Vive en
+                una conexion propia porque el cerrojo es de CONEXION, y la
+                sesion de entrenamiento cambia de conexion entre commits;
+                si muriera el proceso, al cerrarse la conexion se suelta solo.
+
+    Los dos son "try": quien no lo consigue no espera, se va. Cuando el que
+    entrena termine, las 50 predicciones ya contaran como entrenadas.
+    """
+    if not _reentrenando.acquire(blocking=False):
+        return
+    try:
+        with servicio.motor.connect() as conexion:
+            libre = conexion.execute(
+                text("SELECT pg_try_advisory_lock(:clave)"),
+                {"clave": CLAVE_CERROJO_REENTRENAMIENTO},
+            ).scalar()
+            if not libre:
+                return
+            try:
+                _reentrenar_si_toca()
+            except Exception as exc:  # noqa: BLE001 - segundo plano: se registra
+                logger.error("El reentrenamiento automatico fallo: %s", exc, exc_info=True)
+            finally:
+                conexion.execute(
+                    text("SELECT pg_advisory_unlock(:clave)"),
+                    {"clave": CLAVE_CERROJO_REENTRENAMIENTO},
+                )
+    finally:
+        _reentrenando.release()
+
+
+def _reentrenar_si_toca() -> None:
+    """
+    Cuenta las predicciones nuevas y entrena si llegan al umbral.
+
+    Se cuenta DENTRO del cerrojo: quien lo consigue justo despues de otro
+    entrenamiento ve el contador ya a cero y no repite el trabajo.
 
     Corre fuera del ciclo de la peticion, con identidad de servicio: necesita
     contar TODAS las predicciones y leer el dataset completo, cosa que el
@@ -50,13 +112,43 @@ def check_and_retrain():
                 "Llegaron %s muestras nuevas: reentrenando en segundo plano", new_preds
             )
             train_model(db, trained_by_id=None)
-    except Exception as exc:  # noqa: BLE001
-        logger.error("El reentrenamiento automatico fallo: %s", exc, exc_info=True)
     finally:
         db.close()
 
 
 # ── POST /predict/ ───────────────────────────────────────────
+#: Lo que se guarda en `predictions.detalle` y devuelve el GET. Solo lo que
+#: NO tiene columna propia: repetir primary o model_version aqui abriria la
+#: puerta a que discrepen. `probabilidades_por_id` tampoco: sus claves son
+#: enteros y JSON las convertiria en texto al leerlas de vuelta.
+CAMPOS_DETALLE = (
+    "all_probabilities", "calibrado", "incertidumbre", "conjunto_conformal",
+    "presentacion", "vecindario", "ocupaciones_afines",
+)
+
+
+def con_vecindario(result: dict, vectorial: dict) -> dict:
+    """
+    El resultado con la lectura y la presentacion corregidas por el vecindario.
+
+    Sin esto, la alerta de "perfil poco visto" quedaba guardada en su propio
+    campo pero el mensaje seguia diciendo "apuntan claramente a una rama".
+    """
+    diagnostico = incertidumbre.incorporar_vecindario(
+        result["incertidumbre"], vectorial["vecindario"])
+    return {
+        **result,
+        "incertidumbre": diagnostico,
+        "presentacion": conformal.ajustar_por_lectura(result["presentacion"], diagnostico),
+    }
+
+
+def detalle_de(result: dict, vectorial: dict) -> dict:
+    """El resultado completo, tal como se guardara y se devolvera."""
+    completo = {**result, **vectorial}
+    return {campo: completo[campo] for campo in CAMPOS_DETALLE if campo in completo}
+
+
 @router.post("/", response_model=PredictResponse)
 def make_prediction(
     body: PredictRequest,
@@ -70,11 +162,21 @@ def make_prediction(
     especializacion recomendada.
     """
     try:
-        result = predict(body.feature_vector)
+        # El catalogo sale de la tabla `specializations`, no del mapa
+        # duplicado de predictor.py. Ver catalogo.py.
+        result = predict(body.feature_vector, catalogo=catalogo.obtener(db))
     except FileNotFoundError as e:
         raise HTTPException(status_code=503, detail=str(e))
 
     primary = result["primary"]
+
+    # ANTES de escribir nada: si pgvector fallara, consultas_vectoriales deshace
+    # una transaccion que todavia no contiene la prediccion, y la sesion
+    # reaplica el contexto RLS al empezar la siguiente. Asi todo va en un
+    # solo INSERT (revo_ml no tiene UPDATE sobre predictions).
+    vectorial = consultas_vectoriales.enriquecer(db, body.feature_vector, result)
+    result = con_vecindario(result, vectorial)
+    detalle = detalle_de(result, vectorial)
 
     # Guardar predicción en BD
     pred_record = Prediction(
@@ -85,7 +187,12 @@ def make_prediction(
         confidence_score          = primary["confidence"],
         secondary_specializations = result["top3"][1:],  # posiciones 2 y 3
         feature_vector            = body.feature_vector,
-        model_version             = settings.MODEL_VERSION,
+        # La version REAL del artefacto que hizo esta prediccion, no la
+        # constante 'v1.0' de la configuracion. Con la constante era imposible
+        # saber que modelo produjo que prediccion, y sin eso no se puede
+        # analizar deriva ni comparar versiones.
+        model_version             = result["model_version"],
+        detalle                   = detalle,
     )
     db.add(pred_record)
     db.commit()
@@ -100,8 +207,8 @@ def make_prediction(
         primary_specialization    = primary["name"],
         primary_specialization_id = primary["specialization_id"],
         top3                      = result["top3"],
-        all_probabilities         = result["all_probabilities"],
-        model_version             = settings.MODEL_VERSION,
+        model_version             = result["model_version"],
+        **detalle,
     )
 
 
@@ -127,8 +234,7 @@ def get_prediction(
     if not pred:
         raise HTTPException(status_code=404, detail="Predicción no encontrada")
 
-    from model.predictor import SPECIALIZATION_MAP
-    spec = SPECIALIZATION_MAP.get(pred.primary_specialization_id, {})
+    spec = catalogo.obtener(db).get(pred.primary_specialization_id, {})
 
     primary = {
         "specialization_id": pred.primary_specialization_id,
@@ -139,13 +245,19 @@ def get_prediction(
         "confidence_pct": round(float(pred.confidence_score) * 100, 1),
     }
 
+    # Lo que el modelo dijo EN SU MOMENTO (migracion 38). Recalcularlo aqui
+    # daria otro resultado si el modelo se ha reentrenado desde entonces.
+    # Las predicciones anteriores no lo tienen: salen como antes.
+    guardado = {campo: valor for campo, valor in (pred.detalle or {}).items()
+                if campo in CAMPOS_DETALLE}
+
     return PredictResponse(
         prediction_id     = pred.id,
         session_id        = pred.session_id,
         primary           = primary,
         top3              = pred.secondary_specializations or [],
-        all_probabilities = {},
         model_version     = pred.model_version,
+        **{"all_probabilities": {}, **guardado},
     )
 
 
@@ -169,10 +281,10 @@ def get_user_history(
         )
     )
 
-    from model.predictor import SPECIALIZATION_MAP
+    ramas = catalogo.obtener(db)
     results = []
     for p in preds:
-        spec = SPECIALIZATION_MAP.get(p.primary_specialization_id, {})
+        spec = ramas.get(p.primary_specialization_id, {})
         results.append({
             "prediction_id":    p.id,
             "session_id":       p.session_id,
@@ -204,29 +316,23 @@ def feature_importances(
         raise HTTPException(status_code=503, detail=str(e))
 
 
-# ── GET /predict/model/tree ──────────────────────────────────
-@router.get("/model/tree")
-def get_tree_visualization(
+# ── GET /predict/model/resumen ───────────────────────────────
+@router.get("/model/resumen")
+def get_model_summary(
     quien: Principal = Depends(servicio.admin),
     _: None = Depends(servicio.limitar("admin")),
 ):
-    """Descripcion legible del modelo, para el panel admin. Solo administradores."""
-    from model.trainer import get_tree_text
-    QUESTION_LABELS = [
-        "Afinidad Dev Software", "Afinidad Data/IA",
-        "Afinidad Infra/Cloud", "Afinidad Ciberseguridad",
-        "Afinidad Soporte IT", "Afinidad QA/Testing",
-        "Afinidad Gestión", "Afinidad UX/UI",
-        "Afinidad Sist Emp", "Afinidad Innovación"
-    ]
-    CLASS_NAMES = [
-        "Soft Dev", "Data/IA", "Infra/Cloud", 
-        "Ciberseguridad", "Soporte", "QA/Testing", 
-        "Gestión", "UX/UI", "Sistemas Emp", "Innovación"
-    ]
+    """
+    Descripcion legible del modelo, para el panel admin. Solo administradores.
+
+    La ruta se llamaba /model/tree y la funcion get_tree_visualization, de
+    cuando el modelo era un arbol de decision. Las dos listas de etiquetas
+    que habia aqui (QUESTION_LABELS y CLASS_NAMES) se pasaban a la funcion y
+    esta no las usaba nunca: eran la firma de sklearn.tree.export_text.
+    """
+    from model.trainer import describir_modelo
     try:
-        tree_text = get_tree_text(QUESTION_LABELS, CLASS_NAMES)
-        return {"tree": tree_text}
+        return {"resumen": describir_modelo()}
     except FileNotFoundError as e:
         raise HTTPException(status_code=503, detail=str(e))
 
@@ -241,8 +347,28 @@ def save_feedback(
     _: None = Depends(servicio.limitar("read")),
 ):
     """
-    Guarda la retroalimentación del alumno sobre la predicción.
-    Si el alumno confirmó afinidad, inyecta el vector como dato 'human' en ml_training_data.
+    Guarda la retroalimentacion del alumno y alimenta el dataset con ella.
+
+    EL BUCLE QUE ESTA RUTA TENIA ROTO
+
+    Antes, solo se reinyectaba el vector cuando `diagnostic_affinity` era
+    True. Cuando el alumno decia que el diagnostico NO lo representaba, eso
+    incrementaba un contador del panel y nada mas.
+
+    El efecto compuesto es el peor posible: el dataset solo recibe ejemplos
+    que el modelo YA acertaba, asi que cada reentrenamiento refuerza lo que
+    el modelo ya creia y no corrige nada. El modelo se parece cada vez mas a
+    si mismo. Es un bucle de realimentacion de manual, y ademas el
+    reentrenamiento es automatico cada 50 predicciones, o sea que la deriva
+    ocurre sin que nadie intervenga.
+
+    Ahora tambien entra el desacuerdo: si el alumno dice cual era su rama, la
+    muestra se guarda con la etiqueta CORREGIDA y source='human_corrected'.
+    Esas son las unicas filas del dataset que pueden enseñarle algo nuevo al
+    modelo.
+
+    Si discrepa pero no dice cual, se registra el desacuerdo sin inventar
+    etiqueta: una correccion inventada es peor que ninguna.
     """
     pred = db.scalar(select(Prediction).where(Prediction.id == prediction_id))
     if not pred:
@@ -250,35 +376,90 @@ def save_feedback(
     if pred.user_id != quien.user_id:
         raise HTTPException(status_code=403, detail="Acceso denegado")
 
-    # Guardar feedback (upsert simple con try/except)
     try:
-        fb = PredictionFeedback(
+        db.add(PredictionFeedback(
             prediction_id=prediction_id,
             user_id=quien.user_id,
             session_id=pred.session_id,
             diagnostic_affinity=body.diagnostic_affinity,
             discovery_level=body.discovery_level,
-        )
-        db.add(fb)
+            corrected_specialization_id=body.corrected_specialization_id,
+        ))
         db.flush()
-    except Exception:
+    except IntegrityError:
+        # Solo un duplicado (prediction_id es UNIQUE) significa "ya enviada".
+        # Antes se capturaba Exception y cualquier fallo -de permisos, de
+        # conexion- se contestaba como "ya enviada": el alumno creia que su
+        # respuesta constaba y no constaba.
         db.rollback()
         return {"status": "already_submitted"}
 
-    # Si el alumno confirmó que el diagnóstico fue correcto,
-    # inyectar su vector como dato humano en el dataset de entrenamiento.
-    if body.diagnostic_affinity and pred.feature_vector:
-        fv = pred.feature_vector
-        sample = MLTrainingData(
-            aff_1=fv.get("aff_1", 0), aff_2=fv.get("aff_2", 0),
-            aff_3=fv.get("aff_3", 0), aff_4=fv.get("aff_4", 0),
-            aff_5=fv.get("aff_5", 0), aff_6=fv.get("aff_6", 0),
-            aff_7=fv.get("aff_7", 0), aff_8=fv.get("aff_8", 0),
-            aff_9=fv.get("aff_9", 0), aff_10=fv.get("aff_10", 0),
-            specialization_id=pred.primary_specialization_id,
-            source="human"
-        )
-        db.add(sample)
+    aportacion = _muestra_desde_feedback(pred, body)
+    if aportacion is not None:
+        db.execute(sentencia_de_aportacion(aportacion))
 
     db.commit()
-    return {"status": "ok", "prediction_id": prediction_id}
+    return {
+        "status": "ok",
+        "prediction_id": prediction_id,
+        # Se devuelve para que quede claro en las pruebas y en los logs si
+        # esta respuesta aporto dato o solo quedo registrada.
+        "aporte_al_dataset": aportacion.source if aportacion is not None else None,
+    }
+
+
+def sentencia_de_aportacion(aportacion: MLTrainingData):
+    """
+    INSERT de la muestra en el dataset, SIN `RETURNING`.
+
+    DEFECTO QUE ESTO CORRIGE, encontrado en la prueba de carga: con
+    `db.add()` el ORM hace INSERT ... RETURNING id, y RETURNING exige poder
+    LEER la fila nueva. La politica de ml_training_data no deja a ningun
+    alumno leer el dataset (10_rls.sql), asi que cada realimentacion fallaba
+    con 503 y el bucle -las etiquetas 'human' y 'human_corrected'- no recibio
+    nunca un dato real. Sin RETURNING solo se comprueba el permiso de APORTAR,
+    que el alumno si tiene. El id no hace falta: nadie lo usa despues.
+    """
+    valores = {
+        columna.name: getattr(aportacion, columna.key)
+        for columna in MLTrainingData.__table__.columns
+        if columna.name != "id" and getattr(aportacion, columna.key) is not None
+    }
+    # .inline(): sin esto SQLAlchemy 2.0 anade RETURNING id por su cuenta,
+    # incluso en un insert() de Core, para conocer la clave primaria.
+    return insert(MLTrainingData).values(**valores).inline()
+
+
+def _muestra_desde_feedback(pred: Prediction, body: FeedbackRequest):
+    """
+    Convierte la respuesta del alumno en una fila de entrenamiento, o en nada.
+
+    Tres casos y solo dos producen dato:
+
+      * Confirma        -> 'human', con la etiqueta que el modelo predijo.
+      * Corrige         -> 'human_corrected', con la etiqueta del alumno.
+                           Son las unicas filas que corrigen al modelo.
+      * Discrepa sin decir cual -> nada. Queda el registro del desacuerdo en
+                           prediction_feedbacks, que es lo que hay que mirar
+                           para saber si el modelo esta fallando, pero no se
+                           fabrica una etiqueta.
+    """
+    if not pred.feature_vector:
+        return None
+
+    if body.diagnostic_affinity:
+        etiqueta, procedencia = pred.primary_specialization_id, "human"
+    elif body.corrected_specialization_id is not None:
+        etiqueta, procedencia = body.corrected_specialization_id, "human_corrected"
+    else:
+        return None
+
+    fv = pred.feature_vector
+    return MLTrainingData(
+        **{f"aff_{i}": fv.get(f"aff_{i}", 0) for i in range(1, 11)},
+        specialization_id=etiqueta,
+        source=procedencia,
+        # Trazabilidad: de que prediccion salio esta fila. Permite auditarla
+        # y retirarla si el alumno revoca el consentimiento (Ley 29733).
+        prediction_id=pred.id,
+    )

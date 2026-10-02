@@ -1,11 +1,11 @@
 import axios from 'axios'
 
 import {
-  MENSAJE_ARRANQUE,
-  esArranqueEnFrio,
+  ESPERA_MS,
+  MENSAJE_NO_DISPONIBLE,
+  esFalloPasajero,
   esReintentable,
-  esperaAntesDeReintentar,
-} from './arranqueEnFrio'
+} from './reintentos.js'
 
 /**
  * Cliente HTTP de REVO.
@@ -19,7 +19,7 @@ import {
  * servicio va cada peticion. Si manana el cuestionario se parte en dos
  * servicios, este archivo no cambia.
  */
-const BASE = import.meta.env.VITE_API_URL || '/api'
+const BASE = import.meta.env?.VITE_API_URL || '/api'
 
 const CLAVE_TOKEN = 'revo_token'
 
@@ -45,62 +45,22 @@ const anunciarSesionCaducada = () => {
   window.dispatchEvent(new Event(EVENTO_SESION_CADUCADA))
 }
 
-/**
- * Aviso de servicio dormido.
- *
- * Cuando una peticion se reintenta por arranque en frio, la pantalla tiene
- * que poder decirlo. Sin esto el alumno ve un boton girando durante un
- * minuto sin ninguna explicacion, que es indistinguible de una pagina rota.
- *
- * Se avisa una sola vez por episodio, no en cada reintento: lo que le
- * interesa a la interfaz es "estamos esperando" y "se acabo la espera", no
- * la cuenta de intentos.
- *
- * EVENTO_DESPIERTO significa que la espera termino, no que saliera bien:
- * tambien se lanza al agotar los reintentos, para que el aviso se quite y
- * deje sitio al mensaje de error.
- */
-export const EVENTO_DESPERTANDO = 'revo:despertando'
-export const EVENTO_DESPIERTO = 'revo:despierto'
-
-// Se cuentan las esperas en curso en vez de guardar un si/no. Con un
-// booleano, cualquier respuesta correcta apagaba el aviso aunque otra
-// peticion siguiera reintentando: basta que la pantalla pida dos cosas a
-// la vez y una viaje al servicio ya despierto para que el cartel
-// desaparezca mientras todavia se esta esperando a la otra.
-let esperasEnCurso = 0
-
-const empezarEspera = () => {
-  esperasEnCurso += 1
-  if (esperasEnCurso === 1) window.dispatchEvent(new Event(EVENTO_DESPERTANDO))
-}
-
-const terminarEspera = () => {
-  if (esperasEnCurso === 0) return
-  esperasEnCurso -= 1
-  if (esperasEnCurso === 0) window.dispatchEvent(new Event(EVENTO_DESPIERTO))
-}
-
-/**
- * Estado actual de la espera, para quien llegue tarde al evento.
- *
- * Los eventos no tienen memoria: quien se suscribe despues de que se hayan
- * lanzado no se entera. Y eso pasa siempre, porque el despertador sale al
- * arrancar la aplicacion mientras las pantallas todavia se estan
- * descargando (van en diferido, con lazy). Sin esto, la pantalla montaba
- * cuando el aviso ya se habia dado y se quedaba sin pintarlo.
- */
-export const hayEsperaEnCurso = () => esperasEnCurso > 0
+// Aqui vivia el aviso de "servicio dormido": dos eventos de ventana, un
+// contador de esperas en curso y un `hayEsperaEnCurso()` para las pantallas
+// que montaban tarde. Todo eso existia para pintar el cartel de
+// "Despertando el servidor" mientras Render levantaba un contenedor
+// dormido. En un VPS los servicios no se duermen, asi que el cartel no
+// tenia nada que anunciar y solo servia para asustar.
 
 const dormir = (ms) => new Promise((listo) => setTimeout(listo, ms))
 
 const cliente = axios.create({
   baseURL: BASE,
-  // Por encima de los ~30s que espera el proxy de Vercel, a proposito. Con
-  // 30 justos los dos relojes vencen a la vez y gana el nuestro: axios
-  // aborta con un error de red generico y perdemos el 502, que es la unica
-  // pista de que el servicio estaba arrancando y no caido.
-  timeout: 35000,
+  // 15s. Antes eran 35, elegidos para quedar por encima de los ~30 que
+  // esperaba el proxy de Vercel delante de Render. Sin ese proxy y sin
+  // arranques en frio, una peticion que tarda mas de 15 segundos no esta
+  // arrancando: esta rota, y conviene decirlo pronto.
+  timeout: 15000,
   headers: { 'Content-Type': 'application/json' },
 })
 
@@ -125,43 +85,34 @@ cliente.interceptors.response.use(
   async (error) => {
     const estado = error.response?.status
     const config = error.config
+    const esPeticionDeAcceso = config?.url === '/auth/login' || config?.url === '/auth/register'
 
-    // Arranque en frio: se repite la peticion en vez de darla por perdida.
-    // El intento que acaba de fallar no fue en balde: desperto al servicio.
+    // Corte pasajero (un contenedor reiniciandose): se repite UNA vez tras
+    // una espera corta. No se avisa al usuario porque no le da tiempo a
+    // notarlo, y un cartel para 1,2 segundos preocupa mas de lo que informa.
     if (config && esReintentable(error, config.revoReintentos || 0)) {
-      const hechos = config.revoReintentos || 0
-      config.revoReintentos = hechos + 1
-
-      // La espera se abre y se cierra en el primer reintento de esta
-      // peticion. Los siguientes vuelven a entrar aqui por recursion, y
-      // contar cada uno dejaria el contador descuadrado; el `finally` de
-      // este marco es el que ve terminar la cadena entera.
-      const abreLaEspera = hechos === 0
-      if (abreLaEspera) empezarEspera()
-
-      await dormir(esperaAntesDeReintentar(hechos))
-      try {
-        return await cliente(config)
-      } finally {
-        if (abreLaEspera) terminarEspera()
-      }
+      config.revoReintentos = (config.revoReintentos || 0) + 1
+      await dormir(ESPERA_MS)
+      return cliente(config)
     }
 
     if (estado === 429) {
       const segundos = Number(error.response.headers['retry-after']) || 60
       error.mensajeUsuario = `Demasiadas peticiones. Vuelve a intentarlo en ${segundos} segundos.`
       error.reintentarEn = segundos
-    } else if (estado === 401) {
+    } else if (estado === 401 && !esPeticionDeAcceso) {
       anunciarSesionCaducada()
       error.mensajeUsuario = 'Tu sesion expiro. Vuelve a entrar.'
+    } else if (estado === 401) {
+      error.mensajeUsuario = error.response.data?.detail || 'Credenciales incorrectas.'
     } else if (estado === 403) {
       error.mensajeUsuario = 'No tienes permiso para hacer esto.'
-    } else if (esArranqueEnFrio(error)) {
-      // Se separa del 5xx generico porque no es lo mismo: aqui no hay nada
-      // roto, hay que esperar. Cae por aqui el registro y el login, que no
-      // se reintentan solos por no ser idempotentes.
-      error.mensajeUsuario = MENSAJE_ARRANQUE
-      error.esArranqueEnFrio = true
+    } else if (esFalloPasajero(error)) {
+      // Se separa del 5xx generico porque la accion del usuario es distinta:
+      // aqui tiene sentido volver a intentarlo en unos segundos. Cae por
+      // aqui el registro y el login, que no se reintentan solos por no ser
+      // idempotentes.
+      error.mensajeUsuario = MENSAJE_NO_DISPONIBLE
     } else if (estado >= 500) {
       error.mensajeUsuario = 'El servicio no esta disponible ahora mismo.'
     } else if (!error.response) {
@@ -192,79 +143,13 @@ export const legalApi = {
   documento: (tipo) => cliente.get(`/legal/documents/${tipo}`),
 }
 
-/**
- * Despierta el servicio de autenticacion sin esperar al formulario.
- *
- * POR QUE HACE FALTA
- *
- * El registro y el login son POST, y un POST no se reintenta solo (ver
- * arranqueEnFrio.js). Si la primera peticion que sale de la pantalla es el
- * envio del formulario, el alumno se come el arranque en frio entero: pulsa,
- * espera medio minuto y recibe un error, aunque el sistema este sano.
- *
- * Esto le da la vuelta. Al abrir la pantalla se lanza una lectura publica y
- * barata contra el MISMO servicio que atendera el formulario, y esa si se
- * reintenta sola. Mientras el alumno teclea su contrasena, el servicio
- * termina de levantarse.
- *
- * Se elige /legal/documents porque no pide sesion, no cuesta nada y la
- * pasarela la enruta a auth-service, que es justo el que hay que despertar.
- *
- * La promesa se comparte mientras esta en vuelo para que dos componentes que
- * monten a la vez no pidan lo mismo dos veces, y se suelta al terminar para
- * que un montaje posterior pueda volver a intentarlo.
- */
-const enVuelo = new Map()
-
-const despertarRuta = (ruta) => {
-  if (!enVuelo.has(ruta)) {
-    // El fallo se traga a proposito: quien llama solo necesita que la
-    // peticion haya salido, y dejarlo sin capturar seria un rechazo suelto
-    // en la consola cada vez que el servicio tarda de mas.
-    enVuelo.set(
-      ruta,
-      cliente.get(ruta).catch(() => null).finally(() => { enVuelo.delete(ruta) }),
-    )
-  }
-  return enVuelo.get(ruta)
-}
-
-/** auth-service. La reutilizan las casillas de consentimiento, que ademas
- *  necesitan el contenido y no solo el efecto de despertar. */
-export const despertarAutenticacion = () => despertarRuta('/legal/documents')
-
-/** survey-service. El cuestionario la espera antes de crear la partida.
- *
- *  La lista de categorias, NO /questions/: esa devuelve el banco entero de
- *  100 preguntas, y bajarlo en cada carga es justo lo que evita la seleccion
- *  por sesion. Aqui solo hace falta que el servicio conteste. */
-export const despertarCuestionario = () => despertarRuta('/questions/categories/list')
-
-/**
- * Despierta los TRES servicios al abrir la aplicacion.
- *
- * El primer arreglo solo desperto auth-service, y desde la pantalla de
- * acceso. Servia para entrar, pero el alumno se estrellaba en la siguiente
- * pantalla: survey-service y ml-service seguian dormidos, y el cuestionario
- * empieza con un POST, que no se reintenta solo. Medido en produccion:
- * survey tarda 32s en levantarse y ml 41s.
- *
- * Lanzarlo al arrancar la aplicacion les da esa ventaja. Mientras el alumno
- * escribe su contrasena y mira el panel, los tres terminan de arrancar.
- *
- * Las tres rutas son la lectura publica mas barata de cada servicio: 902,
- * 312 y 657 bytes medidos en produccion. Ninguna pide sesion, porque esto
- * sale antes de que el alumno haya entrado.
- *
- * Tienen que responder 200. Una ruta que devuelva 404 despertaria igual al
- * servicio, pero dejaria un error rojo en la consola del navegador en cada
- * carga, indistinguible de un fallo de verdad.
- */
-export const despertarServicios = () => {
-  despertarAutenticacion()
-  despertarCuestionario()
-  despertarRuta('/courses/specialization/1')
-}
+// Aqui vivian `despertarAutenticacion`, `despertarCuestionario` y
+// `despertarServicios`: tres peticiones de mentira que se lanzaban al abrir
+// la aplicacion contra la ruta publica mas barata de cada servicio, solo
+// para que Render los fuera levantando mientras el alumno tecleaba.
+//
+// En un VPS los tres estan siempre en pie, asi que eran tres peticiones por
+// carga que no pedian nada que nadie fuera a usar. Se retiran.
 
 // ── Cuestionario ──────────────────────────────────────────
 export const surveyApi = {
@@ -276,7 +161,9 @@ export const surveyApi = {
   submitPhase: (sid) => cliente.post(`/sessions/${sid}/submit_phase`, {}),
   getHistory: () => cliente.get('/sessions/'),
   getRecommendedCourses: (specId) => cliente.get(`/courses/specialization/${specId}`),
-  getRecommendedJobs: (specId) => cliente.get(`/jobs/specialization/${specId}`),
+  // getRecommendedJobs se retiro: estaba declarado y no lo llamaba nadie.
+  // Results.jsx consulta la API de Remotive en tiempo real, y la tabla
+  // `jobs` que servia esta ruta se elimino en la migracion 20.
   getPsychometricQuestions: (specId) => cliente.get(`/psychometric/specialization/${specId}`),
 }
 
@@ -289,7 +176,7 @@ export const mlApi = {
 
   // Requieren rol admin.
   importances: () => cliente.get('/predict/model/importances'),
-  treeViz: () => cliente.get('/predict/model/tree'),
+  resumenModelo: () => cliente.get('/predict/model/resumen'),
   overview: () => cliente.get('/stats/overview'),
   trainingHistory: () => cliente.get('/stats/training-history'),
   retrain: () => cliente.post('/stats/train', {}),

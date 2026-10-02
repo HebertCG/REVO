@@ -7,7 +7,9 @@ import {
   createRoadState,
   getRoadObstacles,
   getRoadTargetLane,
+  isQuestionnairePhaseUnlocked,
   resolveQuestionnaireEntryView,
+  unlockQuestionnairePhase,
 } from './questionnaireMiniGames.js'
 
 test('elige de forma determinista uno de los tres minijuegos', () => {
@@ -20,6 +22,21 @@ test('evita repetir el mismo minijuego dos entradas seguidas', () => {
   assert.equal(chooseQuestionnaireMiniGame(0.12, 'cards'), 'road')
   assert.equal(chooseQuestionnaireMiniGame(0.45, 'road'), 'arcade')
   assert.equal(chooseQuestionnaireMiniGame(0.85, 'arcade'), 'cards')
+})
+
+test('desbloquea una fase completa sin abrir las siguientes', () => {
+  const inicial = {}
+  const fase1Desbloqueada = unlockQuestionnairePhase(inicial, 1)
+
+  assert.equal(isQuestionnairePhaseUnlocked(fase1Desbloqueada, 1), true)
+  assert.equal(isQuestionnairePhaseUnlocked(fase1Desbloqueada, 2), false)
+  assert.deepEqual(inicial, {})
+})
+
+test('conserva las fases ya superadas al desbloquear una nueva', () => {
+  const fase2Desbloqueada = unlockQuestionnairePhase({ 1: true }, 2)
+
+  assert.deepEqual(fase2Desbloqueada, { 1: true, 2: true })
 })
 
 test('muestra primero el selector aunque las preguntas sigan cargando', () => {

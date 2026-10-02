@@ -6,15 +6,31 @@
 # cualquier maquina de la red, saltandose cualquier control de la pasarela.
 # Ahora el unico proceso con un puerto publicado es Nginx.
 #
-# Dos redes:
+# Tres redes:
 #   revo_publica  - solo Nginx. Es la frontera con el mundo.
 #   revo_interna  - servicios, Postgres y Redis. `internal: true` significa
 #                   que Docker no le da salida a internet: aunque un servicio
 #                   se vea comprometido, no puede exfiltrar por su cuenta.
+#   revo_salida   - salida a internet para el agente de cursos, y solo para
+#                   el. Va con su propio rol de base de datos, que no alcanza
+#                   ningun dato de alumnos (ver agente-cursos, mas abajo).
 #
 # Variables: ver .env.example. La sintaxis ${VAR:?mensaje} aborta el arranque
 # si falta la variable, en vez de continuar con un valor de ejemplo.
 # ============================================================
+
+# Rotacion de logs para TODOS los contenedores.
+#
+# Sin esto Docker usa json-file sin limite: los logs crecen hasta llenar el
+# disco. Medido en la prueba de carga del 2026-09-21: ~170 bytes por peticion
+# de alumno, y ademas cada servicio escribe ~2 lineas por minuto de
+# comprobaciones de salud AUNQUE NO HAYA NADIE (~200 MB al ano entre los tres).
+# Con 3 ficheros de 10 MB, cada contenedor ocupa como mucho 30 MB.
+x-registro: &registro
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
 
 services:
 
@@ -24,6 +40,7 @@ services:
   pasarela:
     image: nginx:1.27-alpine
     container_name: revo_pasarela
+    logging: *registro
     restart: unless-stopped
     environment:
       GATEWAY_SECRET: ${GATEWAY_SECRET:?falta GATEWAY_SECRET en .env}
@@ -58,8 +75,14 @@ services:
   # PostgreSQL
   # ─────────────────────────────────────────────
   postgres:
-    image: postgres:16-alpine
+    # PostgreSQL 16 Alpine con pgvector compilado encima (ver el Dockerfile).
+    # Misma base que antes a proposito: cambiar de libc sobre un volumen con
+    # datos puede corromper el orden de los indices de texto sin avisar.
+    build:
+      context: ./infraestructura/postgres
+    image: revo-postgres:16-pgvector
     container_name: revo_postgres
+    logging: *registro
     restart: unless-stopped
     environment:
       POSTGRES_DB: ${POSTGRES_DB:?falta POSTGRES_DB en .env}
@@ -71,12 +94,15 @@ services:
       SURVEY_DB_PASSWORD: ${SURVEY_DB_PASSWORD:?falta SURVEY_DB_PASSWORD en .env}
       ML_DB_PASSWORD: ${ML_DB_PASSWORD:?falta ML_DB_PASSWORD en .env}
       SERVICE_DB_PASSWORD: ${SERVICE_DB_PASSWORD:?falta SERVICE_DB_PASSWORD en .env}
+      # La consume database/34_password_agente.sh.
+      AGENTE_DB_PASSWORD: ${AGENTE_DB_PASSWORD:?falta AGENTE_DB_PASSWORD en .env}
       PGDATA: /var/lib/postgresql/data/pgdata
     volumes:
       - postgres_data:/var/lib/postgresql/data
       # El directorio completo se monta y se ejecuta en orden alfabetico:
       # 01 esquema, 02-09 datos, 10 RLS, 12 consentimiento, 13 alta de
-      # alumnos, 14 cuentas, 15 roles por servicio, 16 contrasenas.
+      # alumnos, 14 cuentas, 15 roles por servicio, 16 contrasenas, ...,
+      # 33 rol del agente, 34 su contrasena.
       #
       # ATENCION: database/ NO esta en el repositorio publico. Con un clon
       # limpio, este montaje apunta a un directorio vacio y Postgres
@@ -103,6 +129,7 @@ services:
   redis:
     image: redis:7.2-alpine
     container_name: revo_redis
+    logging: *registro
     restart: unless-stopped
     command: >
       redis-server
@@ -132,6 +159,7 @@ services:
       context: ./services
       dockerfile: auth-service/Dockerfile
     container_name: revo_auth
+    logging: *registro
     restart: unless-stopped
     environment: &entorno_base
       # Cada servicio entra con SU PROPIO rol, y ninguno es dueno de las
@@ -230,8 +258,43 @@ services:
       retries: 3
       start_period: 60s
 
+  # ─────────────────────────────────────────────
+  # Agente de cursos — una tarea, no un servicio
+  # ─────────────────────────────────────────────
+  # No arranca con `docker compose up`: se lanza, hace su pasada y termina.
+  #
+  #     docker compose --profile tareas run --rm agente-cursos
+  #
+  # En el VPS, una vez al dia por cron (ver agente_cursos/__main__.py).
+  #
+  # Es el UNICO contenedor con salida a internet aparte de la pasarela, y por
+  # eso va separado de ml-service y con su propio rol. Descarga texto que
+  # escribe cualquiera; si se viera comprometido, no puede tener a la vez los
+  # datos de los alumnos y una salida por la que sacarlos. revo_agente solo
+  # alcanza sus dos tablas, y la migracion 33 lo verifica.
+  agente-cursos:
+    build:
+      context: ./services
+      dockerfile: ml-service/Dockerfile
+    profiles: ["tareas"]
+    logging: *registro
+    restart: "no"
+    environment:
+      DATABASE_URL: postgresql://revo_agente:${AGENTE_DB_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      DB_REQUIRE_SSL: ${DB_REQUIRE_SSL:-false}
+    command: ["python", "-m", "agente_cursos"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - revo_interna
+      - revo_salida
+
 networks:
   revo_publica:
+    driver: bridge
+  # Salida a internet solo para el agente de cursos.
+  revo_salida:
     driver: bridge
   revo_interna:
     driver: bridge

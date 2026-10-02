@@ -6,7 +6,7 @@ de pool, los timeouts de sentencia y el contexto RLS ya cableados. Aqui solo
 quedan las tablas.
 """
 from sqlalchemy import (
-    Column, DateTime, DECIMAL, ForeignKey, Integer, JSON,
+    CHAR, Column, DateTime, ForeignKey, Integer, JSON,
     Numeric, SmallInteger, String, Boolean, Text
 )
 from sqlalchemy.orm import declarative_base, relationship
@@ -21,14 +21,15 @@ class Question(Base):
     text              = Column(Text, nullable=False)
     category          = Column(String(30), nullable=False)
     specialization_id = Column(Integer, nullable=False, default=1) # 1..10
-    question_type     = Column(String(30), nullable=False, default="scale")
-    options           = Column(JSON)
-    min_label         = Column(String(50), default="Muy bajo")
-    max_label         = Column(String(50), default="Muy alto")
-    weight            = Column(DECIMAL(4, 2), default=1.00)
     order_index       = Column(SmallInteger, default=0)
     is_active         = Column(Boolean, default=True)
     created_at        = Column(DateTime(timezone=True), server_default=func.now())
+    # Aqui habia cinco columnas mas: question_type, options, min_label,
+    # max_label y weight. Las retira database/21_retirar_columnas_muertas.sql
+    # porque ninguna contenia nada: las 100 preguntas del banco son de tipo
+    # 'scale' con options a NULL, las etiquetas las pone el frontend con su
+    # propia escala de cinco puntos, y `weight` valia 1.00 en todas mientras
+    # el calculo de afinidad sumaba los valores en crudo sin mirarla.
 
 
 class QuestionnaireSession(Base):
@@ -63,7 +64,7 @@ class Answer(Base):
 #
 # Cada tabla la escribe un solo servicio:
 #   auth-service   -> users, user_consents, legal_documents
-#   survey-service -> questionnaire_sessions, answers
+#   survey-service -> questionnaire_sessions, answers, psychometric_answers
 #   ml-service     -> predictions, prediction_feedbacks, ml_training_data
 #
 # Esa regla es lo que mantiene bajo el acoplamiento pese a compartir base de
@@ -88,6 +89,35 @@ class PsychometricQuestion(Base):
     order_index       = Column(SmallInteger, default=0)
     is_active         = Column(Boolean, default=True)
     created_at        = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class PsychometricAnswer(Base):
+    """
+    Respuestas de la fase 3 (ver database/22_fase3_persistida.sql).
+
+    Antes de esta tabla, la fase 3 se calculaba en el navegador y moria en
+    sessionStorage: ni el alumno podia volver a verla en su historial, ni el
+    modelo llegaba a olerla. Son las cuatro respuestas del test que preguntan
+    como trabaja la persona en vez de que rama dice que le gusta.
+
+    Una fila por respuesta, colgando de la sesion, igual que Answer. El
+    arquetipo NO se guarda: se deriva de estas filas cada vez que se
+    necesita, que es lo que lo hace reproducible.
+    """
+
+    __tablename__ = "psychometric_answers"
+    id                = Column(Integer, primary_key=True)
+    session_id        = Column(Integer, ForeignKey("questionnaire_sessions.id"), nullable=False)
+    specialization_id = Column(Integer, nullable=False)
+    # Una de las dos, nunca ambas: la pregunta vino del banco de la base de
+    # datos (question_id) o del banco local de reserva del frontend
+    # (fallback_key), que se usa cuando /psychometric no responde. Lo impone
+    # el CHECK psyans_una_procedencia.
+    question_id       = Column(Integer, ForeignKey("psychometric_questions.id"), nullable=True)
+    fallback_key      = Column(String(40), nullable=True)
+    option_key        = Column(CHAR(1), nullable=False)   # 'A' | 'B' | 'C' | 'D'
+    order_index       = Column(SmallInteger, default=0)
+    answered_at       = Column(DateTime(timezone=True), server_default=func.now())
 
 # get_db() ya no vive aqui. La dependencia de sesion es servicio.sesion, que
 # ademas fija el contexto RLS del solicitante antes de tocar ninguna tabla.

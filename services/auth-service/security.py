@@ -13,6 +13,8 @@ con passlib se siguen verificando sin migrar nada.
 """
 from __future__ import annotations
 
+import re
+
 import bcrypt
 
 #: bcrypt ignora todo lo que pase de 72 bytes. Se trunca explicitamente para
@@ -23,6 +25,13 @@ BCRYPT_MAX_BYTES = 72
 #: ataque por diccionario y aceptable para un login. Subirlo encarece el
 #: login de toda el aula a la vez; bajarlo abarata el ataque.
 BCRYPT_ROUNDS = 12
+
+# Un hash bcrypt valido ocupa siempre 60 caracteres. Validarlo antes de
+# pasarlo a la extension nativa evita que versiones antiguas de bcrypt lancen
+# una PanicException (que no hereda de Exception) ante hashes truncados.
+_BCRYPT_HASH = re.compile(
+    r"\A\$2[aby]\$(?:0[4-9]|[12][0-9]|3[01])\$[./A-Za-z0-9]{53}\Z"
+)
 
 
 def _preparar(plain: str) -> bytes:
@@ -49,7 +58,7 @@ def verify_password(plain: str, hashed: str) -> bool:
     excepcion: un registro con el hash danado debe traducirse en "no puedes
     entrar", no en un error 500 que revela que esa cuenta existe.
     """
-    if not hashed:
+    if not isinstance(hashed, str) or not _BCRYPT_HASH.fullmatch(hashed):
         return False
 
     try:

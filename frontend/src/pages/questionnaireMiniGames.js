@@ -26,6 +26,14 @@ export function chooseQuestionnaireMiniGame(randomValue = Math.random(), previou
   return QUESTIONNAIRE_MINI_GAMES[(selectedIndex + 1) % QUESTIONNAIRE_MINI_GAMES.length]
 }
 
+export function isQuestionnairePhaseUnlocked(unlockedPhases, phase) {
+  return Boolean(unlockedPhases?.[phase])
+}
+
+export function unlockQuestionnairePhase(unlockedPhases, phase) {
+  return { ...unlockedPhases, [phase]: true }
+}
+
 /**
  * Decide que pantalla de entrada se pinta.
  *

@@ -26,3 +26,13 @@ htmlcov/
 
 # Pruebas: no hacen falta en la imagen de produccion.
 */pruebas/
+
+# Los modelos entrenados NO entran en la imagen. El volumen de modelos se
+# monta en /app/model/saved, y cuando esta vacio Docker lo rellena con lo que
+# trae la imagen en esa ruta: el decision_tree.pkl versionado en git acababa
+# ahi y el servicio lo adoptaba como "v0-heredada". Una instalacion nueva
+# servia asi un modelo antiguo, sin calibrar, sin conjunto conformal y sin
+# umbral de vecindario, hasta el primer reentrenamiento. Sin el fichero, el
+# arranque entrena el modelo actual (main.py). Detectado en la prueba de
+# carga del 2026-09-21.
+*/model/saved/

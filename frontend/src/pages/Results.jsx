@@ -3,6 +3,7 @@ import { useParams, useLocation, Link } from 'react-router-dom'
 import { mlApi, surveyApi } from '../services/api'
 import { RadarChart, PolarGrid, PolarAngleAxis, Radar, ResponsiveContainer, BarChart, Bar, XAxis, Tooltip, Cell } from 'recharts'
 import { ajustarParaContraste } from '../theme/contraste'
+import { avisoDeCautela, ocupacionesAfines } from './resultadoConfianza'
 import './Results.css'
 
 /**
@@ -362,6 +363,11 @@ export default function Results() {
     color: CAREERS[name]?.color || '#E10600',
   })).sort((a, b) => b.value - a.value)
 
+  // Lo que el modelo sabe de su propia respuesta. Null / [] en predicciones
+  // anteriores a que se guardara el resultado completo.
+  const aviso = avisoDeCautela(data)
+  const ocupaciones = ocupacionesAfines(data)
+
   return (
     <div className="page results-page">
       <div className="container">
@@ -379,7 +385,7 @@ export default function Results() {
               <div className="progress-track result-bar">
                 <div className="progress-fill" style={{ width:`${primary?.confidence_pct}%`, background: color }} />
               </div>
-              <p className="text-muted text-sm result-model-tag">🌳 Árbol de Decisión · v{data.model_version}</p>
+              <p className="text-muted text-sm result-model-tag">📐 Regresión logística · v{data.model_version}</p>
 
               {/* Rutas de carrera */}
               <div className="career-paths">
@@ -407,6 +413,19 @@ export default function Results() {
             </div>
           </div>
         </div>
+
+        {/* Cautela: el perfil se parece poco a los que el sistema conoce */}
+        {aviso && (
+          <aside className="result-cautela animate-fade" role="note" aria-label="Aviso sobre la fiabilidad del resultado">
+            <span className="result-cautela-icono" aria-hidden="true">!</span>
+            <div>
+              <p className="result-cautela-mensaje">{aviso.mensaje}</p>
+              {aviso.explicacion && (
+                <p className="result-cautela-porque">{aviso.explicacion}</p>
+              )}
+            </div>
+          </aside>
+        )}
 
         <div className="results-grid">
           {/* Top 3 */}
@@ -451,7 +470,7 @@ export default function Results() {
           {/* Bar Chart */}
           {barData.length > 0 && (
             <div className="glass results-panel animate-fade" style={{ animationDelay:'0.3s' }}>
-              <h2 className="panel-title">Probabilidades del Árbol</h2>
+              <h2 className="panel-title">Probabilidades del modelo</h2>
               <ResponsiveContainer width="100%" height={200}>
                 <BarChart data={barData} margin={{ left: -20 }}>
                   <XAxis dataKey="name" tick={{ fill:'#94A3B8', fontSize:10 }} axisLine={false} tickLine={false} />
@@ -464,6 +483,30 @@ export default function Results() {
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
+            </div>
+          )}
+
+          {/* Ocupaciones reales con intereses parecidos (O*NET, via pgvector) */}
+          {ocupaciones.length > 0 && (
+            <div className="glass results-panel animate-fade" style={{ animationDelay: '0.35s' }}>
+              <h2 className="panel-title">Ocupaciones con intereses parecidos</h2>
+              <p className="text-muted text-sm ocupaciones-intro">
+                Trabajos reales cuyo perfil de intereses se parece al que el modelo ve en ti.
+                Parecido de intereses, no necesariamente de tu rama.
+              </p>
+              <ul className="ocupaciones-lista">
+                {ocupaciones.map((o) => (
+                  <li key={o.codigo}>
+                    <a href={o.enlace} target="_blank" rel="noopener noreferrer" className="ocupacion-fila">
+                      <span className="ocupacion-titulo">{o.titulo}</span>
+                      <span className="ocupacion-parecido">{o.parecido}</span>
+                    </a>
+                  </li>
+                ))}
+              </ul>
+              <p className="ocupaciones-fuente">
+                Nombres oficiales en inglés. Datos: O*NET 31.0 (USDOL/ETA), CC BY 4.0.
+              </p>
             </div>
           )}
 

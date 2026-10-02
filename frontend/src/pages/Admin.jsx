@@ -18,11 +18,11 @@ const SPEC_COLORS = {
 
 const DICTIONARY = {
   f1: { title: "⚡ Precisión F1 Base", content: "El F1 Score es la métrica de balance perfecta de la IA. Es la media armónica entre la Precisión (cuántos acertó) y el Recall (cuántos no omitió). Mide qué tan buena es la IA clasificando alumnos sin sesgos." },
-  memory: { title: "🧠 Volumen de Memoria (N)", content: "Representa el total de perfiles de alumnos (Vectores de Características) con los que el Árbol de Decisión construyó su matriz de conocimiento empírico." },
+  memory: { title: "🧠 Volumen de Memoria (N)", content: "Es el total de perfiles de alumnos (vectores de afinidad) con los que se ajustó la regresión logística. Cada perfil son diez números entre 0 y 1, uno por rama, y la etiqueta de la especialización que le correspondió." },
   confidence: { title: "🎯 Confianza Algorítmica Global", content: "Es el promedio de probabilidad estocástica. Si es 87%, significa que estadísticamente, la IA está muy segura del camino recomendado y tiene poco margen de duda al predecir ramas." },
-  hyperparam: { title: "🔬 Hiperparámetro (Max Depth)", content: "Es un limitador de sobreajuste (Overfitting). Evita que el Árbol de Decisión se vuelva hiper-complejo y asimile datos basura limitando sus ramificaciones a 8 saltos matemáticos." },
+  hyperparam: { title: "🔬 Convergencia del optimizador", content: "El modelo se ajusta con L-BFGS, un método iterativo: en cada paso mueve los coeficientes en la dirección que reduce el error y se detiene cuando dejan de cambiar. Este número son las iteraciones que necesitó.<br/><br/>Importa porque si toca el techo configurado (1000), el modelo <strong>no convergió</strong> y sus métricas no son de fiar. El control de sobreajuste no está aquí, sino en la regularización L2 que scikit-learn aplica por defecto." },
   chart_evol: { title: "📈 Evolución de Precisión (Time Series)", content: "Este análisis demuestra cómo mejora el algoritmo.<br/><br/><strong>Accuracy:</strong> Es el porcentaje total de veces que la IA atinó la carrera exacta de los alumnos.<br/><br/><strong>F1 Score:</strong> Es una métrica avanzada que castiga a la IA matemáticamente si comete errores graves al clasificar carreras que se parecen mucho entre sí." },
-  chart_exp: { title: "⚖️ Explicabilidad (Feature Importances)", content: "Utiliza el Índice de Gini para auditar el Árbol.<br/><br/>¿Qué significan las 'aff'? Son tus variables. <strong>aff_1</strong> equivale a la <em>Afinidad hacia Desarrollo de Software</em>, <strong>aff_2</strong> a <em>Data Science</em>, y así hasta el 10.<br/><br/>La barra horizontal más larga indica qué aptitud técnica toma más el algoritmo para decidir el destino de un estudiante." },
+  chart_exp: { title: "⚖️ Explicabilidad (peso de cada afinidad)", content: "Una regresión logística no tiene 'importancias' calculadas como en un árbol: lo que aprende son <strong>coeficientes</strong>, uno por cada par (rama, afinidad). Aquí se muestra la media del valor absoluto de esos coeficientes por afinidad, normalizada para que las diez sumen 100%. Se toma el valor absoluto porque el signo indica hacia qué rama empuja la afinidad, no cuánto pesa.<br/><br/>¿Qué significan las 'aff'? Son las variables de entrada. <strong>aff_1</strong> es la <em>afinidad hacia Desarrollo de Software</em>, <strong>aff_2</strong> hacia <em>Data Science</em>, y así hasta el 10.<br/><br/>La barra más larga indica qué afinidad mueve más la decisión del modelo." },
 }
 
 const Modal = ({ isOpen, onClose, title, content }) => {
@@ -135,7 +135,7 @@ export default function Admin() {
             <p className="text-muted">Centro de control académico para observar el crecimiento y reajuste del clasificador ML. <strong>Da clic a los paneles para ver la definición técnica.</strong></p>
           </div>
           <button onClick={handleRetrain} disabled={training || overview?.new_predictions === 0} className="btn btn-primary" style={{ boxShadow: '0 0 15px rgba(59, 130, 246, 0.4)' }}>
-            {training ? '⏳ Optimizando Árbol...' : '🌳 REENTRENAR MANUALMENTE'}
+            {training ? '⏳ Ajustando el modelo...' : '📐 REENTRENAR MANUALMENTE'}
           </button>
         </div>
 
@@ -219,8 +219,11 @@ export default function Admin() {
           <div className="stat-card glass" style={pointerStyle} onClick={() => setActiveModal('hyperparam')} onMouseEnter={hoverEffect} onMouseLeave={resetEffect}>
             <div className="stat-icon" style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#EF4444' }}>🔬</div>
             <div>
-              <div className="stat-val">Prof. 8</div>
-              <div className="stat-lbl text-muted text-sm">Max Depth ℹ️</div>
+              {/* Antes decia "Prof. 8" fijo en el codigo: la profundidad de
+                  un arbol que hace tiempo que no se entrena. Ahora sale del
+                  ultimo entrenamiento real. */}
+              <div className="stat-val">{overview?.last_training?.n_iterations ?? '—'}</div>
+              <div className="stat-lbl text-muted text-sm">Iteraciones ℹ️</div>
             </div>
           </div>
 
@@ -252,7 +255,7 @@ export default function Admin() {
             <h3 className="panel-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               Explicabilidad (Feature Importances) ℹ️
             </h3>
-            <p className="text-muted text-xs" style={{ marginBottom: '20px' }}>Atributos/Habilidades con el peso matemático más crítico al hacer los cortes de entropía del modelo.</p>
+            <p className="text-muted text-xs" style={{ marginBottom: '20px' }}>Afinidades con mayor peso en los coeficientes del modelo: las que más mueven la decisión.</p>
             {importances.length > 0 ? (
               <ResponsiveContainer width="100%" height={260}>
                 <BarChart data={importances} layout="vertical" margin={{ left: 0, right: 20 }}>
@@ -274,7 +277,7 @@ export default function Admin() {
               🗂️ Reparto de Predicciones por Especialización
             </h3>
             <p className="text-muted text-xs" style={{ marginBottom: '20px' }}>
-              Cuántas veces ha recomendado el árbol cada rama. Es la foto del perfilado masivo del alumnado.
+              Cuántas veces ha recomendado el modelo cada rama. Es la foto del perfilado masivo del alumnado.
             </p>
             {dist.length > 0 ? (
               <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: 14 }}>

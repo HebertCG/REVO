@@ -1,0 +1,1367 @@
+{
+ "fecha": "2026-09-21 18:37",
+ "maquina": "16 CPU, 8017612800 B RAM",
+ "reposo": {
+  "base": {
+   "base_bytes": 12147735,
+   "pgdata_kb": 67808,
+   "modelos_kb": 128,
+   "tablas": {
+    "users": 106496,
+    "specializations": 65536,
+    "predictions": 49152,
+    "model_training_logs": 49152,
+    "questionnaire_sessions": 32768,
+    "psychometric_questions": 90112,
+    "password_reset_tokens": 32768,
+    "courses": 32768,
+    "answers": 32768,
+    "user_consents": 81920,
+    "prediction_feedbacks": 32768,
+    "email_verification_codes": 24576,
+    "questions": 147456,
+    "legal_documents": 81920,
+    "sombra_adaptativa": 40960,
+    "psychometric_answers": 32768,
+    "riasec_items": 49152,
+    "bigfive_items": 32768,
+    "forced_choice_items": 81920,
+    "forced_choice_answers": 24576,
+    "agente_cursos_ejecuciones": 24576,
+    "curso_candidatos": 40960,
+    "student_profiles": 32768,
+    "ml_training_data": 1335296,
+    "onet_ocupaciones": 524288
+   },
+   "filas": {
+    "users": 2,
+    "questionnaire_sessions": 0,
+    "answers": 0,
+    "predictions": 0,
+    "prediction_feedbacks": 0,
+    "ml_training_data": 2000,
+    "user_consents": 0,
+    "model_training_logs": 2
+   }
+  },
+  "ram": {
+   "revo_postgres": 48611983,
+   "revo_redis": 3485466,
+   "revo_auth": 163577856,
+   "revo_survey": 174378188,
+   "revo_ml": 292867276,
+   "revo_pasarela": 34928066
+  }
+ },
+ "escenarios": [
+  {
+   "nombre": "pico-1",
+   "aulas": 1,
+   "alumnos": 45,
+   "ciclo": 1,
+   "escala_tiempo": 0.2,
+   "duracion_carga_s": 111.6,
+   "calma_s": 12.7,
+   "completos": 45,
+   "fallos": {},
+   "errores": {},
+   "peticiones": 748,
+   "peticiones_por_s": 6.7,
+   "latencia_global": {
+    "p50": 0.0146,
+    "p95": 0.2243,
+    "p99": 0.3165,
+    "max": 0.3967
+   },
+   "latencia_por_etapa": {
+    "entrar": {
+     "n": 45,
+     "p50": 0.234,
+     "p95": 0.3696,
+     "p99": 0.3967,
+     "max": 0.3967
+    },
+    "panel": {
+     "n": 135,
+     "p50": 0.0088,
+     "p95": 0.0117,
+     "p99": 0.0455,
+     "max": 0.0578
+    },
+    "prediccion": {
+     "n": 45,
+     "p50": 0.0554,
+     "p95": 0.1361,
+     "p99": 0.1444,
+     "max": 0.1444
+    },
+    "progreso": {
+     "n": 90,
+     "p50": 0.0103,
+     "p95": 0.0323,
+     "p99": 0.0395,
+     "max": 0.0404
+    },
+    "realimentacion": {
+     "n": 28,
+     "p50": 0.0184,
+     "p95": 0.0443,
+     "p99": 0.0486,
+     "max": 0.0486
+    },
+    "resultado": {
+     "n": 135,
+     "p50": 0.0108,
+     "p95": 0.0275,
+     "p99": 0.0399,
+     "max": 0.0584
+    },
+    "test": {
+     "n": 270,
+     "p50": 0.0184,
+     "p95": 0.0928,
+     "p99": 0.1297,
+     "max": 0.1777
+    }
+   },
+   "cpu_segundos": {
+    "revo_postgres": 4.24,
+    "revo_redis": 0.85,
+    "revo_auth": 13.38,
+    "revo_survey": 7.74,
+    "revo_ml": 6.65,
+    "revo_pasarela": 1.03
+   },
+   "cpu_segundos_total": 33.88,
+   "cpu_segundos_por_alumno": 0.753,
+   "nucleos_medios": 0.3,
+   "nucleos_pico": 1.8,
+   "ram_pico_bytes": {
+    "revo_postgres": 82480988,
+    "revo_redis": 4239392,
+    "revo_auth": 166933299,
+    "revo_survey": 180145356,
+    "revo_ml": 294230425,
+    "revo_pasarela": 35798384
+   },
+   "ram_total_pico_bytes": 760995642,
+   "memoria_peak_cgroup": {
+    "revo_postgres": 150503424,
+    "revo_redis": 7311360,
+    "revo_auth": 181338112,
+    "revo_survey": 194646016,
+    "revo_ml": 389447680,
+    "revo_pasarela": 39346176
+   },
+   "muestras_stats": 61,
+   "base_antes": {
+    "base_bytes": 12147735,
+    "pgdata_kb": 67808,
+    "modelos_kb": 128,
+    "tablas": {
+     "users": 106496,
+     "specializations": 65536,
+     "predictions": 49152,
+     "model_training_logs": 49152,
+     "questionnaire_sessions": 32768,
+     "psychometric_questions": 90112,
+     "password_reset_tokens": 32768,
+     "courses": 32768,
+     "answers": 32768,
+     "user_consents": 81920,
+     "prediction_feedbacks": 32768,
+     "email_verification_codes": 24576,
+     "questions": 155648,
+     "legal_documents": 81920,
+     "sombra_adaptativa": 40960,
+     "psychometric_answers": 32768,
+     "riasec_items": 49152,
+     "bigfive_items": 32768,
+     "forced_choice_items": 81920,
+     "forced_choice_answers": 24576,
+     "agente_cursos_ejecuciones": 24576,
+     "curso_candidatos": 40960,
+     "student_profiles": 32768,
+     "ml_training_data": 1204224,
+     "onet_ocupaciones": 524288
+    },
+    "filas": {
+     "users": 2,
+     "questionnaire_sessions": 0,
+     "answers": 0,
+     "predictions": 0,
+     "prediction_feedbacks": 0,
+     "ml_training_data": 2000,
+     "user_consents": 0,
+     "model_training_logs": 2
+    }
+   },
+   "base_despues": {
+    "base_bytes": 12934167,
+    "pgdata_kb": 68740,
+    "modelos_kb": 128,
+    "tablas": {
+     "users": 155648,
+     "specializations": 65536,
+     "predictions": 229376,
+     "model_training_logs": 49152,
+     "questionnaire_sessions": 122880,
+     "psychometric_questions": 90112,
+     "password_reset_tokens": 32768,
+     "courses": 32768,
+     "answers": 270336,
+     "user_consents": 131072,
+     "prediction_feedbacks": 65536,
+     "email_verification_codes": 24576,
+     "questions": 155648,
+     "legal_documents": 81920,
+     "sombra_adaptativa": 163840,
+     "psychometric_answers": 32768,
+     "riasec_items": 49152,
+     "bigfive_items": 32768,
+     "forced_choice_items": 81920,
+     "forced_choice_answers": 24576,
+     "agente_cursos_ejecuciones": 24576,
+     "curso_candidatos": 40960,
+     "student_profiles": 32768,
+     "ml_training_data": 1220608,
+     "onet_ocupaciones": 524288
+    },
+    "filas": {
+     "users": 47,
+     "questionnaire_sessions": 45,
+     "answers": 1125,
+     "predictions": 45,
+     "prediction_feedbacks": 28,
+     "ml_training_data": 2018,
+     "user_consents": 180,
+     "model_training_logs": 2
+    }
+   },
+   "base_crecimiento_bytes": 786432,
+   "reentrenamientos": 0
+  },
+  {
+   "nombre": "pico-3",
+   "aulas": 3,
+   "alumnos": 135,
+   "ciclo": 1,
+   "escala_tiempo": 0.2,
+   "duracion_carga_s": 110.8,
+   "calma_s": 7.6,
+   "completos": 135,
+   "fallos": {},
+   "errores": {},
+   "peticiones": 2257,
+   "peticiones_por_s": 20.38,
+   "latencia_global": {
+    "p50": 0.0299,
+    "p95": 0.313,
+    "p99": 0.556,
+    "max": 1.1697
+   },
+   "latencia_por_etapa": {
+    "entrar": {
+     "n": 135,
+     "p50": 0.3401,
+     "p95": 0.6817,
+     "p99": 0.9223,
+     "max": 1.1697
+    },
+    "panel": {
+     "n": 405,
+     "p50": 0.0177,
+     "p95": 0.0519,
+     "p99": 0.1028,
+     "max": 0.2192
+    },
+    "prediccion": {
+     "n": 135,
+     "p50": 0.1364,
+     "p95": 0.564,
+     "p99": 0.8091,
+     "max": 0.8822
+    },
+    "progreso": {
+     "n": 270,
+     "p50": 0.02,
+     "p95": 0.0536,
+     "p99": 0.1466,
+     "max": 0.1709
+    },
+    "realimentacion": {
+     "n": 97,
+     "p50": 0.0347,
+     "p95": 0.1024,
+     "p99": 0.1832,
+     "max": 0.429
+    },
+    "resultado": {
+     "n": 405,
+     "p50": 0.0233,
+     "p95": 0.0946,
+     "p99": 0.1872,
+     "max": 0.2521
+    },
+    "test": {
+     "n": 810,
+     "p50": 0.0382,
+     "p95": 0.1717,
+     "p99": 0.3754,
+     "max": 0.6798
+    }
+   },
+   "cpu_segundos": {
+    "revo_postgres": 19.21,
+    "revo_redis": 2.01,
+    "revo_auth": 57.68,
+    "revo_survey": 37.1,
+    "revo_ml": 120.6,
+    "revo_pasarela": 4.33
+   },
+   "cpu_segundos_total": 240.94,
+   "cpu_segundos_por_alumno": 1.785,
+   "nucleos_medios": 2.18,
+   "nucleos_pico": 13.53,
+   "ram_pico_bytes": {
+    "revo_postgres": 105067315,
+    "revo_redis": 4177526,
+    "revo_auth": 168086732,
+    "revo_survey": 182766796,
+    "revo_ml": 306918195,
+    "revo_pasarela": 35756441
+   },
+   "ram_total_pico_bytes": 797454628,
+   "memoria_peak_cgroup": {
+    "revo_postgres": 171130880,
+    "revo_redis": 7319552,
+    "revo_auth": 184999936,
+    "revo_survey": 197193728,
+    "revo_ml": 389447680,
+    "revo_pasarela": 39346176
+   },
+   "muestras_stats": 56,
+   "base_antes": {
+    "base_bytes": 12934167,
+    "pgdata_kb": 68740,
+    "modelos_kb": 128,
+    "tablas": {
+     "users": 155648,
+     "specializations": 65536,
+     "predictions": 229376,
+     "model_training_logs": 49152,
+     "questionnaire_sessions": 122880,
+     "psychometric_questions": 90112,
+     "password_reset_tokens": 32768,
+     "courses": 32768,
+     "answers": 270336,
+     "user_consents": 131072,
+     "prediction_feedbacks": 65536,
+     "email_verification_codes": 24576,
+     "questions": 155648,
+     "legal_documents": 81920,
+     "sombra_adaptativa": 163840,
+     "psychometric_answers": 32768,
+     "riasec_items": 49152,
+     "bigfive_items": 32768,
+     "forced_choice_items": 81920,
+     "forced_choice_answers": 24576,
+     "agente_cursos_ejecuciones": 24576,
+     "curso_candidatos": 40960,
+     "student_profiles": 32768,
+     "ml_training_data": 1220608,
+     "onet_ocupaciones": 524288
+    },
+    "filas": {
+     "users": 47,
+     "questionnaire_sessions": 45,
+     "answers": 1125,
+     "predictions": 45,
+     "prediction_feedbacks": 28,
+     "ml_training_data": 2018,
+     "user_consents": 180,
+     "model_training_logs": 2
+    }
+   },
+   "base_despues": {
+    "base_bytes": 14367767,
+    "pgdata_kb": 69976,
+    "modelos_kb": 308,
+    "tablas": {
+     "users": 196608,
+     "specializations": 65536,
+     "predictions": 524288,
+     "model_training_logs": 49152,
+     "questionnaire_sessions": 212992,
+     "psychometric_questions": 90112,
+     "password_reset_tokens": 32768,
+     "courses": 32768,
+     "answers": 753664,
+     "user_consents": 286720,
+     "prediction_feedbacks": 65536,
+     "email_verification_codes": 24576,
+     "questions": 155648,
+     "legal_documents": 81920,
+     "sombra_adaptativa": 376832,
+     "psychometric_answers": 32768,
+     "riasec_items": 49152,
+     "bigfive_items": 32768,
+     "forced_choice_items": 81920,
+     "forced_choice_answers": 24576,
+     "agente_cursos_ejecuciones": 24576,
+     "curso_candidatos": 40960,
+     "student_profiles": 32768,
+     "ml_training_data": 1310720,
+     "onet_ocupaciones": 524288
+    },
+    "filas": {
+     "users": 182,
+     "questionnaire_sessions": 180,
+     "answers": 4500,
+     "predictions": 180,
+     "prediction_feedbacks": 125,
+     "ml_training_data": 2095,
+     "user_consents": 720,
+     "model_training_logs": 5
+    }
+   },
+   "base_crecimiento_bytes": 1433600,
+   "reentrenamientos": 3
+  },
+  {
+   "nombre": "pico-6",
+   "aulas": 6,
+   "alumnos": 270,
+   "ciclo": 1,
+   "escala_tiempo": 0.2,
+   "duracion_carga_s": 116.6,
+   "calma_s": 12.9,
+   "completos": 270,
+   "fallos": {},
+   "errores": {},
+   "peticiones": 4507,
+   "peticiones_por_s": 38.64,
+   "latencia_global": {
+    "p50": 0.0504,
+    "p95": 0.6323,
+    "p99": 1.1229,
+    "max": 2.7246
+   },
+   "latencia_por_etapa": {
+    "entrar": {
+     "n": 270,
+     "p50": 0.4135,
+     "p95": 1.0203,
+     "p99": 1.1597,
+     "max": 1.3505
+    },
+    "panel": {
+     "n": 810,
+     "p50": 0.0274,
+     "p95": 0.1459,
+     "p99": 0.3991,
+     "max": 1.5951
+    },
+    "prediccion": {
+     "n": 270,
+     "p50": 0.2206,
+     "p95": 1.4196,
+     "p99": 1.909,
+     "max": 2.7246
+    },
+    "progreso": {
+     "n": 540,
+     "p50": 0.0303,
+     "p95": 0.3269,
+     "p99": 0.7621,
+     "max": 1.3344
+    },
+    "realimentacion": {
+     "n": 187,
+     "p50": 0.058,
+     "p95": 0.3047,
+     "p99": 1.2058,
+     "max": 1.3489
+    },
+    "resultado": {
+     "n": 810,
+     "p50": 0.0352,
+     "p95": 0.2894,
+     "p99": 0.6409,
+     "max": 1.8505
+    },
+    "test": {
+     "n": 1620,
+     "p50": 0.0645,
+     "p95": 0.7058,
+     "p99": 1.0838,
+     "max": 1.8648
+    }
+   },
+   "cpu_segundos": {
+    "revo_postgres": 46.96,
+    "revo_redis": 3.43,
+    "revo_auth": 130.84,
+    "revo_survey": 79.17,
+    "revo_ml": 308.43,
+    "revo_pasarela": 9.17
+   },
+   "cpu_segundos_total": 578.01,
+   "cpu_segundos_por_alumno": 2.141,
+   "nucleos_medios": 4.96,
+   "nucleos_pico": 17.92,
+   "ram_pico_bytes": {
+    "revo_postgres": 149841510,
+    "revo_redis": 4628414,
+    "revo_auth": 182347366,
+    "revo_survey": 201116876,
+    "revo_ml": 318976819,
+    "revo_pasarela": 37539020
+   },
+   "ram_total_pico_bytes": 846661155,
+   "memoria_peak_cgroup": {
+    "revo_postgres": 218419200,
+    "revo_redis": 7602176,
+    "revo_auth": 184999936,
+    "revo_survey": 203100160,
+    "revo_ml": 389447680,
+    "revo_pasarela": 39346176
+   },
+   "muestras_stats": 61,
+   "base_antes": {
+    "base_bytes": 14384151,
+    "pgdata_kb": 70176,
+    "modelos_kb": 308,
+    "tablas": {
+     "users": 196608,
+     "specializations": 65536,
+     "predictions": 524288,
+     "model_training_logs": 49152,
+     "questionnaire_sessions": 212992,
+     "psychometric_questions": 90112,
+     "password_reset_tokens": 32768,
+     "courses": 32768,
+     "answers": 753664,
+     "user_consents": 286720,
+     "prediction_feedbacks": 65536,
+     "email_verification_codes": 24576,
+     "questions": 155648,
+     "legal_documents": 81920,
+     "sombra_adaptativa": 376832,
+     "psychometric_answers": 32768,
+     "riasec_items": 49152,
+     "bigfive_items": 32768,
+     "forced_choice_items": 81920,
+     "forced_choice_answers": 24576,
+     "agente_cursos_ejecuciones": 24576,
+     "curso_candidatos": 40960,
+     "student_profiles": 32768,
+     "ml_training_data": 1310720,
+     "onet_ocupaciones": 524288
+    },
+    "filas": {
+     "users": 182,
+     "questionnaire_sessions": 180,
+     "answers": 4500,
+     "predictions": 180,
+     "prediction_feedbacks": 125,
+     "ml_training_data": 2095,
+     "user_consents": 720,
+     "model_training_logs": 5
+    }
+   },
+   "base_despues": {
+    "base_bytes": 17292311,
+    "pgdata_kb": 73040,
+    "modelos_kb": 608,
+    "tablas": {
+     "users": 425984,
+     "specializations": 65536,
+     "predictions": 1212416,
+     "model_training_logs": 81920,
+     "questionnaire_sessions": 352256,
+     "psychometric_questions": 90112,
+     "password_reset_tokens": 32768,
+     "courses": 32768,
+     "answers": 1671168,
+     "user_consents": 491520,
+     "prediction_feedbacks": 131072,
+     "email_verification_codes": 24576,
+     "questions": 155648,
+     "legal_documents": 81920,
+     "sombra_adaptativa": 835584,
+     "psychometric_answers": 32768,
+     "riasec_items": 49152,
+     "bigfive_items": 32768,
+     "forced_choice_items": 81920,
+     "forced_choice_answers": 24576,
+     "agente_cursos_ejecuciones": 24576,
+     "curso_candidatos": 40960,
+     "student_profiles": 32768,
+     "ml_training_data": 1449984,
+     "onet_ocupaciones": 524288
+    },
+    "filas": {
+     "users": 452,
+     "questionnaire_sessions": 450,
+     "answers": 11250,
+     "predictions": 450,
+     "prediction_feedbacks": 312,
+     "ml_training_data": 2243,
+     "user_consents": 1800,
+     "model_training_logs": 10
+    }
+   },
+   "base_crecimiento_bytes": 2908160,
+   "reentrenamientos": 5
+  },
+  {
+   "nombre": "pico-10",
+   "aulas": 10,
+   "alumnos": 450,
+   "ciclo": 1,
+   "escala_tiempo": 0.2,
+   "duracion_carga_s": 120.6,
+   "calma_s": 15.5,
+   "completos": 450,
+   "fallos": {},
+   "errores": {},
+   "peticiones": 7515,
+   "peticiones_por_s": 62.32,
+   "latencia_global": {
+    "p50": 0.0743,
+    "p95": 1.5882,
+    "p99": 2.6487,
+    "max": 5.3149
+   },
+   "latencia_por_etapa": {
+    "entrar": {
+     "n": 450,
+     "p50": 0.4962,
+     "p95": 0.9846,
+     "p99": 2.0652,
+     "max": 2.3573
+    },
+    "panel": {
+     "n": 1350,
+     "p50": 0.0311,
+     "p95": 0.3536,
+     "p99": 0.7548,
+     "max": 1.5335
+    },
+    "prediccion": {
+     "n": 450,
+     "p50": 0.3801,
+     "p95": 2.5624,
+     "p99": 3.6783,
+     "max": 5.0412
+    },
+    "progreso": {
+     "n": 900,
+     "p50": 0.0438,
+     "p95": 1.3402,
+     "p99": 2.3206,
+     "max": 3.9903
+    },
+    "realimentacion": {
+     "n": 315,
+     "p50": 0.0708,
+     "p95": 0.9304,
+     "p99": 1.3529,
+     "max": 1.5835
+    },
+    "resultado": {
+     "n": 1350,
+     "p50": 0.0543,
+     "p95": 1.0709,
+     "p99": 2.1687,
+     "max": 3.8586
+    },
+    "test": {
+     "n": 2700,
+     "p50": 0.1877,
+     "p95": 1.94,
+     "p99": 3.0649,
+     "max": 5.3149
+    }
+   },
+   "cpu_segundos": {
+    "revo_postgres": 64.43,
+    "revo_redis": 3.96,
+    "revo_auth": 194.13,
+    "revo_survey": 109.08,
+    "revo_ml": 440.1,
+    "revo_pasarela": 12.2
+   },
+   "cpu_segundos_total": 823.9,
+   "cpu_segundos_por_alumno": 1.831,
+   "nucleos_medios": 6.83,
+   "nucleos_pico": 14.52,
+   "ram_pico_bytes": {
+    "revo_postgres": 180145356,
+    "revo_redis": 5717884,
+    "revo_auth": 184444518,
+    "revo_survey": 215062937,
+    "revo_ml": 318871961,
+    "revo_pasarela": 38933626
+   },
+   "ram_total_pico_bytes": 906801182,
+   "memoria_peak_cgroup": {
+    "revo_postgres": 249892864,
+    "revo_redis": 7819264,
+    "revo_auth": 184999936,
+    "revo_survey": 223207424,
+    "revo_ml": 389447680,
+    "revo_pasarela": 41336832
+   },
+   "muestras_stats": 63,
+   "base_antes": {
+    "base_bytes": 17292311,
+    "pgdata_kb": 73040,
+    "modelos_kb": 608,
+    "tablas": {
+     "users": 425984,
+     "specializations": 65536,
+     "predictions": 1212416,
+     "model_training_logs": 81920,
+     "questionnaire_sessions": 352256,
+     "psychometric_questions": 90112,
+     "password_reset_tokens": 32768,
+     "courses": 32768,
+     "answers": 1671168,
+     "user_consents": 491520,
+     "prediction_feedbacks": 131072,
+     "email_verification_codes": 24576,
+     "questions": 155648,
+     "legal_documents": 81920,
+     "sombra_adaptativa": 835584,
+     "psychometric_answers": 32768,
+     "riasec_items": 49152,
+     "bigfive_items": 32768,
+     "forced_choice_items": 81920,
+     "forced_choice_answers": 24576,
+     "agente_cursos_ejecuciones": 24576,
+     "curso_candidatos": 40960,
+     "student_profiles": 32768,
+     "ml_training_data": 1449984,
+     "onet_ocupaciones": 524288
+    },
+    "filas": {
+     "users": 452,
+     "questionnaire_sessions": 450,
+     "answers": 11250,
+     "predictions": 450,
+     "prediction_feedbacks": 312,
+     "ml_training_data": 2243,
+     "user_consents": 1800,
+     "model_training_logs": 10
+    }
+   },
+   "base_despues": {
+    "base_bytes": 22092823,
+    "pgdata_kb": 77792,
+    "modelos_kb": 1028,
+    "tablas": {
+     "users": 663552,
+     "specializations": 65536,
+     "predictions": 2318336,
+     "model_training_logs": 98304,
+     "questionnaire_sessions": 622592,
+     "psychometric_questions": 90112,
+     "password_reset_tokens": 32768,
+     "courses": 32768,
+     "answers": 3235840,
+     "user_consents": 901120,
+     "prediction_feedbacks": 278528,
+     "email_verification_codes": 24576,
+     "questions": 155648,
+     "legal_documents": 81920,
+     "sombra_adaptativa": 1581056,
+     "psychometric_answers": 32768,
+     "riasec_items": 49152,
+     "bigfive_items": 32768,
+     "forced_choice_items": 81920,
+     "forced_choice_answers": 24576,
+     "agente_cursos_ejecuciones": 24576,
+     "curso_candidatos": 40960,
+     "student_profiles": 32768,
+     "ml_training_data": 1687552,
+     "onet_ocupaciones": 524288
+    },
+    "filas": {
+     "users": 902,
+     "questionnaire_sessions": 900,
+     "answers": 22500,
+     "predictions": 900,
+     "prediction_feedbacks": 627,
+     "ml_training_data": 2464,
+     "user_consents": 3600,
+     "model_training_logs": 17
+    }
+   },
+   "base_crecimiento_bytes": 4800512,
+   "reentrenamientos": 7
+  },
+  {
+   "nombre": "ciclo-2",
+   "aulas": 6,
+   "alumnos": 270,
+   "ciclo": 2,
+   "escala_tiempo": 0.2,
+   "duracion_carga_s": 114.9,
+   "calma_s": 7.5,
+   "completos": 270,
+   "fallos": {},
+   "errores": {},
+   "peticiones": 4494,
+   "peticiones_por_s": 39.12,
+   "latencia_global": {
+    "p50": 0.0304,
+    "p95": 0.3456,
+    "p99": 0.585,
+    "max": 0.9436
+   },
+   "latencia_por_etapa": {
+    "entrar": {
+     "n": 270,
+     "p50": 0.3207,
+     "p95": 0.5966,
+     "p99": 0.7013,
+     "max": 0.8533
+    },
+    "panel": {
+     "n": 810,
+     "p50": 0.0181,
+     "p95": 0.0771,
+     "p99": 0.1882,
+     "max": 0.4334
+    },
+    "prediccion": {
+     "n": 270,
+     "p50": 0.1228,
+     "p95": 0.5426,
+     "p99": 0.8437,
+     "max": 0.9436
+    },
+    "progreso": {
+     "n": 540,
+     "p50": 0.0215,
+     "p95": 0.1238,
+     "p99": 0.3413,
+     "max": 0.5488
+    },
+    "realimentacion": {
+     "n": 174,
+     "p50": 0.0354,
+     "p95": 0.2406,
+     "p99": 0.4488,
+     "max": 0.4701
+    },
+    "resultado": {
+     "n": 810,
+     "p50": 0.0219,
+     "p95": 0.1289,
+     "p99": 0.2654,
+     "max": 0.6602
+    },
+    "test": {
+     "n": 1620,
+     "p50": 0.0352,
+     "p95": 0.2128,
+     "p99": 0.5803,
+     "max": 0.9037
+    }
+   },
+   "cpu_segundos": {
+    "revo_postgres": 31.24,
+    "revo_redis": 2.45,
+    "revo_auth": 103.46,
+    "revo_survey": 56.57,
+    "revo_ml": 242.54,
+    "revo_pasarela": 6.81
+   },
+   "cpu_segundos_total": 443.06,
+   "cpu_segundos_por_alumno": 1.641,
+   "nucleos_medios": 3.86,
+   "nucleos_pico": 14.15,
+   "ram_pico_bytes": {
+    "revo_postgres": 139775180,
+    "revo_redis": 4665114,
+    "revo_auth": 182976512,
+    "revo_survey": 214119219,
+    "revo_ml": 371405619,
+    "revo_pasarela": 36490444
+   },
+   "ram_total_pico_bytes": 919894752,
+   "memoria_peak_cgroup": {
+    "revo_postgres": 249892864,
+    "revo_redis": 8105984,
+    "revo_auth": 184999936,
+    "revo_survey": 223207424,
+    "revo_ml": 389447680,
+    "revo_pasarela": 41336832
+   },
+   "muestras_stats": 58,
+   "base_antes": {
+    "base_bytes": 22092823,
+    "pgdata_kb": 77792,
+    "modelos_kb": 1028,
+    "tablas": {
+     "users": 663552,
+     "specializations": 65536,
+     "predictions": 2318336,
+     "model_training_logs": 98304,
+     "questionnaire_sessions": 622592,
+     "psychometric_questions": 90112,
+     "password_reset_tokens": 32768,
+     "courses": 32768,
+     "answers": 3235840,
+     "user_consents": 901120,
+     "prediction_feedbacks": 278528,
+     "email_verification_codes": 24576,
+     "questions": 155648,
+     "legal_documents": 81920,
+     "sombra_adaptativa": 1581056,
+     "psychometric_answers": 32768,
+     "riasec_items": 49152,
+     "bigfive_items": 32768,
+     "forced_choice_items": 81920,
+     "forced_choice_answers": 24576,
+     "agente_cursos_ejecuciones": 24576,
+     "curso_candidatos": 40960,
+     "student_profiles": 32768,
+     "ml_training_data": 1687552,
+     "onet_ocupaciones": 524288
+    },
+    "filas": {
+     "users": 902,
+     "questionnaire_sessions": 900,
+     "answers": 22500,
+     "predictions": 900,
+     "prediction_feedbacks": 627,
+     "ml_training_data": 2464,
+     "user_consents": 3600,
+     "model_training_logs": 17
+    }
+   },
+   "base_despues": {
+    "base_bytes": 24378391,
+    "pgdata_kb": 80060,
+    "modelos_kb": 1388,
+    "tablas": {
+     "users": 663552,
+     "specializations": 65536,
+     "predictions": 2957312,
+     "model_training_logs": 106496,
+     "questionnaire_sessions": 663552,
+     "psychometric_questions": 90112,
+     "password_reset_tokens": 32768,
+     "courses": 32768,
+     "answers": 4169728,
+     "user_consents": 901120,
+     "prediction_feedbacks": 385024,
+     "email_verification_codes": 24576,
+     "questions": 155648,
+     "legal_documents": 81920,
+     "sombra_adaptativa": 2007040,
+     "psychometric_answers": 32768,
+     "riasec_items": 49152,
+     "bigfive_items": 32768,
+     "forced_choice_items": 81920,
+     "forced_choice_answers": 24576,
+     "agente_cursos_ejecuciones": 24576,
+     "curso_candidatos": 40960,
+     "student_profiles": 32768,
+     "ml_training_data": 1794048,
+     "onet_ocupaciones": 524288
+    },
+    "filas": {
+     "users": 902,
+     "questionnaire_sessions": 1170,
+     "answers": 29250,
+     "predictions": 1170,
+     "prediction_feedbacks": 801,
+     "ml_training_data": 2586,
+     "user_consents": 3600,
+     "model_training_logs": 23
+    }
+   },
+   "base_crecimiento_bytes": 2285568,
+   "reentrenamientos": 6
+  },
+  {
+   "nombre": "ciclo-3",
+   "aulas": 6,
+   "alumnos": 270,
+   "ciclo": 3,
+   "escala_tiempo": 0.2,
+   "duracion_carga_s": 113.2,
+   "calma_s": 12.4,
+   "completos": 270,
+   "fallos": {},
+   "errores": {},
+   "peticiones": 4513,
+   "peticiones_por_s": 39.87,
+   "latencia_global": {
+    "p50": 0.0295,
+    "p95": 0.2928,
+    "p99": 0.4796,
+    "max": 0.6657
+   },
+   "latencia_por_etapa": {
+    "entrar": {
+     "n": 270,
+     "p50": 0.3286,
+     "p95": 0.5656,
+     "p99": 0.629,
+     "max": 0.6657
+    },
+    "panel": {
+     "n": 810,
+     "p50": 0.0177,
+     "p95": 0.0528,
+     "p99": 0.0903,
+     "max": 0.2431
+    },
+    "prediccion": {
+     "n": 270,
+     "p50": 0.1171,
+     "p95": 0.2837,
+     "p99": 0.3581,
+     "max": 0.5452
+    },
+    "progreso": {
+     "n": 540,
+     "p50": 0.0202,
+     "p95": 0.064,
+     "p99": 0.1242,
+     "max": 0.1873
+    },
+    "realimentacion": {
+     "n": 193,
+     "p50": 0.0377,
+     "p95": 0.108,
+     "p99": 0.2667,
+     "max": 0.5399
+    },
+    "resultado": {
+     "n": 810,
+     "p50": 0.0198,
+     "p95": 0.0682,
+     "p99": 0.1176,
+     "max": 0.2421
+    },
+    "test": {
+     "n": 1620,
+     "p50": 0.0375,
+     "p95": 0.1306,
+     "p99": 0.198,
+     "max": 0.5794
+    }
+   },
+   "cpu_segundos": {
+    "revo_postgres": 30.49,
+    "revo_redis": 2.5,
+    "revo_auth": 105.72,
+    "revo_survey": 57.54,
+    "revo_ml": 197.48,
+    "revo_pasarela": 6.92
+   },
+   "cpu_segundos_total": 400.65,
+   "cpu_segundos_por_alumno": 1.484,
+   "nucleos_medios": 3.54,
+   "nucleos_pico": 13.6,
+   "ram_pico_bytes": {
+    "revo_postgres": 133798297,
+    "revo_redis": 5004853,
+    "revo_auth": 184129945,
+    "revo_survey": 219152384,
+    "revo_ml": 371929907,
+    "revo_pasarela": 36479959
+   },
+   "ram_total_pico_bytes": 947430357,
+   "memoria_peak_cgroup": {
+    "revo_postgres": 249892864,
+    "revo_redis": 8466432,
+    "revo_auth": 184999936,
+    "revo_survey": 223207424,
+    "revo_ml": 389447680,
+    "revo_pasarela": 41336832
+   },
+   "muestras_stats": 60,
+   "base_antes": {
+    "base_bytes": 24378391,
+    "pgdata_kb": 80060,
+    "modelos_kb": 1388,
+    "tablas": {
+     "users": 663552,
+     "specializations": 65536,
+     "predictions": 2957312,
+     "model_training_logs": 106496,
+     "questionnaire_sessions": 663552,
+     "psychometric_questions": 90112,
+     "password_reset_tokens": 32768,
+     "courses": 32768,
+     "answers": 4169728,
+     "user_consents": 901120,
+     "prediction_feedbacks": 385024,
+     "email_verification_codes": 24576,
+     "questions": 155648,
+     "legal_documents": 81920,
+     "sombra_adaptativa": 2007040,
+     "psychometric_answers": 32768,
+     "riasec_items": 49152,
+     "bigfive_items": 32768,
+     "forced_choice_items": 81920,
+     "forced_choice_answers": 24576,
+     "agente_cursos_ejecuciones": 24576,
+     "curso_candidatos": 40960,
+     "student_profiles": 32768,
+     "ml_training_data": 1794048,
+     "onet_ocupaciones": 524288
+    },
+    "filas": {
+     "users": 902,
+     "questionnaire_sessions": 1170,
+     "answers": 29250,
+     "predictions": 1170,
+     "prediction_feedbacks": 801,
+     "ml_training_data": 2586,
+     "user_consents": 3600,
+     "model_training_logs": 23
+    }
+   },
+   "base_despues": {
+    "base_bytes": 26041367,
+    "pgdata_kb": 81684,
+    "modelos_kb": 1688,
+    "tablas": {
+     "users": 663552,
+     "specializations": 65536,
+     "predictions": 3268608,
+     "model_training_logs": 114688,
+     "questionnaire_sessions": 770048,
+     "psychometric_questions": 90112,
+     "password_reset_tokens": 32768,
+     "courses": 32768,
+     "answers": 5070848,
+     "user_consents": 901120,
+     "prediction_feedbacks": 466944,
+     "email_verification_codes": 24576,
+     "questions": 155648,
+     "legal_documents": 81920,
+     "sombra_adaptativa": 2129920,
+     "psychometric_answers": 32768,
+     "riasec_items": 49152,
+     "bigfive_items": 32768,
+     "forced_choice_items": 81920,
+     "forced_choice_answers": 24576,
+     "agente_cursos_ejecuciones": 24576,
+     "curso_candidatos": 40960,
+     "student_profiles": 32768,
+     "ml_training_data": 1892352,
+     "onet_ocupaciones": 524288
+    },
+    "filas": {
+     "users": 902,
+     "questionnaire_sessions": 1440,
+     "answers": 36000,
+     "predictions": 1440,
+     "prediction_feedbacks": 994,
+     "ml_training_data": 2727,
+     "user_consents": 3600,
+     "model_training_logs": 28
+    }
+   },
+   "base_crecimiento_bytes": 1662976,
+   "reentrenamientos": 5
+  },
+  {
+   "nombre": "ciclo-4",
+   "aulas": 6,
+   "alumnos": 270,
+   "ciclo": 4,
+   "escala_tiempo": 0.2,
+   "duracion_carga_s": 113.1,
+   "calma_s": 7.4,
+   "completos": 270,
+   "fallos": {},
+   "errores": {},
+   "peticiones": 4497,
+   "peticiones_por_s": 39.75,
+   "latencia_global": {
+    "p50": 0.0292,
+    "p95": 0.2913,
+    "p99": 0.4171,
+    "max": 0.6291
+   },
+   "latencia_por_etapa": {
+    "entrar": {
+     "n": 270,
+     "p50": 0.3209,
+     "p95": 0.5007,
+     "p99": 0.576,
+     "max": 0.6291
+    },
+    "panel": {
+     "n": 810,
+     "p50": 0.0171,
+     "p95": 0.0455,
+     "p99": 0.1193,
+     "max": 0.1573
+    },
+    "prediccion": {
+     "n": 270,
+     "p50": 0.1174,
+     "p95": 0.3499,
+     "p99": 0.4195,
+     "max": 0.5424
+    },
+    "progreso": {
+     "n": 540,
+     "p50": 0.0197,
+     "p95": 0.0733,
+     "p99": 0.1242,
+     "max": 0.3171
+    },
+    "realimentacion": {
+     "n": 177,
+     "p50": 0.0325,
+     "p95": 0.1469,
+     "p99": 0.1778,
+     "max": 0.2457
+    },
+    "resultado": {
+     "n": 810,
+     "p50": 0.0226,
+     "p95": 0.0782,
+     "p99": 0.1565,
+     "max": 0.3276
+    },
+    "test": {
+     "n": 1620,
+     "p50": 0.0357,
+     "p95": 0.0985,
+     "p99": 0.1407,
+     "max": 0.1851
+    }
+   },
+   "cpu_segundos": {
+    "revo_postgres": 30.52,
+    "revo_redis": 2.43,
+    "revo_auth": 100.24,
+    "revo_survey": 56.52,
+    "revo_ml": 229.59,
+    "revo_pasarela": 6.98
+   },
+   "cpu_segundos_total": 426.26,
+   "cpu_segundos_por_alumno": 1.579,
+   "nucleos_medios": 3.77,
+   "nucleos_pico": 14.45,
+   "ram_pico_bytes": {
+    "revo_postgres": 136314880,
+    "revo_redis": 5730467,
+    "revo_auth": 183186227,
+    "revo_survey": 219466956,
+    "revo_ml": 400241459,
+    "revo_pasarela": 36333158
+   },
+   "ram_total_pico_bytes": 950239491,
+   "memoria_peak_cgroup": {
+    "revo_postgres": 249892864,
+    "revo_redis": 9175040,
+    "revo_auth": 184999936,
+    "revo_survey": 223207424,
+    "revo_ml": 401297408,
+    "revo_pasarela": 41336832
+   },
+   "muestras_stats": 57,
+   "base_antes": {
+    "base_bytes": 26041367,
+    "pgdata_kb": 81684,
+    "modelos_kb": 1688,
+    "tablas": {
+     "users": 663552,
+     "specializations": 65536,
+     "predictions": 3268608,
+     "model_training_logs": 114688,
+     "questionnaire_sessions": 770048,
+     "psychometric_questions": 90112,
+     "password_reset_tokens": 32768,
+     "courses": 32768,
+     "answers": 5070848,
+     "user_consents": 901120,
+     "prediction_feedbacks": 466944,
+     "email_verification_codes": 24576,
+     "questions": 155648,
+     "legal_documents": 81920,
+     "sombra_adaptativa": 2129920,
+     "psychometric_answers": 32768,
+     "riasec_items": 49152,
+     "bigfive_items": 32768,
+     "forced_choice_items": 81920,
+     "forced_choice_answers": 24576,
+     "agente_cursos_ejecuciones": 24576,
+     "curso_candidatos": 40960,
+     "student_profiles": 32768,
+     "ml_training_data": 1892352,
+     "onet_ocupaciones": 524288
+    },
+    "filas": {
+     "users": 902,
+     "questionnaire_sessions": 1440,
+     "answers": 36000,
+     "predictions": 1440,
+     "prediction_feedbacks": 994,
+     "ml_training_data": 2727,
+     "user_consents": 3600,
+     "model_training_logs": 28
+    }
+   },
+   "base_despues": {
+    "base_bytes": 28171287,
+    "pgdata_kb": 83792,
+    "modelos_kb": 2048,
+    "tablas": {
+     "users": 663552,
+     "specializations": 65536,
+     "predictions": 3891200,
+     "model_training_logs": 131072,
+     "questionnaire_sessions": 958464,
+     "psychometric_questions": 90112,
+     "password_reset_tokens": 32768,
+     "courses": 32768,
+     "answers": 5898240,
+     "user_consents": 901120,
+     "prediction_feedbacks": 548864,
+     "email_verification_codes": 24576,
+     "questions": 155648,
+     "legal_documents": 81920,
+     "sombra_adaptativa": 2375680,
+     "psychometric_answers": 32768,
+     "riasec_items": 49152,
+     "bigfive_items": 32768,
+     "forced_choice_items": 81920,
+     "forced_choice_answers": 24576,
+     "agente_cursos_ejecuciones": 24576,
+     "curso_candidatos": 40960,
+     "student_profiles": 32768,
+     "ml_training_data": 2031616,
+     "onet_ocupaciones": 524288
+    },
+    "filas": {
+     "users": 902,
+     "questionnaire_sessions": 1710,
+     "answers": 42750,
+     "predictions": 1710,
+     "prediction_feedbacks": 1171,
+     "ml_training_data": 2856,
+     "user_consents": 3600,
+     "model_training_logs": 34
+    }
+   },
+   "base_crecimiento_bytes": 2129920,
+   "reentrenamientos": 6
+  }
+ ]
+}

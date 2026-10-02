@@ -10,12 +10,19 @@ python-multipart==0.0.9
 # mantenimiento y con CVE abiertos, y es la libreria que valida identidad.
 PyJWT==2.10.1
 redis==5.0.4
+# El agente de cursos consulta APIs de catalogos (ver agente_cursos/fuentes/).
+# survey-service ya depende de requests para hablar con ml-service, asi que
+# es una dependencia ya establecida en el proyecto y no una nueva.
+requests==2.32.3
 
 # Machine learning
 scikit-learn==1.4.2
 numpy==1.26.4
-pandas==2.2.2
 joblib==1.4.0
+# pandas se quito: figuraba aqui y se importaba en trainer.py, pero ninguna
+# linea del servicio lo usaba. Los datos se cargan de SQLAlchemy a listas y
+# de ahi a un np.array. Una dependencia declarada y no usada engorda la
+# imagen y amplia la superficie que hay que vigilar por vulnerabilidades.
 
 # Pruebas
 pytest==8.2.0

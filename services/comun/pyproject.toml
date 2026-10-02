@@ -23,7 +23,7 @@ test = ["pytest>=8.2.0", "fakeredis>=2.23.0"]
 include = ["revo_comun*"]
 
 [tool.pytest.ini_options]
-testpaths = ["pruebas"]
+testpaths = ["pruebas/unitarias"]
 filterwarnings = [
     "ignore::DeprecationWarning:httpx._client",
 ]

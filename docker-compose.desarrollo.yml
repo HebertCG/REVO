@@ -63,6 +63,13 @@ services:
       --no-server-header --proxy-headers --forwarded-allow-ips=*
       --reload
 
+  # Mismo codigo montado que ml-service, para probar el agente sin
+  # reconstruir la imagen en cada cambio.
+  agente-cursos:
+    volumes:
+      - ./services/ml-service:/app
+      - ./services/comun/revo_comun:/usr/local/lib/python3.11/site-packages/revo_comun:ro
+
   ml-service:
     environment:
       WORKERS: 1

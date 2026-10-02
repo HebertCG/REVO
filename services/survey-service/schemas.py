@@ -1,5 +1,5 @@
 from pydantic import BaseModel, field_validator
-from typing import Optional, Any
+from typing import Optional
 from datetime import datetime
 
 
@@ -7,13 +7,13 @@ class QuestionOut(BaseModel):
     id: int
     text: str
     category: str
-    question_type: str
-    options: Optional[Any]
-    min_label: Optional[str]
-    max_label: Optional[str]
-    weight: float
     order_index: int
     model_config = {"from_attributes": True}
+    # Se han retirado question_type, options, min_label, max_label y weight.
+    # La API las devolvia siempre con el mismo valor ('scale', None, 'Muy
+    # bajo', 'Muy alto', 1.0) porque las columnas nunca tuvieron otro, y el
+    # frontend no lee ninguna de las cinco: pinta su propia escala de cinco
+    # puntos. Ver database/21_retirar_columnas_muertas.sql.
 
 
 class SessionCreate(BaseModel):

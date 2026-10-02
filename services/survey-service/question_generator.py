@@ -1,6 +1,12 @@
+import os
 import random
 
-SQL_FILE = r"C:\Users\corne\OneDrive\Escritorio\HC\REVO\database\03_seed_questions.sql"
+# La ruta era absoluta y apuntaba a ...\Escritorio\HC\REVO\database, una
+# carpeta que ya no existe: el proyecto se movio a REVO-main. Ejecutar el
+# generador escribia fuera del repositorio o fallaba, segun la maquina.
+# Ahora se resuelve desde la posicion de este fichero.
+RAIZ = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+SQL_FILE = os.path.join(RAIZ, 'database', '03_seed_questions.sql')
 
 # Definimos 10 ramas, cada una con un tema
 BRANCHES = [
@@ -38,8 +44,12 @@ def main():
                 text = f"A nivel académico, destaco ampliamente al tener que {topic}."
                 cat = "academic"
             
-            # Formato final para Insert
-            questions.append(f"('{text}', '{cat}', {b_id}, 'Desacuerdo', 'Totalmente', {order})")
+            # Formato final para Insert.
+            # Ya no se escriben min_label ni max_label: las 100 filas
+            # llevaban las mismas dos cadenas ('Desacuerdo', 'Totalmente'),
+            # el frontend nunca las leyo (tiene su propia escala de cinco
+            # puntos) y la migracion 21 retiro las columnas.
+            questions.append(f"('{text}', '{cat}', {b_id}, {order})")
             order += 1
             
     # Mezclamos
@@ -51,7 +61,7 @@ def main():
         f.write("-- ============================================================\n\n")
         f.write("TRUNCATE TABLE questions CASCADE;\n")
         f.write("ALTER SEQUENCE questions_id_seq RESTART WITH 1;\n\n")
-        f.write("INSERT INTO questions (text, category, specialization_id, min_label, max_label, order_index)\nVALUES\n")
+        f.write("INSERT INTO questions (text, category, specialization_id, order_index)\nVALUES\n")
         f.write(",\n".join(questions) + ";\n\n")
         f.write("DO $$ BEGIN RAISE NOTICE '✅ 100 preguntas adaptativas sembradas en revo_db'; END $$;\n")
 

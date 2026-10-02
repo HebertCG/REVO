@@ -5,16 +5,16 @@ export function getRemainingPhaseTransitionMs(elapsedMs) {
   return Math.max(0, PHASE_TRANSITION_MIN_MS - safeElapsedMs)
 }
 
-export function shouldStartQuestionShuffle({
+export function shouldStartPhaseShuffle({
   loading,
   submitting,
   transitioning,
-  questionId,
-  answered,
+  phase,
+  unlocked,
 }) {
-  return Boolean(questionId)
+  return Boolean(phase)
     && !loading
     && !submitting
     && !transitioning
-    && !answered
+    && !unlocked
 }

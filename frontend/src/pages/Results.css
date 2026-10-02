@@ -119,3 +119,43 @@
   .result-actions { flex-direction: column; width: 100%; gap: 12px; }
   .result-actions .btn { width: 100%; justify-content: center; }
 }
+
+/* ── Cautela: el perfil se parece poco a los que el sistema conoce ──
+   Ambar y no rojo: el tema reserva verdes y amarillos para ESTADOS, y esto
+   es un estado del resultado, no un elemento de marca. */
+.result-cautela {
+  display: flex; gap: 14px; align-items: flex-start;
+  margin: 0 0 24px; padding: 16px 20px;
+  border: 1px solid rgba(245, 158, 11, .45); border-left-width: 4px;
+  border-radius: 12px; background: rgba(245, 158, 11, .08);
+}
+.result-cautela-icono {
+  flex: none; width: 24px; height: 24px; border-radius: 50%;
+  display: grid; place-items: center;
+  background: var(--amber); color: #0b0b0d;
+  font-family: 'Space Grotesk', sans-serif; font-weight: 900; font-size: .85rem;
+}
+.result-cautela-mensaje { margin: 0; color: var(--text-primary); font-weight: 600; line-height: 1.5; }
+.result-cautela-porque { margin: 6px 0 0; color: var(--text-secondary); font-size: .9rem; line-height: 1.5; }
+
+/* ── Ocupaciones con intereses parecidos ── */
+.ocupaciones-intro { margin: -8px 0 16px; line-height: 1.5; }
+.ocupaciones-lista { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.ocupacion-fila {
+  display: flex; justify-content: space-between; align-items: center; gap: 12px;
+  padding: 10px 14px; border: 1px solid var(--border); border-radius: 10px;
+  color: var(--text-primary); text-decoration: none;
+  transition: var(--transition);
+}
+.ocupacion-fila:hover,
+.ocupacion-fila:focus-visible { border-color: var(--border-active); background: var(--bg-card-hover); }
+.ocupacion-fila:focus-visible { outline: 2px solid var(--purple-texto); outline-offset: 2px; }
+/* min-width: 0 para que un titulo largo pueda partirse en vez de desbordar
+   la fila a 320px (mismo motivo que .result-hero-left). */
+.ocupacion-titulo { min-width: 0; font-size: .9rem; line-height: 1.35; }
+.ocupacion-parecido { flex: none; color: var(--purple-texto); font-size: .78rem; font-weight: 600; white-space: nowrap; }
+.ocupaciones-fuente { margin: 14px 0 0; color: var(--text-muted); font-size: .72rem; }
+
+@media (prefers-reduced-motion: reduce) {
+  .ocupacion-fila { transition: none; }
+}

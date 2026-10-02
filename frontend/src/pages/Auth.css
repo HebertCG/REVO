@@ -94,11 +94,10 @@
 }
 
 /* ── Mensaje de error ─────────────────────────────────────── */
-/* El aviso de espera comparte forma y sitio con el de error: es la misma
-   franja flotante, y solo cambia el tono. Uno dice "algo fallo", el otro
-   "estamos esperando", y conviene que no se parezcan en color. */
-.revo-auth-error,
-.revo-auth-espera {
+/* Aqui habia tambien `.revo-auth-espera`, la franja azul de "Despertando el
+   servidor" con su punto latiendo. Era para el arranque en frio de Render;
+   con los servicios siempre en pie no tenia nada que anunciar. */
+.revo-auth-error {
   position: fixed;
   top: 18px; left: 50%;
   transform: translateX(-50%);
@@ -117,32 +116,6 @@
   background: #fdeceb;
   border: 1px solid #f3bfba;
   color: #9b2c22;
-}
-
-.revo-auth-espera {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  background: #eaf0ff;
-  border: 1px solid #bed0fb;
-  color: #1e46bd;
-}
-
-/* Un punto que late. Sin el, una franja quieta durante un minuto parece
-   un cartel olvidado; latiendo se lee como "sigue pasando algo". */
-.revo-auth-espera::before {
-  content: '';
-  flex: none;
-  width: 9px;
-  height: 9px;
-  border-radius: 999px;
-  background: currentColor;
-  animation: revoLatido 1.1s ease-in-out infinite;
-}
-
-@keyframes revoLatido {
-  0%, 100% { opacity: .25; transform: scale(.8); }
-  50%      { opacity: 1;   transform: scale(1); }
 }
 
 @media (prefers-reduced-motion: reduce) {

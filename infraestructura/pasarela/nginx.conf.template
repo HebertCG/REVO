@@ -269,11 +269,11 @@ http {
             proxy_pass $servicio_ml;
         }
 
-        location /api/jobs/ {
-            limit_req zone=general burst=60 nodelay;
-            rewrite ^/api/jobs/(.*)$ /jobs/$1 break;
-            proxy_pass $servicio_ml;
-        }
+        # /api/jobs/ se retiro con la tabla `jobs` (migracion 20) y su router.
+        # La pantalla de resultado consulta la API de Remotive en tiempo real
+        # (frontend/src/pages/Results.jsx), asi que este enrutado apuntaba a
+        # un servicio que ya no sirve esa ruta: daba un 404 del backend en vez
+        # de un 404 limpio de la pasarela.
 
         location /api/psychometric/ {
             limit_req zone=general burst=60 nodelay;

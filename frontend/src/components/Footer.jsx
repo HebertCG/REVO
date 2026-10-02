@@ -19,9 +19,35 @@ export default function Footer() {
             Un cuestionario que se adapta a tus respuestas y te devuelve tus tres
             ramas más probables, con el nivel de confianza de cada una.
           </p>
+          {/*
+            Atribución obligatoria, no decorativa: la base O*NET se publica
+            bajo CC BY 4.0, que exige citar la fuente, enlazar la licencia e
+            indicar que se modificó.
+
+            Hasta la Fase 2 esta frase afirmaba el anclaje sin que existiera
+            ni un dato de O*NET en el repositorio. Ahora es cierta: los
+            perfiles RIASEC de las diez ramas salen de
+            database/onet/perfiles_ramas.json.
+          */}
           <p className="footer-meta">
-            Especializaciones ancladas al catálogo ocupacional O*NET
-            del Departamento de Trabajo de EE.&nbsp;UU.
+            Especializaciones ancladas al catálogo ocupacional{' '}
+            <a
+              href="https://www.onetcenter.org/database.html"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              O*NET&nbsp;31.0
+            </a>{' '}
+            del Departamento de Trabajo de EE.&nbsp;UU. (USDOL/ETA).
+            O*NET® es marca registrada del USDOL/ETA. Datos usados bajo licencia{' '}
+            <a
+              href="https://creativecommons.org/licenses/by/4.0/"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              CC&nbsp;BY&nbsp;4.0
+            </a>{' '}
+            y agregados por especialización.
           </p>
         </div>
 

@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useEffectEvent, useCallback, useMemo } fro
 import { useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { useAuth } from '../context/contextoAuth'
-import { surveyApi, despertarCuestionario } from '../services/api'
+import { surveyApi } from '../services/api'
 import personaCelularGaming from '../assets/persona-celular-gaming.webp'
 import personaDiferenciaGaming from '../assets/persona-diferencia-gaming.webp'
 import personaRepartiendoGaming from '../assets/persona-repartiendo-gaming.webp'
@@ -21,7 +21,7 @@ import naveRevo from '../assets/nave-revo.webp'
 import enemigoRevo from '../assets/enemigo-revo.webp'
 import {
   getRemainingPhaseTransitionMs,
-  shouldStartQuestionShuffle,
+  shouldStartPhaseShuffle,
 } from './questionnaireAnimation'
 import {
   MINI_GAMES,
@@ -30,7 +30,9 @@ import {
   createRoadState,
   getRoadObstacles,
   getRoadTargetLane,
+  isQuestionnairePhaseUnlocked,
   resolveQuestionnaireEntryView,
+  unlockQuestionnairePhase,
 } from './questionnaireMiniGames'
 import {
   ARCADE_ENEMY_COUNT,
@@ -144,14 +146,14 @@ function Ambiente() {
 function FaseHud({ fase, actual, total, miniGame }) {
   const esRuta = miniGame === MINI_GAMES.ROAD
   const esArcade = miniGame === MINI_GAMES.ARCADE
-  const unidad = esRuta ? 'Parada' : esArcade ? 'Señal' : 'Carta'
+  const unidad = 'Pregunta'
   return (
     <header className="quiz-hud">
       <div className="quiz-partida">
         <span className="quiz-partida-marca" aria-hidden="true">R</span>
         <span>
           <strong>Partida de afinidad</strong>
-          <small>{esRuta ? 'Tu perfil avanza parada a parada' : esArcade ? 'Tu perfil avanza señal a señal' : 'Tu perfil se construye carta a carta'}</small>
+          <small>{esRuta ? 'Una ruta abre cada fase' : esArcade ? 'Una misión abre cada fase' : 'Una carta abre cada fase'}</small>
         </span>
       </div>
 
@@ -191,11 +193,11 @@ function PanelMazo({ fase, items, respuestas, actual, miniGame }) {
   const esRuta = miniGame === MINI_GAMES.ROAD
   const esArcade = miniGame === MINI_GAMES.ARCADE
   const descripcion = esRuta
-    ? 'Conduce hasta cada parada. Cada meta abre una nueva señal.'
+    ? 'Completa una ruta al empezar la fase y responde todas sus preguntas con calma.'
     : esArcade
-      ? 'Supera cada oleada. La destreza abre preguntas, nunca cambia tu perfil.'
+      ? 'Supera una misión al empezar la fase. La destreza nunca cambia tu perfil.'
       : textos[fase]
-  const progresoLabel = esRuta ? 'Paradas superadas' : esArcade ? 'Oleadas superadas' : 'Cartas resueltas'
+  const progresoLabel = 'Preguntas respondidas'
 
   return (
     <aside className={`quiz-panel ${esRuta ? 'quiz-panel-ruta' : ''} ${esArcade ? 'quiz-panel-arcade' : ''}`}>
@@ -225,7 +227,7 @@ function PanelMazo({ fase, items, respuestas, actual, miniGame }) {
           ))}
         </div>
         <span className="quiz-mini-etiqueta">{progresoLabel}</span>
-        <strong>{jugadas.length} {esRuta ? 'en la ruta' : esArcade ? 'en escuadrón' : 'en el mazo'}</strong>
+        <strong>{resueltas} respondidas</strong>
       </div>
 
       <div className="quiz-panel-datos">
@@ -284,9 +286,9 @@ const DATOS_MINIJUEGO = {
   [MINI_GAMES.CARDS]: {
     numero: '01',
     etiqueta: 'Mano de señales',
-    titulo: 'Elige la carta que abrirá cada pregunta',
-    texto: 'Cinco cartas llegan a la mesa. Confía en tu primera elección para revelar la siguiente señal.',
-    instrucciones: ['Elige una carta de la mano', 'Responde la pregunta que guarda', 'Juega la carta para avanzar'],
+    titulo: 'Elige la carta que abrirá cada fase',
+    texto: 'Cinco cartas llegan a la mesa. Una elección desbloquea todas las preguntas de la fase.',
+    instrucciones: ['Elige una carta de la mano', 'Desbloquea la fase completa', 'Responde sus preguntas sin interrupciones'],
     control: 'Teclado 1–5 o toca una carta',
     accion: 'Repartir cartas',
     imagen: personaRepartiendoGaming,
@@ -294,8 +296,8 @@ const DATOS_MINIJUEGO = {
   [MINI_GAMES.ROAD]: {
     numero: '02',
     etiqueta: 'Ruta de afinidad',
-    titulo: 'Conduce hasta la próxima parada',
-    texto: 'Recorre la pista horizontal, esquiva las barreras y llega por el carril iluminado para desbloquear cada pregunta.',
+    titulo: 'Conduce para abrir la siguiente fase',
+    texto: 'Recorre la pista, esquiva las barreras y llega por el carril iluminado para desbloquear la fase completa.',
     instrucciones: ['Sube y baja para cambiar de carril', 'Derecha acelera; izquierda frena', 'Esquiva las barreras y cruza la meta'],
     control: 'Cuatro flechas o WASD · cruceta táctil en celular',
     accion: 'Comenzar recorrido',
@@ -304,8 +306,8 @@ const DATOS_MINIJUEGO = {
   [MINI_GAMES.ARCADE]: {
     numero: '03',
     etiqueta: 'Escuadrón de señales',
-    titulo: 'Defiende la señal que abre cada pregunta',
-    texto: 'Pilota la nave REVO, alinea el cañón y derriba toda la formación enemiga para desbloquear cada pregunta.',
+    titulo: 'Defiende la señal que abre la fase',
+    texto: 'Pilota la nave REVO y derriba la formación enemiga para desbloquear todas las preguntas de la fase.',
     instrucciones: ['Muévete para apuntar a una nave', 'Dispara y espera la recarga del cañón', 'Derriba la flota y responde con calma'],
     control: 'Flechas o WASD · espacio dispara · controles táctiles en celular',
     accion: 'Iniciar misión',
@@ -476,7 +478,7 @@ function RutaPreguntas({ questionIndex, fase, onLlegar, reduceMotion }) {
 
   const avanceHorizontal = `${estado.progress * .86}cqw`
   const estadoTexto = estado.completed
-    ? 'Parada alcanzada. Abriendo pregunta…'
+    ? 'Meta alcanzada. Abriendo la fase…'
     : estado.collision
       ? `¡Choque! Esquiva el obstáculo cambiando al carril ${estado.lane === 0 ? 'central o inferior' : estado.lane === 2 ? 'central o superior' : 'superior o inferior'}.`
     : estado.blocked
@@ -494,10 +496,10 @@ function RutaPreguntas({ questionIndex, fase, onLlegar, reduceMotion }) {
     >
       <div className="quiz-ruta-cab">
         <span>Minijuego 02 · Ronda {fase}</span>
-        <strong>Parada {String(questionIndex + 1).padStart(2, '0')}</strong>
+        <strong>Fase {String(fase).padStart(2, '0')}</strong>
       </div>
-      <h1>Conduce hasta tu próxima pregunta</h1>
-      <p>Avanza hacia la derecha, cambia de carril y esquiva cada obstáculo hasta la meta.</p>
+      <h1>Conduce para iniciar esta fase</h1>
+      <p>Llega a la meta una sola vez y desbloquea todas las preguntas de esta fase.</p>
 
       <div className={`quiz-pista quiz-pista-horizontal ${estado.blocked ? 'bloqueada' : ''} ${estado.collision ? 'colision' : ''} ${estado.completed ? 'completada' : ''}`}>
         <div className="quiz-pista-cielo" aria-hidden="true"><i /><i /><i /></div>
@@ -579,7 +581,7 @@ function RutaPreguntas({ questionIndex, fase, onLlegar, reduceMotion }) {
   )
 }
 
-function ArcadePreguntas({ questionIndex, fase, onCompletar, reduceMotion }) {
+function ArcadePreguntas({ fase, onCompletar, reduceMotion }) {
   const [estado, setEstado] = useState(createArcadeState)
   const [inicioOleada] = useState(Date.now)
   const notificarCompletado = useEffectEvent(() => onCompletar())
@@ -631,7 +633,7 @@ function ArcadePreguntas({ questionIndex, fase, onCompletar, reduceMotion }) {
   }, [estado.completed, inicioOleada, reduceMotion])
 
   const estadoTexto = estado.completed
-    ? 'Flota derrotada. Abriendo pregunta…'
+    ? 'Flota derrotada. Abriendo la fase…'
     : estado.explosion
       ? 'Impacto confirmado. Busca tu próximo objetivo.'
     : estado.hit
@@ -653,10 +655,10 @@ function ArcadePreguntas({ questionIndex, fase, onCompletar, reduceMotion }) {
     >
       <div className="quiz-arcade-cab">
         <span>Minijuego 03 · Ronda {fase}</span>
-        <strong>Señal {String(questionIndex + 1).padStart(2, '0')}</strong>
+        <strong>Fase {String(fase).padStart(2, '0')}</strong>
       </div>
-      <h1>Derrota la flota de tu próxima pregunta</h1>
-      <p>Muévete para apuntar, dispara con espacio y elimina las seis naves. El combate desbloquea la pregunta, pero nunca cambia tu respuesta.</p>
+      <h1>Derrota la flota para iniciar esta fase</h1>
+      <p>Elimina las seis naves una sola vez y desbloquea todas las preguntas de la fase.</p>
 
       <div className={`quiz-arcade-arena ${estado.hit ? 'impacto' : ''} ${estado.completed ? 'completada' : ''}`}>
         <span className="quiz-arcade-estrellas" aria-hidden="true" />
@@ -757,7 +759,7 @@ const RECURSOS_MINIJUEGO = [
 
 function ManoPreguntas({ estado, elegida, onElegir, fase, reduceMotion }) {
   const lista = estado === 'barajando'
-    ? 'Barajando las próximas señales'
+    ? 'Barajando la señal de esta fase'
     : estado === 'revelando'
       ? `Revelando la carta ${elegida + 1}`
       : 'La mano está lista. Elige una carta'
@@ -772,13 +774,13 @@ function ManoPreguntas({ estado, elegida, onElegir, fase, reduceMotion }) {
       transition={{ duration: reduceMotion ? .1 : .35, ease: [0.22, 1, 0.36, 1] }}
     >
       <span className="quiz-robo-ronda">Minijuego 01 · Ronda {fase}</span>
-      <h1>Elige tu próxima pregunta</h1>
-      <p>Cada carta guarda una señal diferente. Confía en tu primera elección.</p>
+      <h1>Elige la carta que inicia esta fase</h1>
+      <p>Solo necesitas una carta para desbloquear todas las preguntas de la fase.</p>
 
       <div
         className={`quiz-mano ${estado}`}
         role="group"
-        aria-label="Mano de cinco cartas de preguntas"
+        aria-label="Mano de cinco cartas para desbloquear la fase"
       >
         <span className="quiz-mano-real" aria-hidden="true">
           <img className="quiz-mano-con-cartas" src={manoRepartiendoRevo} alt="" decoding="async" />
@@ -839,16 +841,16 @@ export default function Questionnaire() {
   const [error, setError] = useState('')
   const [manoEstado, setManoEstado] = useState('barajando')
   const [manoElegida, setManoElegida] = useState(null)
-  const [manoPreguntaId, setManoPreguntaId] = useState(null)
+  const [manoFase, setManoFase] = useState(null)
   const [miniGame, setMiniGame] = useState(null)
   const [miniGameStage, setMiniGameStage] = useState('selecting')
-  const [rutaPreguntaId, setRutaPreguntaId] = useState(null)
-  const [arcadePreguntaId, setArcadePreguntaId] = useState(null)
+  const [fasesDesbloqueadas, setFasesDesbloqueadas] = useState({})
   const cardRef = useRef(null)
   const questionHeadingRef = useRef(null)
   const shuffleTimerRef = useRef(null)
   const revealTimerRef = useRef(null)
   const miniGameTimerRef = useRef(null)
+  const advanceLockRef = useRef(false)
   const reduceMotion = useReducedMotion()
 
   useEffect(() => {
@@ -868,11 +870,6 @@ export default function Questionnaire() {
 
     const iniciarPartida = async () => {
       try {
-        // La partida empieza con un POST, y un POST no se reintenta solo:
-        // si survey-service esta dormido, el alumno recibe "no pudimos
-        // repartir las cartas" por algo que solo necesitaba medio minuto.
-        // El despertador si se reintenta, asi que se le espera.
-        await despertarCuestionario()
         const sRes = await surveyApi.createSession()
         if (!active) return
 
@@ -915,6 +912,7 @@ export default function Questionnaire() {
     setCurrent(0)
     setPhase(1)
     setAnswers({})
+    setFasesDesbloqueadas({})
     setLoading(true)
     setIntentoArranque((n) => n + 1)
   }
@@ -972,36 +970,28 @@ export default function Questionnaire() {
   const isLast = current === total - 1
   const preguntaFase3 = phase3Questions[phase3Current]
   const preguntaActivaId = phase === 3 ? preguntaFase3?.id : q?.id
-  const preguntaActivaRespondida = phase === 3
-    ? preguntaFase3 && phase3Answers[preguntaFase3.id] !== undefined
-    : q && answers[q.id] !== undefined
-  const estadoActivoMano = manoPreguntaId === preguntaActivaId
+  const faseDesbloqueada = isQuestionnairePhaseUnlocked(fasesDesbloqueadas, phase)
+  const estadoActivoMano = manoFase === phase
     ? manoEstado
-    : preguntaActivaRespondida ? 'pregunta' : 'barajando'
-  const manoElegidaActiva = manoPreguntaId === preguntaActivaId ? manoElegida : null
-  const rutaActivaCompletada = rutaPreguntaId === preguntaActivaId || preguntaActivaRespondida
-  const arcadeActivoCompletado = arcadePreguntaId === preguntaActivaId || preguntaActivaRespondida
-  const preguntaVisible = miniGame === MINI_GAMES.ROAD
-    ? rutaActivaCompletada
-    : miniGame === MINI_GAMES.ARCADE
-      ? arcadeActivoCompletado
-      : estadoActivoMano === 'pregunta'
+    : faseDesbloqueada ? 'pregunta' : 'barajando'
+  const manoElegidaActiva = manoFase === phase ? manoElegida : null
+  const preguntaVisible = faseDesbloqueada
 
   useEffect(() => {
     clearTimeout(shuffleTimerRef.current)
     clearTimeout(revealTimerRef.current)
     if (miniGame !== MINI_GAMES.CARDS || miniGameStage !== 'playing') return undefined
-    if (!shouldStartQuestionShuffle({
+    if (!shouldStartPhaseShuffle({
       loading,
       submitting,
       transitioning,
-      questionId: preguntaActivaId,
-      answered: preguntaActivaRespondida,
+      phase,
+      unlocked: faseDesbloqueada,
     })) return
 
     shuffleTimerRef.current = setTimeout(
       () => {
-        setManoPreguntaId(preguntaActivaId)
+        setManoFase(phase)
         setManoElegida(null)
         setManoEstado('lista')
       },
@@ -1012,37 +1002,41 @@ export default function Questionnaire() {
       clearTimeout(shuffleTimerRef.current)
       clearTimeout(revealTimerRef.current)
     }
-  }, [loading, miniGame, miniGameStage, preguntaActivaId, preguntaActivaRespondida, reduceMotion, submitting, transitioning])
+  }, [faseDesbloqueada, loading, miniGame, miniGameStage, phase, reduceMotion, submitting, transitioning])
+
+  const desbloquearFase = (numeroFase) => {
+    setFasesDesbloqueadas((actuales) => unlockQuestionnairePhase(actuales, numeroFase))
+  }
 
   const elegirCartaPregunta = (indice) => {
     if (miniGame !== MINI_GAMES.CARDS || miniGameStage !== 'playing') return
     if (estadoActivoMano !== 'lista' || !preguntaActivaId) return
     clearTimeout(revealTimerRef.current)
-    setManoPreguntaId(preguntaActivaId)
+    setManoFase(phase)
     setManoElegida(indice)
     setManoEstado('revelando')
     revealTimerRef.current = setTimeout(() => {
       setManoEstado('pregunta')
+      desbloquearFase(phase)
       requestAnimationFrame(() => questionHeadingRef.current?.focus())
     }, reduceMotion ? 100 : 720)
   }
 
-  const completarRutaPregunta = (questionId) => {
-    if (!questionId) return
-    setRutaPreguntaId(questionId)
+  const completarRutaFase = () => {
+    desbloquearFase(phase)
     requestAnimationFrame(() => questionHeadingRef.current?.focus())
   }
 
-  const completarArcadePregunta = (questionId) => {
-    if (!questionId) return
-    setArcadePreguntaId(questionId)
+  const completarArcadeFase = () => {
+    desbloquearFase(phase)
     requestAnimationFrame(() => questionHeadingRef.current?.focus())
   }
 
   const setAnswer = (val) => setAnswers((a) => ({ ...a, [q.id]: val }))
 
   const next = async () => {
-    if (!isAnswered) return
+    if (!isAnswered || advanceLockRef.current) return
+    advanceLockRef.current = true
     surveyApi.saveAnswers(sessionId, {
       answers: [{ question_id: q.id, value: answers[q.id] }],
     }).catch(console.error)
@@ -1070,22 +1064,22 @@ export default function Questionnaire() {
               return
             }
             if (t.prediction_id) {
-              setSubmitting(false)
               sessionStorage.setItem('revo_pending_result', t.prediction_id)
               sessionStorage.setItem('revo_winning_spec', t.primary_specialization || '')
-              triggerPhase3(t.primary_specialization || '', t.primary_specialization_id || null)
+              await triggerPhase3(t.primary_specialization || '', t.primary_specialization_id || null)
+              setSubmitting(false)
               return
             }
             if (t.error && intento < maxRetries) {
               const s = intento * 10
-              setError(`El servicio está despertando. Reintentando en ${s}s (${intento}/${maxRetries})`)
+              setError(`El servidor no respondió. Reintentando en ${s}s (${intento}/${maxRetries})`)
               await sleep(s * 1000)
               setError('')
             } else if (t.error) {
               setError('')
-              setSubmitting(false)
               sessionStorage.removeItem('revo_pending_result')
-              triggerPhase3('', null)
+              await triggerPhase3('', null)
+              setSubmitting(false)
               return
             } else {
               setError('Respuesta inesperada del servidor. Intenta de nuevo.')
@@ -1105,12 +1099,17 @@ export default function Questionnaire() {
           }
         }
       }
-      await submitWithRetry()
+      try {
+        await submitWithRetry()
+      } finally {
+        advanceLockRef.current = false
+      }
     } else {
       if (cardRef.current) cardRef.current.dataset.saliendo = 'si'
       setTimeout(() => {
         setCurrent((c) => c + 1)
         if (cardRef.current) delete cardRef.current.dataset.saliendo
+        advanceLockRef.current = false
       }, 160)
     }
   }
@@ -1126,15 +1125,6 @@ export default function Questionnaire() {
     if (e.target.matches('input, textarea, select')) return
 
     if (!preguntaVisible) {
-      // Retroceder es lo unico que tiene sentido con la pregunta tapada: al
-      // avanzar, la siguiente SIEMPRE nace escondida tras el minijuego, asi
-      // que exigir destaparla antes de poder volver atras es pedir justo lo
-      // contrario de lo que el alumno quiere hacer.
-      if (e.key === 'ArrowLeft' && enFase12) {
-        e.preventDefault()
-        prev()
-        return
-      }
       if (miniGame === MINI_GAMES.CARDS && estadoActivoMano === 'lista' && e.key >= '1' && e.key <= '5') {
         e.preventDefault()
         elegirCartaPregunta(Number(e.key) - 1)
@@ -1236,7 +1226,8 @@ export default function Questionnaire() {
     const elegir = (key) => setPhase3Answers((prev) => ({ ...prev, [p3q.id]: key }))
 
     const siguienteP3 = () => {
-      if (!p3Sel) return
+      if (!p3Sel || advanceLockRef.current) return
+      advanceLockRef.current = true
       if (p3Ultima) {
         setSubmitting(true)
         const finales = { ...phase3Answers, [p3q.id]: p3Sel }
@@ -1245,6 +1236,7 @@ export default function Questionnaire() {
         setTimeout(() => navigate(`/results/${pendiente}`), 3500)
       } else {
         setPhase3Current((c) => c + 1)
+        requestAnimationFrame(() => { advanceLockRef.current = false })
       }
     }
 
@@ -1265,18 +1257,17 @@ export default function Questionnaire() {
                     miniGame === MINI_GAMES.ROAD ? (
                       <RutaPreguntas
                         key={`ruta-${p3q.id}`}
-                        questionIndex={phase3Current}
+                        questionIndex={2}
                         fase={3}
                         reduceMotion={reduceMotion}
-                        onLlegar={() => completarRutaPregunta(p3q.id)}
+                        onLlegar={completarRutaFase}
                       />
                     ) : miniGame === MINI_GAMES.ARCADE ? (
                       <ArcadePreguntas
                         key={`arcade-${p3q.id}`}
-                        questionIndex={phase3Current}
                         fase={3}
                         reduceMotion={reduceMotion}
-                        onCompletar={() => completarArcadePregunta(p3q.id)}
+                        onCompletar={completarArcadeFase}
                       />
                     ) : (
                       <ManoPreguntas
@@ -1299,7 +1290,7 @@ export default function Questionnaire() {
                     >
                       <div className="quiz-carta-cab">
                         <span className="quiz-sello"><b>PR</b> Perfil profesional</span>
-                        <span className="quiz-instruccion">Elige una carta</span>
+                      <span className="quiz-instruccion">Elige una opción</span>
                       </div>
 
                       <h1 ref={questionHeadingRef} tabIndex="-1" className="quiz-pregunta">{p3q.question}</h1>
@@ -1324,7 +1315,7 @@ export default function Questionnaire() {
                           <span aria-hidden="true">←</span> Anterior
                         </button>
                         <button onClick={siguienteP3} disabled={!p3Sel} className="quiz-btn quiz-btn-pri">
-                          {p3Ultima ? 'Revelar mi perfil' : miniGame === MINI_GAMES.ROAD ? 'Continuar la ruta' : miniGame === MINI_GAMES.ARCADE ? 'Continuar misión' : 'Jugar esta carta'} <span aria-hidden="true">→</span>
+                          {p3Ultima ? 'Revelar mi perfil' : 'Siguiente pregunta'} <span aria-hidden="true">→</span>
                         </button>
                       </nav>
                     </MotionDiv>
@@ -1360,18 +1351,17 @@ export default function Questionnaire() {
                 miniGame === MINI_GAMES.ROAD ? (
                   <RutaPreguntas
                     key={`ruta-${q.id}`}
-                    questionIndex={current}
+                    questionIndex={phase - 1}
                     fase={phase}
                     reduceMotion={reduceMotion}
-                    onLlegar={() => completarRutaPregunta(q.id)}
+                    onLlegar={completarRutaFase}
                   />
                 ) : miniGame === MINI_GAMES.ARCADE ? (
                   <ArcadePreguntas
                     key={`arcade-${q.id}`}
-                    questionIndex={current}
                     fase={phase}
                     reduceMotion={reduceMotion}
-                    onCompletar={() => completarArcadePregunta(q.id)}
+                    onCompletar={completarArcadeFase}
                   />
                 ) : (
                   <ManoPreguntas
@@ -1432,12 +1422,12 @@ export default function Questionnaire() {
                     <button onClick={next} disabled={!isAnswered} className="quiz-btn quiz-btn-pri">
                       {isLast
                         ? (phase === 1 ? 'Desbloquear fase 2' : 'Ir al perfil profesional')
-                        : miniGame === MINI_GAMES.ROAD ? 'Continuar la ruta' : miniGame === MINI_GAMES.ARCADE ? 'Continuar misión' : 'Jugar esta carta'} <span aria-hidden="true">→</span>
+                        : 'Siguiente pregunta'} <span aria-hidden="true">→</span>
                     </button>
                   </nav>
 
                   <p className="quiz-atajos">
-                    Teclado: <kbd>1</kbd><span>-</span><kbd>5</kbd> para elegir, <kbd>Enter</kbd> para jugar
+                    Teclado: <kbd>1</kbd><span>-</span><kbd>5</kbd> para elegir, <kbd>Enter</kbd> para continuar
                   </p>
                 </MotionDiv>
               )}

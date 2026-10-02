@@ -15,6 +15,7 @@ import fakeredis
 import pytest
 
 URL_PRUEBAS = os.environ.get("REVO_TEST_DATABASE_URL", "")
+URL_ADMIN_PRUEBAS = os.environ.get("REVO_ADMIN_DATABASE_URL", "")
 
 pytestmark = pytest.mark.skipif(
     not URL_PRUEBAS,
@@ -50,15 +51,22 @@ def alumnos(entorno):
     Se insertan con la misma funcion que usa el registro, para no depender de
     que el auth-service este levantado.
     """
-    from sqlalchemy import text
+    from sqlalchemy import create_engine, text
 
     _, servicio = entorno
     creados = []
 
-    with servicio.fabrica_sesiones() as db:
+    if not URL_ADMIN_PRUEBAS:
+        pytest.fail("Falta REVO_ADMIN_DATABASE_URL para preparar alumnos de prueba")
+
+    # revo_survey no puede crear usuarios en produccion: esa frontera es
+    # deliberada. Los datos previos de la prueba los crea el administrador
+    # de la base efimera, antes de ejercitar la API con el rol real.
+    motor_admin = create_engine(URL_ADMIN_PRUEBAS)
+    with motor_admin.begin() as conexion:
         for _ in range(2):
             sufijo = uuid.uuid4().hex[:8]
-            fila = db.execute(
+            fila = conexion.execute(
                 text(
                     "SELECT nuevo_id, motivo FROM revo_crear_alumno("
                     ":email, :hash, :nombre, :codigo, :ciclo)"
@@ -71,8 +79,8 @@ def alumnos(entorno):
                     "ciclo": 7,
                 },
             ).first()
-            db.commit()
             creados.append(fila[0])
+    motor_admin.dispose()
 
     return [
         {"id": uid, "headers": {"Authorization": f"Bearer {servicio.tokens.issue(uid, 'student')}"}}

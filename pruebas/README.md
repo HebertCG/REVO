@@ -39,6 +39,11 @@ python -m pytest pruebas/integracion -q
 Si falta la base de pruebas, estas suites se omiten. El CI debera considerar
 una omision como configuracion incompleta y no como autorizacion para desplegar.
 
+En GitHub Actions, el job `integracion-backend` crea PostgreSQL y Redis
+efimeros. `pruebas/integracion/preparar_postgres.py` prepara un esquema minimo
+con datos sinteticos, roles separados y RLS. Esta fixture es publica, pero no
+incluye migraciones privadas, usuarios reales ni secretos de produccion.
+
 ## 3. End to end
 
 Hay dos niveles diferentes:

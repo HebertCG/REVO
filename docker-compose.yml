@@ -104,10 +104,10 @@ services:
       AGENTE_DB_PASSWORD: ${SERVICE_PASSWORD_64_AGENTE_DB:?}
       PGDATA: /var/lib/postgresql/data/pgdata
     volumes:
-      # v4 fuerza una inicializacion limpia despues de habilitar el permiso de
-      # paso hasta el bind mount en el VPS. Los volumenes anteriores quedan
+      # v5 fuerza una inicializacion limpia despues de copiar los scripts al
+      # VPS donde realmente corre Coolify. Los volumenes anteriores quedan
       # intactos en el host para que el cambio sea recuperable.
-      - postgres_data_v4:/var/lib/postgresql/data
+      - postgres_data_v5:/var/lib/postgresql/data
       # El directorio completo se monta y se ejecuta en orden alfabetico:
       # 01 esquema, 02-09 datos, 10 RLS, 12 consentimiento, 13 alta de
       # alumnos, 14 cuentas, 15 roles por servicio, 16 contrasenas, ...,
@@ -116,7 +116,7 @@ services:
       # ATENCION: database/ NO esta en el repositorio publico. En Coolify la
       # fuente debe ser una ruta absoluta explicita; si toda la fuente es una
       # variable, Coolify la normaliza como un volumen Docker vacio.
-      - /home/hebert/revo-staging-v2/database:/docker-entrypoint-initdb.d:ro
+      - /home/klassia/revo-staging-v2/database:/docker-entrypoint-initdb.d:ro
     networks:
       - revo_interna
     # Sin `ports`: Postgres no asoma al exterior. Para inspeccionarlo en
@@ -313,5 +313,5 @@ networks:
     internal: true
 
 volumes:
-  postgres_data_v4:
+  postgres_data_v5:
   ml_models:

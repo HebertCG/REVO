@@ -32,6 +32,9 @@ services:
     ports:
       # 5434 en el host para no chocar con un Postgres instalado localmente.
       - "5434:5432"
+    volumes:
+      # Sustituye la ruta absoluta del VPS definida en el Compose principal.
+      - ./database:/docker-entrypoint-initdb.d:ro
 
   redis:
     ports:

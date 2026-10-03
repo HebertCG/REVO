@@ -113,10 +113,10 @@ services:
       # alumnos, 14 cuentas, 15 roles por servicio, 16 contrasenas, ...,
       # 33 rol del agente, 34 su contrasena.
       #
-      # ATENCION: database/ NO esta en el repositorio publico. Exigir la ruta
-      # evita que Coolify sustituya silenciosamente ./database por una carpeta
-      # vacia dentro de /data/coolify/applications.
-      - ${DATABASE_INIT_PATH}:/docker-entrypoint-initdb.d:ro
+      # ATENCION: database/ NO esta en el repositorio publico. En Coolify la
+      # fuente debe ser una ruta absoluta explicita; si toda la fuente es una
+      # variable, Coolify la normaliza como un volumen Docker vacio.
+      - /home/hebert/revo-staging-v2/database:/docker-entrypoint-initdb.d:ro
     networks:
       - revo_interna
     # Sin `ports`: Postgres no asoma al exterior. Para inspeccionarlo en

@@ -257,3 +257,101 @@ jobs:
           IMAGEN: revo-${{ matrix.name }}:ci
           USUARIO_ESPERADO: ${{ matrix.runtime_user }}
         run: test "$(docker image inspect --format '{{.Config.User}}' "$IMAGEN")" = "$USUARIO_ESPERADO"
+
+  desplegar-staging:
+    name: Desplegar - Staging
+    needs:
+      - construccion-docker
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: staging
+    env:
+      COOLIFY_WEBHOOK: ${{ secrets.COOLIFY_STAGING_WEBHOOK }}
+      COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
+      APP_URL: ${{ vars.STAGING_URL }}
+
+    steps:
+      - name: Validar configuracion de staging
+        shell: bash
+        run: |
+          : "${COOLIFY_WEBHOOK:?Falta COOLIFY_STAGING_WEBHOOK}"
+          : "${COOLIFY_TOKEN:?Falta COOLIFY_TOKEN}"
+          : "${APP_URL:?Falta STAGING_URL en el entorno staging}"
+
+      - name: Solicitar despliegue en Coolify
+        shell: bash
+        run: |
+          curl --fail --silent --show-error \
+            --request GET \
+            --header "Authorization: Bearer ${COOLIFY_TOKEN}" \
+            --output /dev/null \
+            "${COOLIFY_WEBHOOK}"
+
+      - name: Esperar y verificar staging
+        shell: bash
+        run: |
+          sleep 60
+          for intento in {1..30}; do
+            if curl --fail --silent --show-error \
+              --max-time 10 \
+              --output /dev/null \
+              "${APP_URL%/}/health"; then
+              echo "Staging responde correctamente."
+              exit 0
+            fi
+            echo "Intento ${intento}/30: staging aun no esta listo."
+            sleep 10
+          done
+          echo "Staging no supero la verificacion de salud."
+          exit 1
+
+  desplegar-produccion:
+    name: Desplegar - Produccion
+    needs:
+      - desplegar-staging
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: Production
+    env:
+      COOLIFY_WEBHOOK: ${{ secrets.COOLIFY_PRODUCTION_WEBHOOK }}
+      COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
+      APP_URL: ${{ vars.PRODUCTION_URL }}
+
+    steps:
+      - name: Validar configuracion de produccion
+        shell: bash
+        run: |
+          : "${COOLIFY_WEBHOOK:?Falta COOLIFY_PRODUCTION_WEBHOOK}"
+          : "${COOLIFY_TOKEN:?Falta COOLIFY_TOKEN}"
+          : "${APP_URL:?Falta PRODUCTION_URL en el entorno Production}"
+
+      - name: Solicitar despliegue en Coolify
+        shell: bash
+        run: |
+          curl --fail --silent --show-error \
+            --request GET \
+            --header "Authorization: Bearer ${COOLIFY_TOKEN}" \
+            --output /dev/null \
+            "${COOLIFY_WEBHOOK}"
+
+      - name: Esperar y verificar produccion
+        shell: bash
+        run: |
+          sleep 60
+          for intento in {1..30}; do
+            if curl --fail --silent --show-error \
+              --max-time 10 \
+              --output /dev/null \
+              "${APP_URL%/}/health"; then
+              echo "Produccion responde correctamente."
+              exit 0
+            fi
+            echo "Intento ${intento}/30: produccion aun no esta lista."
+            sleep 10
+          done
+          echo "Produccion no supero la verificacion de salud."
+          exit 1

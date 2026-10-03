@@ -284,7 +284,7 @@ jobs:
         shell: bash
         run: |
           curl --fail --silent --show-error \
-            --request GET \
+            --request POST \
             --header "Authorization: Bearer ${COOLIFY_TOKEN}" \
             --output /dev/null \
             "${COOLIFY_WEBHOOK}"
@@ -333,7 +333,7 @@ jobs:
         shell: bash
         run: |
           curl --fail --silent --show-error \
-            --request GET \
+            --request POST \
             --header "Authorization: Bearer ${COOLIFY_TOKEN}" \
             --output /dev/null \
             "${COOLIFY_WEBHOOK}"

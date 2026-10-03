@@ -46,13 +46,16 @@ services:
     logging: *registro
     restart: unless-stopped
     environment:
-      GATEWAY_SECRET: ${GATEWAY_SECRET:?falta GATEWAY_SECRET en .env}
+      # Coolify genera una URL publica para este servicio y la enruta al
+      # puerto interno 80. Fuera de Coolify esta variable es inocua.
+      SERVICE_URL_PASARELA_80: /
+      GATEWAY_SECRET: ${GATEWAY_SECRET:-${SERVICE_PASSWORD_64_GATEWAY}}
       # Hace que envsubst escriba el resultado en /etc/nginx/nginx.conf en
       # vez de en conf.d, que es lo que necesitamos al sustituir el fichero
       # principal completo.
       NGINX_ENVSUBST_OUTPUT_DIR: /etc/nginx
     ports:
-      - "${PUERTO_PUBLICO:-8080}:80"
+      - "${PUERTO_PUBLICO:-127.0.0.1:8080}:80"
     depends_on:
       auth-service:
         condition: service_started
@@ -86,17 +89,17 @@ services:
     logging: *registro
     restart: unless-stopped
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:?falta POSTGRES_DB en .env}
-      POSTGRES_USER: ${POSTGRES_USER:?falta POSTGRES_USER en .env}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?falta POSTGRES_PASSWORD en .env}
+      POSTGRES_DB: ${POSTGRES_DB:-revo_db}
+      POSTGRES_USER: ${POSTGRES_USER:-revo_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-${SERVICE_PASSWORD_64_POSTGRES}}
       # Los consume database/16_asignar_passwords.sh para dar contrasena a
       # los roles que crean las migraciones 10 y 15.
-      AUTH_DB_PASSWORD: ${AUTH_DB_PASSWORD:?falta AUTH_DB_PASSWORD en .env}
-      SURVEY_DB_PASSWORD: ${SURVEY_DB_PASSWORD:?falta SURVEY_DB_PASSWORD en .env}
-      ML_DB_PASSWORD: ${ML_DB_PASSWORD:?falta ML_DB_PASSWORD en .env}
-      SERVICE_DB_PASSWORD: ${SERVICE_DB_PASSWORD:?falta SERVICE_DB_PASSWORD en .env}
+      AUTH_DB_PASSWORD: ${AUTH_DB_PASSWORD:-${SERVICE_PASSWORD_64_AUTH_DB}}
+      SURVEY_DB_PASSWORD: ${SURVEY_DB_PASSWORD:-${SERVICE_PASSWORD_64_SURVEY_DB}}
+      ML_DB_PASSWORD: ${ML_DB_PASSWORD:-${SERVICE_PASSWORD_64_ML_DB}}
+      SERVICE_DB_PASSWORD: ${SERVICE_DB_PASSWORD:-${SERVICE_PASSWORD_64_SERVICE_DB}}
       # La consume database/34_password_agente.sh.
-      AGENTE_DB_PASSWORD: ${AGENTE_DB_PASSWORD:?falta AGENTE_DB_PASSWORD en .env}
+      AGENTE_DB_PASSWORD: ${AGENTE_DB_PASSWORD:-${SERVICE_PASSWORD_64_AGENTE_DB}}
       PGDATA: /var/lib/postgresql/data/pgdata
     volumes:
       - postgres_data:/var/lib/postgresql/data
@@ -109,13 +112,13 @@ services:
       # limpio, este montaje apunta a un directorio vacio y Postgres
       # arranca SIN esquema ni datos: la aplicacion levanta pero falla en
       # la primera consulta. Hay que traer el directorio aparte.
-      - ./database:/docker-entrypoint-initdb.d:ro
+      - ${DATABASE_INIT_PATH:-./database}:/docker-entrypoint-initdb.d:ro
     networks:
       - revo_interna
     # Sin `ports`: Postgres no asoma al exterior. Para inspeccionarlo en
     # desarrollo: docker compose exec postgres psql -U revo_user -d revo_db
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -132,9 +135,11 @@ services:
     container_name: revo_redis
     logging: *registro
     restart: unless-stopped
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-${SERVICE_PASSWORD_64_REDIS}}
     command: >
       redis-server
-      --requirepass ${REDIS_PASSWORD:?falta REDIS_PASSWORD en .env}
+      --requirepass ${REDIS_PASSWORD:-${SERVICE_PASSWORD_64_REDIS}}
       --maxmemory 256mb
       --maxmemory-policy allkeys-lru
       --appendonly no
@@ -142,7 +147,7 @@ services:
     networks:
       - revo_interna
     healthcheck:
-      test: ["CMD", "redis-cli", "--no-auth-warning", "-a", "${REDIS_PASSWORD}", "ping"]
+      test: ["CMD-SHELL", "redis-cli --no-auth-warning -a \"$$REDIS_PASSWORD\" ping"]
       interval: 10s
       timeout: 3s
       retries: 5
@@ -169,11 +174,11 @@ services:
       # alcanza las tablas de su dominio. Con el rol compartido anterior, la
       # regla de "cada tabla la escribe un solo servicio" era una convencion
       # del codigo; ahora la impone el motor (ver 15_roles_por_servicio.sql).
-      DATABASE_URL: postgresql://revo_auth:${AUTH_DB_PASSWORD}@postgres:5432/${POSTGRES_DB}
-      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/0
-      JWT_SECRET: ${JWT_SECRET:?falta JWT_SECRET en .env}
+      DATABASE_URL: postgresql://revo_auth:${AUTH_DB_PASSWORD:-${SERVICE_PASSWORD_64_AUTH_DB}}@postgres:5432/${POSTGRES_DB:-revo_db}
+      REDIS_URL: redis://:${REDIS_PASSWORD:-${SERVICE_PASSWORD_64_REDIS}}@redis:6379/0
+      JWT_SECRET: ${JWT_SECRET:-${SERVICE_REALBASE64_64_JWT}}
       JWT_EXPIRE_HOURS: ${JWT_EXPIRE_HOURS:-24}
-      GATEWAY_SECRET: ${GATEWAY_SECRET}
+      GATEWAY_SECRET: ${GATEWAY_SECRET:-${SERVICE_PASSWORD_64_GATEWAY}}
       REQUIRE_GATEWAY: ${REQUIRE_GATEWAY:-true}
       # 1 = solo Nginx delante. Si se pone Cloudflare, sube a 2. Con el
       # numero mal puesto, el limite por IP cuenta contra el proxy y castiga
@@ -216,7 +221,7 @@ services:
     container_name: revo_survey
     environment:
       <<: *entorno_base
-      DATABASE_URL: postgresql://revo_survey:${SURVEY_DB_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      DATABASE_URL: postgresql://revo_survey:${SURVEY_DB_PASSWORD:-${SERVICE_PASSWORD_64_SURVEY_DB}}@postgres:5432/${POSTGRES_DB:-revo_db}
       ML_SERVICE_URL: http://ml-service:8003
     command: >
       uvicorn main:app --host 0.0.0.0 --port 8002
@@ -240,11 +245,11 @@ services:
     container_name: revo_ml
     environment:
       <<: *entorno_base
-      DATABASE_URL: postgresql://revo_ml:${ML_DB_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      DATABASE_URL: postgresql://revo_ml:${ML_DB_PASSWORD:-${SERVICE_PASSWORD_64_ML_DB}}@postgres:5432/${POSTGRES_DB:-revo_db}
       # El entrenamiento corre en segundo plano, sin alumno detras, y usa su
       # propio rol: asi una tarea de fondo no hereda los permisos de las
       # rutas que atienden peticiones.
-      SERVICE_DATABASE_URL: postgresql://revo_service:${SERVICE_DB_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      SERVICE_DATABASE_URL: postgresql://revo_service:${SERVICE_DB_PASSWORD:-${SERVICE_PASSWORD_64_SERVICE_DB}}@postgres:5432/${POSTGRES_DB:-revo_db}
       MODEL_PATH: /app/model/saved/decision_tree.pkl
     volumes:
       - ml_models:/app/model/saved
@@ -281,7 +286,7 @@ services:
     logging: *registro
     restart: "no"
     environment:
-      DATABASE_URL: postgresql://revo_agente:${AGENTE_DB_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      DATABASE_URL: postgresql://revo_agente:${AGENTE_DB_PASSWORD:-${SERVICE_PASSWORD_64_AGENTE_DB}}@postgres:5432/${POSTGRES_DB:-revo_db}
       DB_REQUIRE_SSL: ${DB_REQUIRE_SSL:-false}
     command: ["python", "-m", "agente_cursos"]
     depends_on:

@@ -104,7 +104,10 @@ services:
       AGENTE_DB_PASSWORD: ${SERVICE_PASSWORD_64_AGENTE_DB:?}
       PGDATA: /var/lib/postgresql/data/pgdata
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      # v2 fuerza una inicializacion limpia tras corregir los secretos que el
+      # primer despliegue de staging genero vacios. El volumen anterior queda
+      # intacto en el host para que el cambio sea recuperable.
+      - postgres_data_v2:/var/lib/postgresql/data
       # El directorio completo se monta y se ejecuta en orden alfabetico:
       # 01 esquema, 02-09 datos, 10 RLS, 12 consentimiento, 13 alta de
       # alumnos, 14 cuentas, 15 roles por servicio, 16 contrasenas, ...,
@@ -311,5 +314,5 @@ networks:
     internal: true
 
 volumes:
-  postgres_data:
+  postgres_data_v2:
   ml_models:

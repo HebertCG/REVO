@@ -116,7 +116,7 @@ services:
       # ATENCION: database/ NO esta en el repositorio publico. Exigir la ruta
       # evita que Coolify sustituya silenciosamente ./database por una carpeta
       # vacia dentro de /data/coolify/applications.
-      - ${DATABASE_INIT_PATH:?}:/docker-entrypoint-initdb.d:ro
+      - ${DATABASE_INIT_PATH}:/docker-entrypoint-initdb.d:ro
     networks:
       - revo_interna
     # Sin `ports`: Postgres no asoma al exterior. Para inspeccionarlo en

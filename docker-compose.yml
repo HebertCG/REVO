@@ -104,10 +104,10 @@ services:
       AGENTE_DB_PASSWORD: ${SERVICE_PASSWORD_64_AGENTE_DB:?}
       PGDATA: /var/lib/postgresql/data/pgdata
     volumes:
-      # v5 fuerza una inicializacion limpia despues de copiar los scripts al
-      # VPS donde realmente corre Coolify. Los volumenes anteriores quedan
-      # intactos en el host para que el cambio sea recuperable.
-      - postgres_data_v5:/var/lib/postgresql/data
+      # v6 fuerza una inicializacion limpia con contrasenas URL-safe para los
+      # roles de servicio. Los volumenes anteriores quedan intactos en el host
+      # para que el cambio sea recuperable.
+      - postgres_data_v6:/var/lib/postgresql/data
       # El directorio completo se monta y se ejecuta en orden alfabetico:
       # 01 esquema, 02-09 datos, 10 RLS, 12 consentimiento, 13 alta de
       # alumnos, 14 cuentas, 15 roles por servicio, 16 contrasenas, ...,
@@ -313,5 +313,5 @@ networks:
     internal: true
 
 volumes:
-  postgres_data_v5:
+  postgres_data_v6:
   ml_models:

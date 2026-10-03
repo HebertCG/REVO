@@ -107,7 +107,7 @@ El sistema trata datos de menores de edad y personas en formación, bajo la **Le
 git clone https://github.com/HebertCG/REVO.git
 cd REVO
 cp .env.example .env        # rellena las contraseñas antes de seguir
-docker compose up -d
+docker compose -f docker-compose.yml -f docker-compose.desarrollo.yml up -d
 ```
 
 La aplicación queda en `http://localhost:8080`. `.env.example` documenta cada variable.
@@ -155,8 +155,9 @@ fuera del repositorio público.
 ### Opcion VPS con Docker
 
 La imagen `infraestructura/pasarela/Dockerfile` compila el frontend y lo sirve
-desde Nginx junto con la pasarela `/api`. En un VPS, `docker compose up -d`
-levanta asi toda la aplicacion con un solo puerto publico. GitHub Actions valida
+desde Nginx junto con la pasarela `/api`. En Coolify, el Compose base levanta
+la aplicacion sin reservar puertos del host: el proxy publica el puerto interno
+80 de la pasarela. GitHub Actions valida
 la construccion de las cinco imagenes despues de superar las puertas de pruebas;
 la publicacion y el despliegue automatico se habilitaran en los siguientes
 bloques del pipeline.

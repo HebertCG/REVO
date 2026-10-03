@@ -4,7 +4,9 @@
 # Cambio principal frente a la version anterior: los microservicios YA NO
 # publican puertos. Antes, `ports: 8001:8001` los dejaba accesibles desde
 # cualquier maquina de la red, saltandose cualquier control de la pasarela.
-# Ahora el unico proceso con un puerto publicado es Nginx.
+# Ahora ningun contenedor publica puertos del host. En produccion, el proxy de
+# Coolify alcanza Nginx por su puerto interno 80. El override de desarrollo
+# publica Nginx solamente en 127.0.0.1:8080.
 #
 # Tres redes:
 #   revo_publica  - solo Nginx. Es la frontera con el mundo.
@@ -35,7 +37,7 @@ x-registro: &registro
 services:
 
   # ─────────────────────────────────────────────
-  # Pasarela — el unico puerto abierto
+  # Pasarela — unico punto de entrada, publicado por el proxy de Coolify
   # ─────────────────────────────────────────────
   pasarela:
     build:
@@ -54,8 +56,8 @@ services:
       # vez de en conf.d, que es lo que necesitamos al sustituir el fichero
       # principal completo.
       NGINX_ENVSUBST_OUTPUT_DIR: /etc/nginx
-    ports:
-      - "${PUERTO_PUBLICO:-127.0.0.1:8080}:80"
+    expose:
+      - "80"
     depends_on:
       auth-service:
         condition: service_started

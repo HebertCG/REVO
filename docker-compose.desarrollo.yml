@@ -22,6 +22,12 @@
 
 services:
 
+  pasarela:
+    ports:
+      # Solo desarrollo local. En Coolify, su proxy alcanza directamente el
+      # puerto interno 80 y no debe reservar un puerto del host.
+      - "${PUERTO_PUBLICO:-127.0.0.1:8080}:80"
+
   postgres:
     ports:
       # 5434 en el host para no chocar con un Postgres instalado localmente.

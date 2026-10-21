@@ -2,9 +2,16 @@ name: CI REVO
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
+      - stating
+      - WilsonCollantesAponte
+      - AlexisMH30
+      - SolanoDieg0
+      - stevenferive
+      - 'codex/**'
   pull_request:
-    branches: [main]
+    branches: [stating, main]
   workflow_dispatch:
 
 permissions:
@@ -15,6 +22,34 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  flujo-ramas:
+    name: Flujo de ramas
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Descargar historial para comparar ramas
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Configurar Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      - name: Probar las reglas de integracion
+        run: node --test .github/scripts/validar-ramas.test.mjs
+
+      - name: Comprobar origen del PR y conflictos con stating
+        env:
+          EVENTO: ${{ github.event_name }}
+          RAMA: ${{ github.ref_name }}
+          BASE_PR: ${{ github.base_ref }}
+          ORIGEN_PR: ${{ github.head_ref }}
+          REPO_PR: ${{ github.event.pull_request.head.repo.full_name }}
+          REPO: ${{ github.repository }}
+        run: node .github/scripts/validar-ramas.mjs
+
   unitarias-frontend:
     name: Unitarias - Frontend
     runs-on: ubuntu-latest
@@ -258,10 +293,35 @@ jobs:
           USUARIO_ESPERADO: ${{ matrix.runtime_user }}
         run: test "$(docker image inspect --format '{{.Config.User}}' "$IMAGEN")" = "$USUARIO_ESPERADO"
 
+  validacion-completa:
+    name: Validacion completa
+    if: always()
+    needs:
+      - flujo-ramas
+      - unitarias-frontend
+      - unitarias-backend
+      - e2e-frontend
+      - integracion-backend
+      - construccion-docker
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Exigir que todas las comprobaciones hayan aprobado
+        env:
+          RESULTADOS: ${{ join(needs.*.result, ' ') }}
+        shell: bash
+        run: |
+          for resultado in $RESULTADOS; do
+            if [ "$resultado" != success ]; then
+              echo "Hay comprobaciones fallidas, canceladas u omitidas."
+              exit 1
+            fi
+          done
+
   desplegar-staging:
     name: Desplegar - Staging
     needs:
-      - construccion-docker
+      - validacion-completa
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 15

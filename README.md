@@ -1,5 +1,8 @@
 # REVO
 
+El flujo de ramas del equipo se describe en [CONTRIBUTING.md](CONTRIBUTING.md):
+ramas personales → `stating` → PR manual a `main`.
+
 **Recomendador Evolutivo de Orientación** — orientación de especialización para estudiantes de Ingeniería de Sistemas.
 
 ---
